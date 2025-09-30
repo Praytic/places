@@ -97,6 +97,11 @@ const App = () => {
     }
   };
 
+  const handleMapClick = () => {
+    // Deselect any currently selected place when clicking on the map
+    setSelectedPlace(null);
+  };
+
   return (
     <div className="app">
       {loading && (
@@ -117,6 +122,7 @@ const App = () => {
           places={places}
           selectedPlace={selectedPlace}
           onPlaceSelect={handleMapPlaceSelect}
+          onMapClick={handleMapClick}
           hiddenLayers={hiddenLayers}
           groups={groups}
         />

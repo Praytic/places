@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { getEmojiForPlaceType } from '../utils/emojiMapping';
+import { createRegularMarker, createSelectedMarker } from '../utils/markerTemplates';
 
 const MapComponent = ({
                           places,
@@ -74,20 +75,12 @@ const MapComponent = ({
 
             const newMarkers = filteredPlaces.map(place => {
                 const emoji = getEmojiForPlaceType(place.types);
-
-                const content = document.createElement('div');
-                content.innerHTML = `
-          <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="16" cy="16" r="15" fill="white" stroke="#333" stroke-width="2"/>
-            <text x="16" y="21" text-anchor="middle" font-size="16">${emoji}</text>
-          </svg>
-        `;
-                content.style.cursor = 'pointer';
+                const content = createRegularMarker(emoji);
 
                 const marker = new AdvancedMarkerElement({
                     map,
                     position: place.geometry.location,
-                    content: content.firstElementChild,
+                    content,
                     title: place.name
                 });
 
@@ -116,33 +109,15 @@ const MapComponent = ({
 
         if (selectedMarker) {
             const emoji = getEmojiForPlaceType(selectedPlace.types);
-
-            const selectedContent = document.createElement('div');
-            selectedContent.innerHTML = `
-        <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="20" cy="20" r="18" fill="#4285f4" stroke="white" stroke-width="3"/>
-          <text x="20" y="26" text-anchor="middle" font-size="18" fill="white">${emoji}</text>
-        </svg>
-      `;
-            selectedContent.style.cursor = 'pointer';
-
-            selectedMarker.content = selectedContent.firstElementChild;
+            const selectedContent = createSelectedMarker(emoji);
+            selectedMarker.content = selectedContent;
         }
 
         return () => {
             if (selectedMarker) {
                 const regularEmoji = getEmojiForPlaceType(selectedPlace.types);
-
-                const regularContent = document.createElement('div');
-                regularContent.innerHTML = `
-          <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="16" cy="16" r="15" fill="white" stroke="#333" stroke-width="2"/>
-            <text x="16" y="21" text-anchor="middle" font-size="16">${regularEmoji}</text>
-          </svg>
-        `;
-                regularContent.style.cursor = 'pointer';
-
-                selectedMarker.content = regularContent.firstElementChild;
+                const regularContent = createRegularMarker(regularEmoji);
+                selectedMarker.content = regularContent;
             }
         };
     }, [selectedPlace, map]);
