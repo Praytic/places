@@ -68,9 +68,8 @@ const MapComponent = ({
             const { AdvancedMarkerElement } = await window.google.maps.importLibrary('marker');
 
             const filteredPlaces = places.filter(place => {
-                const layer = place.types?.[0] || 'default';
                 const group = place.group || 'default';
-                return !hiddenLayers.has(layer) && !hiddenLayers.has(group);
+                return !hiddenLayers.has(group);
             });
 
             const newMarkers = filteredPlaces.map(place => {

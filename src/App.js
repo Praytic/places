@@ -11,10 +11,7 @@ const App = () => {
   const [hiddenLayers, setHiddenLayers] = useState(new Set());
   const [groups] = useState(['favorite', 'wants to go', 'visited', 'default']);
 
-  const availableLayers = [...new Set([
-    ...places.map(place => place.types?.[0] || 'default'),
-    ...groups
-  ])];
+  const availableLayers = groups;
 
   useEffect(() => {
     const savedPlaces = localStorage.getItem('placesApp_places');
