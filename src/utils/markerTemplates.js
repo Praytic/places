@@ -10,8 +10,8 @@
 export const createRegularMarker = (emoji) => {
   const content = document.createElement('div');
   content.innerHTML = `
-    <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-      <text x="16" y="22" text-anchor="middle" font-size="24">${emoji}</text>
+    <svg width="32" height="32" viewBox="-16 -26 32 32" xmlns="http://www.w3.org/2000/svg">
+      <text x="0" y="-4" text-anchor="middle" font-size="24">${emoji}</text>
     </svg>
   `;
   content.style.cursor = 'pointer';
@@ -26,7 +26,7 @@ export const createRegularMarker = (emoji) => {
 export const createSelectedMarker = (emoji) => {
     const content = document.createElement('div');
     content.innerHTML = `
-    <svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+    <svg width="48" height="48" viewBox="-24 -38 48 48" xmlns="http://www.w3.org/2000/svg" overflow="visible">
       <defs>
         <filter id="glow-selected" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
@@ -41,11 +41,11 @@ export const createSelectedMarker = (emoji) => {
         </filter>
       </defs>
       <!-- Outer white border ring -->
-      <circle cx="24" cy="28" r="20" fill="white" filter="url(#glow-selected)"/>
+      <circle cx="0" cy="-10" r="20" fill="white" filter="url(#glow-selected)"/>
       <!-- Colored inner circle -->
-      <circle cx="24" cy="28" r="16" fill="#ededed"/>
+      <circle cx="0" cy="-10" r="16" fill="#ededed"/>
       <!-- Emoji -->
-      <text x="24" y="38" text-anchor="middle" font-size="24">${emoji}</text>
+      <text x="0" y="0" text-anchor="middle" font-size="24">${emoji}</text>
     </svg>
   `;
     content.style.cursor = 'pointer';
