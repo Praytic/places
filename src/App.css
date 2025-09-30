@@ -28,26 +28,31 @@ body {
 }
 
 .control-panel {
-  background: white;
-  border-top: 1px solid #e0e0e0;
-  padding: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 0;
   position: relative;
+  display: flex;
+  justify-content: center;
 }
 
 .control-buttons {
-  display: grid;
-  grid-template-columns: repeat(4, 40px);
-  gap: 8px;
-  margin-bottom: 12px;
-  justify-content: center;
+  display: flex;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  padding: 8px;
+  margin: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  gap: 0;
 }
 
 .control-button {
   background: none;
-  color: #424242;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  padding: 10px;
+  color: #666;
+  border: none;
+  border-radius: 0;
+  padding: 12px 16px;
   font-size: 16px;
   font-weight: 400;
   cursor: pointer;
@@ -55,29 +60,40 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  min-height: unset;
+  position: relative;
+  min-width: 48px;
+  height: 48px;
+}
+
+.control-button:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 1px;
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .control-button:hover:not(.disabled) {
-  background: #f5f5f5;
-  border-color: #bdbdbd;
+  background: rgba(0, 0, 0, 0.05);
+  color: #333;
 }
 
 .control-button:active:not(.disabled) {
-  background: #eeeeee;
+  background: rgba(0, 0, 0, 0.1);
+  transform: scale(0.95);
 }
 
 .control-button.disabled {
   background: none;
-  color: #bdbdbd;
-  border-color: #f0f0f0;
+  color: #ccc;
   cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .control-button.group-button.favorite {
-  color: #ef4444;
+  color: #ff3b30;
 }
 
 .control-button.group-button.favorite svg {
@@ -85,7 +101,7 @@ body {
 }
 
 .control-button.group-button.want-to-go {
-  color: #424242;
+  color: #666;
 }
 
 .control-button.group-button.want-to-go svg {
@@ -93,61 +109,65 @@ body {
 }
 
 .control-button.group-button:hover:not(.disabled) {
-  color: #ef4444;
-  border-color: #fecaca;
-  background: #fef2f2;
+  color: #ff3b30;
+  background: rgba(255, 59, 48, 0.1);
 }
 
 .control-button svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.5;
 }
 
 
 .dropdown-panel {
   position: absolute;
   bottom: 100%;
-  left: 16px;
-  right: 16px;
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  left: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   max-height: 200px;
   overflow-y: auto;
+  margin-bottom: 8px;
 }
 
 .dropdown-header {
-  padding: 12px 16px;
-  background: #f5f5f5;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 16px 20px 12px;
+  background: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
   color: #333;
+  text-align: center;
 }
 
 .dropdown-item {
   display: block;
   width: 100%;
-  padding: 12px 16px;
+  padding: 14px 20px;
   border: none;
-  background: white;
-  text-align: left;
+  background: none;
+  text-align: center;
   cursor: pointer;
-  font-size: 14px;
-  border-bottom: 1px solid #f0f0f0;
-  transition: background-color 0.2s ease;
+  font-size: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  color: #007aff;
 }
 
 .dropdown-item:hover {
-  background: #f8f9fa;
+  background: rgba(0, 122, 255, 0.1);
 }
 
 .dropdown-item.active {
-  background: #e3f2fd;
-  color: #1976d2;
-  font-weight: 500;
+  background: rgba(0, 122, 255, 0.15);
+  color: #007aff;
+  font-weight: 600;
 }
 
 .dropdown-item:last-child {
@@ -157,11 +177,12 @@ body {
 .toggle-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  gap: 8px;
 }
 
 .toggle-item.hidden {
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 .toggle-icon {
@@ -263,45 +284,64 @@ body {
 }
 
 @media (min-width: 768px) {
+  .control-panel {
+    width: 300px;
+    border-top: none;
+    border-left: 1px solid rgba(0, 0, 0, 0.1);
+    height: 100vh;
+    overflow-y: auto;
+    align-items: flex-start;
+    padding-top: 16px;
+  }
+
   .control-buttons {
-    grid-template-columns: repeat(4, 40px);
-    justify-content: flex-start;
+    flex-direction: column;
+    width: auto;
+    margin: 0 16px;
+  }
+
+  .control-button:not(:last-child)::after {
+    left: 12px;
+    right: 12px;
+    top: auto;
+    bottom: 0;
+    width: auto;
+    height: 1px;
   }
 
   .app {
     flex-direction: row;
   }
 
-  .control-panel {
-    width: 300px;
-    border-top: none;
-    border-left: 1px solid #e0e0e0;
-    height: 100vh;
-    overflow-y: auto;
-  }
-
   .dropdown-panel {
     position: static;
     box-shadow: none;
-    border: 1px solid #e0e0e0;
+    border: 1px solid rgba(0, 0, 0, 0.1);
     margin-top: 12px;
+    border-radius: 12px;
   }
 }
 
 @media (max-width: 480px) {
   .control-panel {
-    padding: 12px;
+    padding: 8px;
   }
 
   .control-buttons {
-    gap: 6px;
-    grid-template-columns: repeat(4, 36px);
+    margin: 8px;
+    padding: 6px;
+    border-radius: 14px;
   }
 
   .control-button {
-    width: 36px;
-    height: 36px;
-    font-size: 14px;
+    min-width: 42px;
+    height: 42px;
+    padding: 8px 12px;
+  }
+
+  .control-button svg {
+    width: 16px;
+    height: 16px;
   }
 
   .search-overlay {
