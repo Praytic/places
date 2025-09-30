@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import MapComponent from './components/MapComponent';
 import ControlPanel from './components/ControlPanel';
 import PlaceSearch from './components/PlaceSearch';
+import PlacesService from './services/PlacesService';
 import './App.css';
 
 const App = () => {
@@ -10,50 +11,68 @@ const App = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [hiddenLayers, setHiddenLayers] = useState(new Set());
   const [groups] = useState(['want to go', 'favorite']);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const availableLayers = groups;
 
   useEffect(() => {
-    const savedPlaces = localStorage.getItem('placesApp_places');
-    if (savedPlaces) {
-      setPlaces(JSON.parse(savedPlaces));
-    }
+    // Temporarily disable Firestore until database is created
+    setLoading(false);
+    console.log('⚠️ Firestore disabled until database is created in Firebase Console');
+    const unsubscribe = PlacesService.subscribeToPlaces((placesData) => {
+      setPlaces(placesData);
+      setLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('placesApp_places', JSON.stringify(places));
-  }, [places]);
 
   const handleAddPlace = () => {
     setShowSearch(true);
   };
 
-  const handlePlaceSelect = (place) => {
+  const handlePlaceSelect = async (place) => {
     if (place) {
-      const newPlace = {
-        ...place,
-        id: Date.now(),
-        group: place.group || 'want to go'
-      };
-      setPlaces(prev => [...prev, newPlace]);
+      try {
+        setError(null);
+        const addedPlace = await PlacesService.addPlace(place);
+        // The real-time listener will update the places state automatically
+        console.log('Place added successfully:', addedPlace);
+      } catch (error) {
+        console.error('Failed to add place:', error);
+        setError('Failed to add place. Please try again.');
+      }
     }
   };
 
-  const handleRemovePlace = () => {
+  const handleRemovePlace = async () => {
     if (selectedPlace) {
-      setPlaces(prev => prev.filter(place => place.id !== selectedPlace.id));
-      setSelectedPlace(null);
+      try {
+        setError(null);
+        await PlacesService.deletePlace(selectedPlace.id);
+        setSelectedPlace(null);
+        // The real-time listener will update the places state automatically
+        console.log('Place removed successfully');
+      } catch (error) {
+        console.error('Failed to remove place:', error);
+        setError('Failed to remove place. Please try again.');
+      }
     }
   };
 
-  const handleChangeGroup = (place, newGroup) => {
-    setPlaces(prev =>
-      prev.map(p =>
-        p.id === place.id ? { ...p, group: newGroup } : p
-      )
-    );
-    if (selectedPlace && selectedPlace.id === place.id) {
-      setSelectedPlace({ ...selectedPlace, group: newGroup });
+  const handleChangeGroup = async (place, newGroup) => {
+    try {
+      setError(null);
+      await PlacesService.updatePlaceGroup(place.id, newGroup);
+      // Update selected place if it's the one being changed
+      if (selectedPlace && selectedPlace.id === place.id) {
+        setSelectedPlace({ ...selectedPlace, group: newGroup });
+      }
+      // The real-time listener will update the places state automatically
+      console.log('Place group updated successfully');
+    } catch (error) {
+      console.error('Failed to update place group:', error);
+      setError('Failed to update place. Please try again.');
     }
   };
 
@@ -80,6 +99,19 @@ const App = () => {
 
   return (
     <div className="app">
+      {loading && (
+        <div className="loading-overlay">
+          <div className="loading-spinner">Loading places...</div>
+        </div>
+      )}
+
+      {error && (
+        <div className="error-message">
+          {error}
+          <button onClick={() => setError(null)}>×</button>
+        </div>
+      )}
+
       <div className="map-container">
         <MapComponent
           places={places}
