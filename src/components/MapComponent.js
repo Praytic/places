@@ -15,6 +15,7 @@ const MapComponent = ({
     const [map, setMap] = useState(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const markersRef = useRef([]);
+    const infoWindowRef = useRef(null);
     const onPlaceSelectRef = useRef(onPlaceSelect);
     const onMapClickRef = useRef(onMapClick);
 
@@ -44,10 +45,19 @@ const MapComponent = ({
                 });
 
                 mapInstance.addListener('click', (event) => {
+                    // Close info window when clicking on map
+                    if (infoWindowRef.current) {
+                        infoWindowRef.current.close();
+                    }
+
                     if (onMapClickRef.current) {
                         onMapClickRef.current(event.latLng);
                     }
                 });
+
+                // Create InfoWindow
+                const infoWindow = new window.google.maps.InfoWindow();
+                infoWindowRef.current = infoWindow;
 
                 setMap(mapInstance);
                 setIsLoaded(true);
@@ -63,8 +73,11 @@ const MapComponent = ({
         if (!map || !isLoaded) return;
 
         const createMarkers = async () => {
-            // Remove old markers
+            // Remove old markers and close info window
             markersRef.current.forEach(marker => marker.map = null);
+            if (infoWindowRef.current) {
+                infoWindowRef.current.close();
+            }
 
             const { AdvancedMarkerElement } = await window.google.maps.importLibrary('marker');
 
@@ -85,6 +98,44 @@ const MapComponent = ({
                 });
 
                 marker.addListener('click', () => {
+                    // Create header element
+                    const headerDiv = document.createElement('div');
+                    headerDiv.style.cssText = 'padding: 12px 12px 0 12px;';
+                    const h3 = document.createElement('h3');
+                    h3.style.cssText = 'margin: 0; font-size: 16px; font-weight: 500; color: #202124; line-height: 20px;';
+                    h3.textContent = place.name;
+                    headerDiv.appendChild(h3);
+
+                    const infoWindow = new window.google.maps.InfoWindow({
+                        headerContent: headerDiv,
+                        content: `
+                            <div style="font-family: 'Google Sans', Roboto, Arial, sans-serif; max-width: 280px;">
+                                <div style="padding: 8px 12px 12px 12px;">
+                                    <div style="color: #70757a; font-size: 14px; line-height: 20px; margin-bottom: 12px;">
+                                        ${place.formatted_address || place.vicinity || 'Address not available'}
+                                    </div>
+                                    ${place.rating ? `
+                                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                            <span style="color: #fbbc04; margin-right: 4px;">★</span>
+                                            <span style="color: #202124; font-size: 14px;">${place.rating}</span>
+                                            ${place.user_ratings_total ? `<span style="color: #70757a; font-size: 14px; margin-left: 4px;">(${place.user_ratings_total})</span>` : ''}
+                                        </div>
+                                    ` : ''}
+                                    <div style="margin-top: 12px;">
+                                        <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}&query_place_id=${place.place_id || ''}"
+                                           target="_blank"
+                                           style="color: #1a73e8; text-decoration: none; font-size: 14px; font-weight: 500;">
+                                            View on Google Maps
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>`,
+                        ariaLabel: place.name
+                    });
+
+                    infoWindow.open(map, marker);
+                    infoWindowRef.current = infoWindow;
+
                     onPlaceSelectRef.current(place);
                 });
 
@@ -101,7 +152,14 @@ const MapComponent = ({
     }, [map, places, hiddenLayers, isLoaded]);
 
     useEffect(() => {
-        if (!map || !selectedPlace) return;
+        if (!map) return;
+
+        // Close info window if no place is selected
+        if (!selectedPlace && infoWindowRef.current) {
+            infoWindowRef.current.close();
+        }
+
+        if (!selectedPlace) return;
 
         const selectedMarker = markersRef.current.find(marker =>
             marker.placeData?.name === selectedPlace.name
