@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
-import { getEmojiForPlaceType } from '../utils/emojiMapping';
 import { createRegularMarker, createSelectedMarker } from '../utils/markerTemplates';
 
 const MapComponent = ({
@@ -87,7 +86,7 @@ const MapComponent = ({
             });
 
             const newMarkers = filteredPlaces.map(place => {
-                const emoji = getEmojiForPlaceType(place.types);
+                const emoji = place.emoji || '📍'; // Use stored emoji or default
                 const content = createRegularMarker(emoji);
 
                 const marker = new AdvancedMarkerElement({
@@ -174,7 +173,7 @@ const MapComponent = ({
 
         // Reset all markers to default state
         markersRef.current.forEach(marker => {
-            const emoji = getEmojiForPlaceType(marker.placeData.types);
+            const emoji = marker.placeData.emoji || '📍'; // Use stored emoji or default
             const regularContent = createRegularMarker(emoji);
             marker.content = regularContent;
             marker.zIndex = 1;
@@ -187,7 +186,7 @@ const MapComponent = ({
         );
 
         if (selectedMarker) {
-            const emoji = getEmojiForPlaceType(selectedPlace.types);
+            const emoji = selectedPlace.emoji || '📍'; // Use stored emoji or default
             const selectedContent = createSelectedMarker(emoji);
             selectedMarker.content = selectedContent;
             selectedMarker.zIndex = 999; // Bring to foreground
