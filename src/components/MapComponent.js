@@ -14,6 +14,13 @@ const MapComponent = ({
     const [map, setMap] = useState(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const markersRef = useRef([]);
+    const onPlaceSelectRef = useRef(onPlaceSelect);
+    const onMapClickRef = useRef(onMapClick);
+
+    useEffect(() => {
+        onPlaceSelectRef.current = onPlaceSelect;
+        onMapClickRef.current = onMapClick;
+    }, [onPlaceSelect, onMapClick]);
 
     useEffect(() => {
         const initMap = async () => {
@@ -36,11 +43,8 @@ const MapComponent = ({
                 });
 
                 mapInstance.addListener('click', (event) => {
-                    if (onMapClick) {
-                        onMapClick(event.latLng);
-                    }
-                    if (selectedPlace) {
-                        onPlaceSelect(null);
+                    if (onMapClickRef.current) {
+                        onMapClickRef.current(event.latLng);
                     }
                 });
 
@@ -52,7 +56,7 @@ const MapComponent = ({
         };
 
         initMap();
-    }, [onMapClick, onPlaceSelect, selectedPlace]);
+    }, []);
 
     useEffect(() => {
         if (!map || !isLoaded) return;
@@ -89,7 +93,7 @@ const MapComponent = ({
                 });
 
                 marker.addListener('click', () => {
-                    onPlaceSelect(place);
+                    onPlaceSelectRef.current(place);
                 });
 
                 // Store place reference for later use
@@ -102,7 +106,7 @@ const MapComponent = ({
         };
 
         createMarkers();
-    }, [map, places, hiddenLayers, isLoaded, onPlaceSelect]);
+    }, [map, places, hiddenLayers, isLoaded]);
 
     useEffect(() => {
         if (!map || !selectedPlace) return;
