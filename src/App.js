@@ -9,7 +9,7 @@ const App = () => {
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
   const [hiddenLayers, setHiddenLayers] = useState(new Set());
-  const [groups] = useState(['favorite', 'wants to go', 'visited', 'default']);
+  const [groups] = useState(['want to go', 'favorite']);
 
   const availableLayers = groups;
 
@@ -33,7 +33,7 @@ const App = () => {
       const newPlace = {
         ...place,
         id: Date.now(),
-        group: place.group || 'default'
+        group: place.group || 'want to go'
       };
       setPlaces(prev => [...prev, newPlace]);
     }

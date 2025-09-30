@@ -36,66 +36,73 @@ body {
 
 .control-buttons {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: repeat(4, 40px);
+  gap: 8px;
   margin-bottom: 12px;
+  justify-content: center;
 }
 
 .control-button {
-  background: #4285f4;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 12px 16px;
-  font-size: 14px;
-  font-weight: 500;
+  background: none;
+  color: #424242;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 16px;
+  font-weight: 400;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 48px;
+  width: 40px;
+  height: 40px;
+  min-height: unset;
 }
 
 .control-button:hover:not(.disabled) {
-  background: #3367d6;
-  transform: translateY(-1px);
+  background: #f5f5f5;
+  border-color: #bdbdbd;
 }
 
 .control-button:active:not(.disabled) {
-  transform: translateY(0);
+  background: #eeeeee;
 }
 
 .control-button.disabled {
-  background: #e0e0e0;
-  color: #9e9e9e;
+  background: none;
+  color: #bdbdbd;
+  border-color: #f0f0f0;
   cursor: not-allowed;
 }
 
-.remove-button:not(.disabled) {
-  background: #dc3545;
+.control-button.group-button.favorite {
+  color: #ef4444;
 }
 
-.remove-button:hover:not(.disabled) {
-  background: #c82333;
+.control-button.group-button.favorite svg {
+  fill: currentColor;
 }
 
-.group-button:not(.disabled) {
-  background: #28a745;
+.control-button.group-button.want-to-go {
+  color: #424242;
 }
 
-.group-button:hover:not(.disabled) {
-  background: #218838;
+.control-button.group-button.want-to-go svg {
+  fill: none;
 }
 
-.layer-button {
-  background: #6f42c1;
+.control-button.group-button:hover:not(.disabled) {
+  color: #ef4444;
+  border-color: #fecaca;
+  background: #fef2f2;
 }
 
-.layer-button:hover {
-  background: #5a32a3;
+.control-button svg {
+  width: 20px;
+  height: 20px;
 }
+
 
 .dropdown-panel {
   position: absolute;
@@ -257,7 +264,8 @@ body {
 
 @media (min-width: 768px) {
   .control-buttons {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, 40px);
+    justify-content: flex-start;
   }
 
   .app {
@@ -286,13 +294,14 @@ body {
   }
 
   .control-buttons {
-    gap: 8px;
+    gap: 6px;
+    grid-template-columns: repeat(4, 36px);
   }
 
   .control-button {
-    padding: 10px 12px;
-    font-size: 13px;
-    min-height: 44px;
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
   }
 
   .search-overlay {

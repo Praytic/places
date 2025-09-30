@@ -53,7 +53,7 @@ const PlaceSearch = ({ onPlaceSelect, onClose }) => {
                 types: place.types,
                 place_id: place.id,
                 formatted_address: place.formattedAddress,
-                group: 'default'
+                group: 'want to go'
             });
             onClose();
         } catch (error) {
