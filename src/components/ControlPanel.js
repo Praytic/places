@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 const ControlPanel = ({
   selectedPlace,
@@ -12,6 +12,42 @@ const ControlPanel = ({
 }) => {
   const [showGroupSelector, setShowGroupSelector] = useState(false);
   const [showLayerToggle, setShowLayerToggle] = useState(false);
+  const groupSelectorRef = useRef(null);
+  const layerToggleRef = useRef(null);
+
+  // Handle click outside for group selector
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (groupSelectorRef.current && !groupSelectorRef.current.contains(event.target)) {
+        setShowGroupSelector(false);
+      }
+    };
+
+    if (showGroupSelector) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showGroupSelector]);
+
+  // Handle click outside for layer toggle
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (layerToggleRef.current && !layerToggleRef.current.contains(event.target)) {
+        setShowLayerToggle(false);
+      }
+    };
+
+    if (showLayerToggle) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showLayerToggle]);
 
   const handleGroupChange = (newGroup) => {
     if (selectedPlace) {
@@ -29,14 +65,22 @@ const ControlPanel = ({
       <div className="control-buttons">
         <button
           className="control-button add-button"
-          onClick={onAddPlace}
+          onClick={() => {
+            onAddPlace();
+            setShowGroupSelector(false);
+            setShowLayerToggle(false);
+          }}
         >
           ➕ Add Place
         </button>
 
         <button
           className={`control-button remove-button ${!selectedPlace ? 'disabled' : ''}`}
-          onClick={onRemovePlace}
+          onClick={() => {
+            onRemovePlace();
+            setShowGroupSelector(false);
+            setShowLayerToggle(false);
+          }}
           disabled={!selectedPlace}
         >
           ➖ Remove Place
@@ -44,7 +88,10 @@ const ControlPanel = ({
 
         <button
           className={`control-button group-button ${!selectedPlace ? 'disabled' : ''}`}
-          onClick={() => setShowGroupSelector(!showGroupSelector)}
+          onClick={() => {
+            setShowGroupSelector(!showGroupSelector);
+            setShowLayerToggle(false);
+          }}
           disabled={!selectedPlace}
         >
           🏷️ Change Group
@@ -52,14 +99,17 @@ const ControlPanel = ({
 
         <button
           className="control-button layer-button"
-          onClick={() => setShowLayerToggle(!showLayerToggle)}
+          onClick={() => {
+            setShowLayerToggle(!showLayerToggle);
+            setShowGroupSelector(false);
+          }}
         >
           👁️ Layers
         </button>
       </div>
 
       {showGroupSelector && selectedPlace && (
-        <div className="dropdown-panel">
+        <div className="dropdown-panel" ref={groupSelectorRef}>
           <div className="dropdown-header">Select Group for "{selectedPlace.name}"</div>
           {groups.map(group => (
             <button
@@ -74,7 +124,7 @@ const ControlPanel = ({
       )}
 
       {showLayerToggle && (
-        <div className="dropdown-panel">
+        <div className="dropdown-panel" ref={layerToggleRef}>
           <div className="dropdown-header">Toggle Layers</div>
           {availableLayers.map(layer => (
             <button
