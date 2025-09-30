@@ -94,10 +94,16 @@ const MapComponent = ({
                     map,
                     position: place.geometry.location,
                     content,
-                    title: place.name
+                    title: place.name,
+                    zIndex: 1
                 });
 
                 marker.addListener('click', () => {
+                    // Close any existing info window first
+                    if (infoWindowRef.current) {
+                        infoWindowRef.current.close();
+                    }
+
                     // Create header element
                     const headerDiv = document.createElement('div');
                     headerDiv.style.cssText = 'padding: 12px 12px 0 12px;';
@@ -133,6 +139,13 @@ const MapComponent = ({
                         ariaLabel: place.name
                     });
 
+                    // Add close event listener to deselect marker when popup is closed
+                    infoWindow.addListener('closeclick', () => {
+                        if (onMapClickRef.current) {
+                            onMapClickRef.current();
+                        }
+                    });
+
                     infoWindow.open(map, marker);
                     infoWindowRef.current = infoWindow;
 
@@ -159,6 +172,14 @@ const MapComponent = ({
             infoWindowRef.current.close();
         }
 
+        // Reset all markers to default state
+        markersRef.current.forEach(marker => {
+            const emoji = getEmojiForPlaceType(marker.placeData.types);
+            const regularContent = createRegularMarker(emoji);
+            marker.content = regularContent;
+            marker.zIndex = 1;
+        });
+
         if (!selectedPlace) return;
 
         const selectedMarker = markersRef.current.find(marker =>
@@ -169,15 +190,8 @@ const MapComponent = ({
             const emoji = getEmojiForPlaceType(selectedPlace.types);
             const selectedContent = createSelectedMarker(emoji);
             selectedMarker.content = selectedContent;
+            selectedMarker.zIndex = 999; // Bring to foreground
         }
-
-        return () => {
-            if (selectedMarker) {
-                const regularEmoji = getEmojiForPlaceType(selectedPlace.types);
-                const regularContent = createRegularMarker(regularEmoji);
-                selectedMarker.content = regularContent;
-            }
-        };
     }, [selectedPlace, map]);
 
     return <div ref={mapRef} style={{ width: '100%', height: '100%' }} />;
