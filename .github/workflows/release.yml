@@ -1,0 +1,28 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          service_account: github-actions-deployer@praytic-global-473807.iam.gserviceaccount.com
+
+      - name: Upload to Cloud Storage
+        uses: google-github-actions/upload-cloud-storage@v2
+        with:
+          path: '.'
+          destination: 'places-bucket'
+          glob: '*.html,*.css,assets/**,images/**,*.ico'
+          process_gcloudignore: false
