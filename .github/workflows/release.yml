@@ -17,7 +17,7 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: projects/praytic-global-473807/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provide
+          workload_identity_provider: projects/370798368805/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider
           service_account: github-actions-deployer@praytic-global-473807.iam.gserviceaccount.com
 
       - name: Upload to Cloud Storage
