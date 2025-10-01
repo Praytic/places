@@ -14,6 +14,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build React app
+        run: npm run build
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -23,7 +35,6 @@ jobs:
       - name: Upload to Cloud Storage
         uses: google-github-actions/upload-cloud-storage@v2
         with:
-          path: '.'
+          path: 'build'
           destination: 'places-bucket'
-          glob: '*.html,*.css,assets/**,images/**,*.ico'
           process_gcloudignore: false
