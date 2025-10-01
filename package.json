@@ -2,6 +2,7 @@
   "name": "places-app",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@9.14.4",
   "dependencies": {
     "@googlemaps/js-api-loader": "^1.16.2",
     "emoji-picker-react": "^4.13.3",
