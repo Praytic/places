@@ -102,7 +102,7 @@ const App = () => {
 
   return (
     <Auth>
-      <div className="app authenticated">
+      <div className="app">
         {loading && (
           <div className="loading-overlay">
             <div className="loading-spinner">Loading places...</div>
