@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { auth } from '../config/firebase';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut, GoogleAuthProvider } from 'firebase/auth';
 import * as firebaseui from 'firebaseui';
 import 'firebaseui/dist/firebaseui.css';
 
@@ -28,7 +28,7 @@ const Auth = ({ children }) => {
       const uiConfig = {
         signInOptions: [
           {
-            provider: 'google.com',
+            provider: GoogleAuthProvider.PROVIDER_ID,
             customParameters: {
               prompt: 'select_account'
             }
@@ -89,6 +89,13 @@ const Auth = ({ children }) => {
           <button className="sign-out-button" onClick={handleSignOut}>
             Sign Out
           </button>
+          {user.photoURL && (
+            <img
+              src={user.photoURL}
+              alt={user.displayName}
+              className="user-avatar"
+            />
+          )}
         </div>
       </div>
       {children}

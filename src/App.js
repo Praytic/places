@@ -18,9 +18,6 @@ const App = () => {
   const availableLayers = groups;
 
   useEffect(() => {
-    // Temporarily disable Firestore until database is created
-    setLoading(false);
-    console.log('⚠️ Firestore disabled until database is created in Firebase Console');
     const unsubscribe = PlacesService.subscribeToPlaces((placesData) => {
       setPlaces(placesData);
       setLoading(false);

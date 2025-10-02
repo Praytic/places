@@ -560,6 +560,14 @@ body {
   font-size: 14px;
 }
 
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e0e0e0;
+}
+
 .sign-out-button {
   background: #dc3545;
   color: white;
