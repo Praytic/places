@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import MapComponent from './components/MapComponent';
 import ControlPanel from './components/ControlPanel';
 import PlaceSearch from './components/PlaceSearch';
+import Auth from './components/Auth';
 import PlacesService from './services/PlacesService';
 import './App.css';
 
@@ -103,49 +104,51 @@ const App = () => {
   };
 
   return (
-    <div className="app">
-      {loading && (
-        <div className="loading-overlay">
-          <div className="loading-spinner">Loading places...</div>
-        </div>
-      )}
+    <Auth>
+      <div className="app authenticated">
+        {loading && (
+          <div className="loading-overlay">
+            <div className="loading-spinner">Loading places...</div>
+          </div>
+        )}
 
-      {error && (
-        <div className="error-message">
-          {error}
-          <button onClick={() => setError(null)}>×</button>
-        </div>
-      )}
+        {error && (
+          <div className="error-message">
+            {error}
+            <button onClick={() => setError(null)}>×</button>
+          </div>
+        )}
 
-      <div className="map-container">
-        <MapComponent
-          places={places}
+        <div className="map-container">
+          <MapComponent
+            places={places}
+            selectedPlace={selectedPlace}
+            onPlaceSelect={handleMapPlaceSelect}
+            onMapClick={handleMapClick}
+            hiddenLayers={hiddenLayers}
+            groups={groups}
+          />
+        </div>
+
+        <ControlPanel
           selectedPlace={selectedPlace}
-          onPlaceSelect={handleMapPlaceSelect}
-          onMapClick={handleMapClick}
+          onAddPlace={handleAddPlace}
+          onRemovePlace={handleRemovePlace}
+          onChangeGroup={handleChangeGroup}
+          onToggleLayer={handleToggleLayer}
+          availableLayers={availableLayers}
           hiddenLayers={hiddenLayers}
           groups={groups}
         />
+
+        {showSearch && (
+          <PlaceSearch
+            onPlaceSelect={handlePlaceSelect}
+            onClose={() => setShowSearch(false)}
+          />
+        )}
       </div>
-
-      <ControlPanel
-        selectedPlace={selectedPlace}
-        onAddPlace={handleAddPlace}
-        onRemovePlace={handleRemovePlace}
-        onChangeGroup={handleChangeGroup}
-        onToggleLayer={handleToggleLayer}
-        availableLayers={availableLayers}
-        hiddenLayers={hiddenLayers}
-        groups={groups}
-      />
-
-      {showSearch && (
-        <PlaceSearch
-          onPlaceSelect={handlePlaceSelect}
-          onClose={() => setShowSearch(false)}
-        />
-      )}
-    </div>
+    </Auth>
   );
 };
 
