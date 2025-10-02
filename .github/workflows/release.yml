@@ -40,5 +40,5 @@ jobs:
         uses: google-github-actions/upload-cloud-storage@v2
         with:
           path: 'build'
-          destination: 'places-bucket'
+          destination: 'places-bucket-e721ffe'
           process_gcloudignore: false
