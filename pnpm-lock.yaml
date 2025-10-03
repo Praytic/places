@@ -8,9 +8,9 @@ importers:
 
   .:
     dependencies:
-      '@googlemaps/js-api-loader':
-        specifier: ^1.16.2
-        version: 1.16.10
+      '@googlemaps/react-wrapper':
+        specifier: ^1.2.0
+        version: 1.2.0(react@18.3.1)
       emoji-picker-react:
         specifier: ^4.13.3
         version: 4.13.3(react@18.3.1)
@@ -1075,6 +1075,11 @@ packages:
 
   '@googlemaps/js-api-loader@1.16.10':
     resolution: {integrity: sha512-c2erv2k7P2ilYzMmtYcMgAR21AULosQuUHJbStnrvRk2dG93k5cqptDrh9A8p+ZNlyhiqEOgHW7N9PAizdUM7Q==}
+
+  '@googlemaps/react-wrapper@1.2.0':
+    resolution: {integrity: sha512-8gloOyRDKcjfuMW2VvsDQ3jSnIpa+e1IBJkQL75ORMSQ/TVj6lyGeMLwGE94pj/IlTpWp7yo0LyJuVqxaK7ByA==}
+    peerDependencies:
+      react: '>=16.8.0'
 
   '@grpc/grpc-js@1.9.15':
     resolution: {integrity: sha512-nqE7Hc0AzI+euzUwDAy0aY5hCp10r734gMGRdU+qOPX0XSceI2ULrcXB5U2xSc5VkWwalCj4M7GzCAygZl2KoQ==}
@@ -7058,6 +7063,11 @@ snapshots:
   '@firebase/webchannel-wrapper@1.0.5': {}
 
   '@googlemaps/js-api-loader@1.16.10': {}
+
+  '@googlemaps/react-wrapper@1.2.0(react@18.3.1)':
+    dependencies:
+      '@googlemaps/js-api-loader': 1.16.10
+      react: 18.3.1
 
   '@grpc/grpc-js@1.9.15':
     dependencies:

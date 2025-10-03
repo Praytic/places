@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@9.14.4",
   "dependencies": {
-    "@googlemaps/js-api-loader": "^1.16.2",
+    "@googlemaps/react-wrapper": "^1.2.0",
     "emoji-picker-react": "^4.13.3",
     "firebase": "^12.3.0",
     "firebaseui": "^6.1.0",

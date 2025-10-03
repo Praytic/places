@@ -1,75 +1,62 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
+import { Wrapper } from '@googlemaps/react-wrapper';
 import { createRegularMarker, createSelectedMarker } from '../utils/markerTemplates';
 
-const MapComponent = ({
-                          places,
-                          selectedPlace,
-                          onPlaceSelect,
-                          onMapClick,
-                          hiddenLayers,
-                          groups
-                      }) => {
-    const mapRef = useRef(null);
-    const [map, setMap] = useState(null);
-    const [isLoaded, setIsLoaded] = useState(false);
+// Map component following Google's recommended pattern
+const Map = ({ onClick, onIdle, children, style, ...options }) => {
+    const ref = useRef(null);
+    const [map, setMap] = useState();
+
+    // Initialize map
+    useEffect(() => {
+        if (ref.current && !map) {
+            setMap(new window.google.maps.Map(ref.current, {}));
+        }
+    }, [ref, map]);
+
+    // Update map options when they change
+    useEffect(() => {
+        if (map) {
+            map.setOptions(options);
+        }
+    }, [map, options]);
+
+    // Set up event listeners
+    useEffect(() => {
+        if (map) {
+            ['click', 'idle'].forEach((eventName) =>
+                window.google.maps.event.clearListeners(map, eventName)
+            );
+
+            if (onClick) {
+                map.addListener('click', onClick);
+            }
+
+            if (onIdle) {
+                map.addListener('idle', () => onIdle(map));
+            }
+        }
+    }, [map, onClick, onIdle]);
+
+    return (
+        <>
+            <div ref={ref} style={style} />
+            {React.Children.map(children, (child) => {
+                if (React.isValidElement(child)) {
+                    return React.cloneElement(child, { map });
+                }
+            })}
+        </>
+    );
+};
+
+// Markers component to manage all markers
+const Markers = ({ map, places, selectedPlace, onPlaceSelect, hiddenLayers }) => {
     const markersRef = useRef([]);
     const infoWindowRef = useRef(null);
-    const onPlaceSelectRef = useRef(onPlaceSelect);
-    const onMapClickRef = useRef(onMapClick);
 
     useEffect(() => {
-        onPlaceSelectRef.current = onPlaceSelect;
-        onMapClickRef.current = onMapClick;
-    }, [onPlaceSelect, onMapClick]);
-
-    useEffect(() => {
-        const initMap = async () => {
-            const loader = new Loader({
-                apiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
-                version: 'weekly',
-                libraries: ['places', 'marker']
-            });
-
-            try {
-                await loader.load();
-
-                const mapInstance = new window.google.maps.Map(mapRef.current, {
-                    center: { lat: 37.7749, lng: -122.4194 },
-                    zoom: 13,
-                    mapTypeControl: false,
-                    streetViewControl: false,
-                    fullscreenControl: false,
-                    mapId: process.env.REACT_APP_GOOGLE_MAP_ID || 'DEMO_MAP_ID'
-                });
-
-                mapInstance.addListener('click', (event) => {
-                    // Close info window when clicking on map
-                    if (infoWindowRef.current) {
-                        infoWindowRef.current.close();
-                    }
-
-                    if (onMapClickRef.current) {
-                        onMapClickRef.current(event.latLng);
-                    }
-                });
-
-                // Create InfoWindow
-                const infoWindow = new window.google.maps.InfoWindow();
-                infoWindowRef.current = infoWindow;
-
-                setMap(mapInstance);
-                setIsLoaded(true);
-            } catch (error) {
-                console.error('Error loading Google Maps:', error);
-            }
-        };
-
-        initMap();
-    }, []);
-
-    useEffect(() => {
-        if (!map || !isLoaded) return;
+        if (!map) return;
 
         const createMarkers = async () => {
             // Remove old markers and close info window
@@ -86,7 +73,7 @@ const MapComponent = ({
             });
 
             const newMarkers = filteredPlaces.map(place => {
-                const emoji = place.emoji || '📍'; // Use stored emoji or default
+                const emoji = place.emoji || '📍';
                 const content = createRegularMarker(emoji);
 
                 const marker = new AdvancedMarkerElement({
@@ -98,12 +85,10 @@ const MapComponent = ({
                 });
 
                 marker.addListener('click', () => {
-                    // Close any existing info window first
                     if (infoWindowRef.current) {
                         infoWindowRef.current.close();
                     }
 
-                    // Create header element
                     const headerDiv = document.createElement('div');
                     headerDiv.style.cssText = 'padding: 12px 12px 0 12px;';
                     const h3 = document.createElement('h3');
@@ -138,22 +123,17 @@ const MapComponent = ({
                         ariaLabel: place.name
                     });
 
-                    // Add close event listener to deselect marker when popup is closed
                     infoWindow.addListener('closeclick', () => {
-                        if (onMapClickRef.current) {
-                            onMapClickRef.current();
-                        }
+                        onPlaceSelect(null);
                     });
 
                     infoWindow.open(map, marker);
                     infoWindowRef.current = infoWindow;
 
-                    onPlaceSelectRef.current(place);
+                    onPlaceSelect(place);
                 });
 
-                // Store place reference for later use
                 marker.placeData = place;
-
                 return marker;
             });
 
@@ -161,19 +141,18 @@ const MapComponent = ({
         };
 
         createMarkers();
-    }, [map, places, hiddenLayers, isLoaded]);
+    }, [map, places, hiddenLayers, onPlaceSelect]);
 
+    // Update marker appearance when selection changes
     useEffect(() => {
         if (!map) return;
 
-        // Close info window if no place is selected
         if (!selectedPlace && infoWindowRef.current) {
             infoWindowRef.current.close();
         }
 
-        // Reset all markers to default state
         markersRef.current.forEach(marker => {
-            const emoji = marker.placeData.emoji || '📍'; // Use stored emoji or default
+            const emoji = marker.placeData.emoji || '📍';
             const regularContent = createRegularMarker(emoji);
             marker.content = regularContent;
             marker.zIndex = 1;
@@ -186,14 +165,68 @@ const MapComponent = ({
         );
 
         if (selectedMarker) {
-            const emoji = selectedPlace.emoji || '📍'; // Use stored emoji or default
+            const emoji = selectedPlace.emoji || '📍';
             const selectedContent = createSelectedMarker(emoji);
             selectedMarker.content = selectedContent;
-            selectedMarker.zIndex = 999; // Bring to foreground
+            selectedMarker.zIndex = 999;
         }
     }, [selectedPlace, map]);
 
-    return <div ref={mapRef} style={{ width: '100%', height: '100%' }} />;
+    return null;
+};
+
+const MapComponent = ({
+    places,
+    selectedPlace,
+    onPlaceSelect,
+    onMapClick,
+    hiddenLayers,
+    groups
+}) => {
+    const [center] = useState({ lat: 37.7749, lng: -122.4194 });
+    const [zoom] = useState(13);
+
+    const onClick = (e) => {
+        if (onMapClick) {
+            onMapClick(e.latLng);
+        }
+    };
+
+    const onIdle = (map) => {
+        // Can be used for tracking map state changes
+        console.log('Map idle');
+    };
+
+    const render = (status) => {
+        return <h1>{status}</h1>;
+    };
+
+    return (
+        <Wrapper
+            apiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
+            render={render}
+            libraries={['places', 'marker']}
+        >
+            <Map
+                center={center}
+                zoom={zoom}
+                onClick={onClick}
+                onIdle={onIdle}
+                mapTypeControl={false}
+                streetViewControl={false}
+                fullscreenControl={false}
+                mapId={process.env.REACT_APP_GOOGLE_MAP_ID || 'DEMO_MAP_ID'}
+                style={{ width: '100%', height: '100%' }}
+            >
+                <Markers
+                    places={places}
+                    selectedPlace={selectedPlace}
+                    onPlaceSelect={onPlaceSelect}
+                    hiddenLayers={hiddenLayers}
+                />
+            </Map>
+        </Wrapper>
+    );
 };
 
 export default MapComponent;
