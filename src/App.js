@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import MapComponent from './components/MapComponent';
 import ControlPanel from './components/ControlPanel';
 import PlaceSearch from './components/PlaceSearch';
-import EmojiPicker from 'emoji-picker-react';
+import EmojiPicker, {EmojiStyle} from 'emoji-picker-react';
 import Auth from './components/Auth';
 import PlacesService from './services/PlacesService';
 import './App.css';
@@ -110,15 +110,17 @@ const App = () => {
 
   const handleEmojiSelect = async (emojiObject) => {
     if (emojiPickerPlace) {
+      const placeToUpdate = emojiPickerPlace;
+      setShowEmojiPicker(false);
+      setEmojiPickerPlace(null);
+
       try {
         setError(null);
-        await PlacesService.updatePlaceEmoji(emojiPickerPlace.id, emojiObject.emoji);
+        await PlacesService.updatePlaceEmoji(placeToUpdate.id, emojiObject.emoji);
         // Update selected place if it's the one being changed
-        if (selectedPlace && selectedPlace.id === emojiPickerPlace.id) {
+        if (selectedPlace && selectedPlace.id === placeToUpdate.id) {
           setSelectedPlace({ ...selectedPlace, emoji: emojiObject.emoji });
         }
-        setShowEmojiPicker(false);
-        setEmojiPickerPlace(null);
         console.log('Place emoji updated successfully');
       } catch (error) {
         console.error('Failed to update place emoji:', error);
@@ -179,8 +181,8 @@ const App = () => {
         )}
 
         {showEmojiPicker && emojiPickerPlace && (
-          <div className="emoji-picker-overlay">
-            <div className="emoji-picker-container">
+          <div className="emoji-picker-overlay" onClick={handleEmojiCancel}>
+            <div className="emoji-picker-container" onClick={(e) => e.stopPropagation()}>
               <div className="emoji-picker-header">
                 <h3>Choose an emoji for {emojiPickerPlace.name}</h3>
                 <button onClick={handleEmojiCancel} className="close-button">×</button>
@@ -190,6 +192,8 @@ const App = () => {
                   onEmojiClick={handleEmojiSelect}
                   width="100%"
                   height={400}
+                  previewConfig={{showPreview: false}}
+                  emojiStyle={EmojiStyle.APPLE}
                 />
               </div>
             </div>
