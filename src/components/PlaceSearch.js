@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import EmojiPicker from 'emoji-picker-react';
+import EmojiPicker, {EmojiStyle} from 'emoji-picker-react';
 
 const PlaceSearch = ({ onPlaceSelect, onClose }) => {
     const [query, setQuery] = useState('');
@@ -145,6 +145,8 @@ const PlaceSearch = ({ onPlaceSelect, onClose }) => {
                                 onEmojiClick={handleEmojiSelect}
                                 width="100%"
                                 height={400}
+                                previewConfig={{showPreview: false}}
+                                emojiStyle={EmojiStyle.APPLE}
                             />
                         </div>
                     </div>
