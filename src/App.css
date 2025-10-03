@@ -15,31 +15,42 @@ body {
 }
 
 .app {
-  display: flex;
-  flex-direction: column;
+  position: relative;
   height: 100vh;
   width: 100vw;
 }
 
 .map-container {
-  flex: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
-  min-height: 0;
+  height: 100%;
 }
 
 .control-panel {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  background: transparent;
+  border: none;
   padding: 0;
-  position: relative;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
   justify-content: center;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.control-panel > * {
+  pointer-events: auto;
 }
 
 .control-buttons {
   display: flex;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 1);
   border-radius: 16px;
   padding: 8px;
   margin: 12px;
@@ -379,41 +390,11 @@ body {
 }
 
 @media (min-width: 768px) {
-  .control-panel {
-    width: 300px;
-    border-top: none;
-    border-left: 1px solid rgba(0, 0, 0, 0.1);
-    height: 100vh;
-    overflow-y: auto;
-    align-items: flex-start;
-    padding-top: 16px;
-  }
-
-  .control-buttons {
-    flex-direction: column;
-    width: auto;
-    margin: 0 16px;
-  }
-
-  .control-button:not(:last-child)::after {
-    left: 12px;
-    right: 12px;
-    top: auto;
-    bottom: 0;
-    width: auto;
-    height: 1px;
-  }
-
-  .app {
-    flex-direction: row;
-  }
-
   .dropdown-panel {
-    position: static;
-    box-shadow: none;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    margin-top: 12px;
-    border-radius: 12px;
+    max-width: 400px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
   }
 }
 
