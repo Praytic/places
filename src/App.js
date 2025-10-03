@@ -5,6 +5,7 @@ import PlaceSearch from './components/PlaceSearch';
 import EmojiPicker, {EmojiStyle} from 'emoji-picker-react';
 import Auth from './components/Auth';
 import PlacesService from './services/PlacesService';
+import { auth } from './config/firebase';
 import './App.css';
 
 const App = () => {
@@ -17,26 +18,76 @@ const App = () => {
   const [groups] = useState(['want to go', 'favorite']);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [sharedFromUsers, setSharedFromUsers] = useState([]);
 
   const availableLayers = groups;
 
+  // Listen for auth state changes
   useEffect(() => {
-    const unsubscribe = PlacesService.subscribeToPlaces((placesData) => {
-      setPlaces(placesData);
-      setLoading(false);
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setCurrentUser(user);
     });
     return () => unsubscribe();
   }, []);
+
+  // Load shared users when user changes
+  useEffect(() => {
+    const migrateLegacyMarkers = async () => {
+      if (!currentUser?.email) return;
+      try {
+        const migratedCount = await PlacesService.migrateLegacyMarkers(currentUser.email);
+        if (migratedCount > 0) {
+          console.log(`Migrated ${migratedCount} legacy markers to your account`);
+        }
+      } catch (err) {
+        console.error('Error migrating legacy markers:', err);
+      }
+    };
+
+    const loadSharedUsers = async () => {
+      if (!currentUser?.email) return;
+      try {
+        const sharedUsers = await PlacesService.getSharedFromUsers(currentUser.email);
+        setSharedFromUsers(sharedUsers);
+      } catch (err) {
+        console.error('Error loading shared users:', err);
+      }
+    };
+
+    if (currentUser?.email) {
+      loadSharedUsers();
+      migrateLegacyMarkers();
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser?.email) {
+      setPlaces([]);
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = PlacesService.subscribeToPlaces(
+      currentUser.email,
+      sharedFromUsers,
+      (placesData) => {
+        setPlaces(placesData);
+        setLoading(false);
+      }
+    );
+    return () => unsubscribe();
+  }, [currentUser, sharedFromUsers]);
 
   const handleAddPlace = () => {
     setShowSearch(true);
   };
 
   const handlePlaceSelect = async (place) => {
-    if (place) {
+    if (place && currentUser?.email) {
       try {
         setError(null);
-        const addedPlace = await PlacesService.addPlace(place);
+        const addedPlace = await PlacesService.addPlace(place, currentUser.email);
         // The real-time listener will update the places state automatically
         console.log('Place added successfully:', addedPlace);
       } catch (error) {

@@ -3,11 +3,13 @@ import { auth } from '../config/firebase';
 import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import * as firebaseui from 'firebaseui';
 import 'firebaseui/dist/firebaseui.css';
+import ShareDialog from './ShareDialog';
 
 const Auth = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const uiRef = useRef(null);
   const menuRef = useRef(null);
 
@@ -77,6 +79,11 @@ const Auth = ({ children }) => {
     }
   };
 
+  const handleShareClick = () => {
+    setShowShareDialog(true);
+    setShowMenu(false);
+  };
+
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -138,6 +145,14 @@ const Auth = ({ children }) => {
                 </div>
               </div>
               <div className="account-menu-divider"></div>
+              <button className="account-menu-item" onClick={handleShareClick}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <polyline points="16 6 12 2 8 6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="12" y1="2" x2="12" y2="15" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Share places
+              </button>
               <button className="account-menu-item" onClick={handleAddAccount}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -158,6 +173,12 @@ const Auth = ({ children }) => {
             </div>
           )}
         </div>
+      )}
+      {showShareDialog && (
+        <ShareDialog
+          userEmail={user.email}
+          onClose={() => setShowShareDialog(false)}
+        />
       )}
       {children}
     </div>
