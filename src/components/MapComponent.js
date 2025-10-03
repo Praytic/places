@@ -77,6 +77,13 @@ const Map = ({onClick, onIdle, children, style, ...options}) => {
 const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmojiChangeRequest}) => {
     const markersRef = useRef([]);
     const infoWindowRef = useRef(null);
+    const onPlaceSelectRef = useRef(onPlaceSelect);
+    const onEmojiChangeRequestRef = useRef(onEmojiChangeRequest);
+
+    useEffect(() => {
+        onPlaceSelectRef.current = onPlaceSelect;
+        onEmojiChangeRequestRef.current = onEmojiChangeRequest;
+    }, [onPlaceSelect, onEmojiChangeRequest]);
 
     useEffect(() => {
         if (!map) return;
@@ -116,11 +123,11 @@ const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmo
                         map,
                         marker,
                         place,
-                        () => onPlaceSelect(null),
-                        onEmojiChangeRequest
+                        () => onPlaceSelectRef.current(null),
+                        onEmojiChangeRequestRef.current
                     );
 
-                    onPlaceSelect(place);
+                    onPlaceSelectRef.current(place);
                 });
 
                 marker.placeData = place;
@@ -135,7 +142,7 @@ const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmo
         return () => {
             markersRef.current.forEach(marker => marker.setMap(null));
         };
-    }, [map, places, hiddenLayers, onPlaceSelect, onEmojiChangeRequest]);
+    }, [map, places, hiddenLayers]);
 
     // Update marker appearance when selection changes
     useEffect(() => {
