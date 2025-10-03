@@ -30,13 +30,6 @@ const ControlPanel = ({
     };
   }, [showLayerToggle]);
 
-  const handleGroupToggle = () => {
-    if (selectedPlace) {
-      const newGroup = selectedPlace.group === 'favorite' ? 'want to go' : 'favorite';
-      onChangeGroup(selectedPlace, newGroup);
-    }
-  };
-
   const handleLayerToggle = (layer) => {
     onToggleLayer(layer);
   };
@@ -72,17 +65,6 @@ const ControlPanel = ({
             <path d="m19,6v14a2,2 0 01-2,2H7a2,2 0 01-2-2V6m3,0V4a2,2 0 012-2h4a2,2 0 012,2v2"></path>
             <line x1="10" y1="11" x2="10" y2="17"></line>
             <line x1="14" y1="11" x2="14" y2="17"></line>
-          </svg>
-        </button>
-
-        <button
-          className={`control-button group-button ${!selectedPlace ? 'disabled' : ''} ${selectedPlace?.group === 'favorite' ? 'favorite' : 'want-to-go'}`}
-          onClick={handleGroupToggle}
-          disabled={!selectedPlace}
-          title={selectedPlace?.group === 'favorite' ? 'Move to Want to go' : 'Add to Favorites'}
-        >
-          <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5" aria-hidden="true" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
           </svg>
         </button>
 

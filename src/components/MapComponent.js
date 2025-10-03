@@ -75,16 +75,18 @@ const MapWrapper = ({onClick, onIdle, children, style, ...options}) => {
     );
 };
 
-const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmojiChangeRequest}) => {
+const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmojiChangeRequest, onChangeGroup}) => {
     const markersRef = useRef(new Map()); // Map of placeId -> marker
     const infoWindowRef = useRef(null);
     const onPlaceSelectRef = useRef(onPlaceSelect);
     const onEmojiChangeRequestRef = useRef(onEmojiChangeRequest);
+    const onChangeGroupRef = useRef(onChangeGroup);
 
     useEffect(() => {
         onPlaceSelectRef.current = onPlaceSelect;
         onEmojiChangeRequestRef.current = onEmojiChangeRequest;
-    }, [onPlaceSelect, onEmojiChangeRequest]);
+        onChangeGroupRef.current = onChangeGroup;
+    }, [onPlaceSelect, onEmojiChangeRequest, onChangeGroup]);
 
     // Create/remove markers when places are added/removed
     useEffect(() => {
@@ -125,14 +127,30 @@ const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmo
                             infoWindowRef.current.close();
                         }
 
-                        infoWindowRef.current = createInfoWindow(
-                            map,
-                            marker,
-                            place,
-                            () => onPlaceSelectRef.current(null),
-                            onEmojiChangeRequestRef.current
-                        );
+                        const createInfoWindowWithToggle = (currentPlace) => {
+                            infoWindowRef.current = createInfoWindow(
+                                map,
+                                marker,
+                                currentPlace,
+                                () => onPlaceSelectRef.current(null),
+                                onEmojiChangeRequestRef.current,
+                                async (placeToToggle) => {
+                                    const newGroup = placeToToggle.group === 'favorite' ? 'want to go' : 'favorite';
+                                    await onChangeGroupRef.current(placeToToggle, newGroup);
 
+                                    // Close and reopen the info window to reflect the change
+                                    if (infoWindowRef.current) {
+                                        infoWindowRef.current.close();
+                                    }
+
+                                    // Update the place data with new group and recreate info window
+                                    const updatedPlace = { ...placeToToggle, group: newGroup };
+                                    createInfoWindowWithToggle(updatedPlace);
+                                }
+                            );
+                        };
+
+                        createInfoWindowWithToggle(place);
                         onPlaceSelectRef.current(place);
                     });
 
@@ -209,6 +227,7 @@ const MapComponent = ({
                           onPlaceSelect,
                           onMapClick,
                           onEmojiChangeRequest,
+                          onChangeGroup,
                           hiddenLayers
                       }) => {
     const [center] = useState({lat: 37.7749, lng: -122.4194});
@@ -250,6 +269,7 @@ const MapComponent = ({
                     selectedPlace={selectedPlace}
                     onPlaceSelect={onPlaceSelect}
                     onEmojiChangeRequest={onEmojiChangeRequest}
+                    onChangeGroup={onChangeGroup}
                     hiddenLayers={hiddenLayers}
                 />
             </MapWrapper>

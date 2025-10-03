@@ -157,6 +157,7 @@ const App = () => {
             onPlaceSelect={handleMapPlaceSelect}
             onMapClick={handleMapClick}
             onEmojiChangeRequest={handleEmojiChangeRequest}
+            onChangeGroup={handleChangeGroup}
             hiddenLayers={hiddenLayers}
             groups={groups}
           />

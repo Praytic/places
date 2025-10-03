@@ -5,9 +5,10 @@
  * @param {Object} place - The place data object
  * @param {Function} onClose - Callback function when info window is closed
  * @param {Function} onEmojiChange - Callback function when emoji is changed
+ * @param {Function} onToggleFavorite - Callback function when favorite is toggled
  * @returns {google.maps.InfoWindow} The created info window instance
  */
-export function createInfoWindow(map, marker, place, onClose, onEmojiChange) {
+export function createInfoWindow(map, marker, place, onClose, onEmojiChange, onToggleFavorite) {
     const headerDiv = document.createElement('div');
     headerDiv.style.cssText = 'padding: 12px 12px 0 12px;';
     const h3 = document.createElement('h3');
@@ -49,31 +50,43 @@ export function createInfoWindow(map, marker, place, onClose, onEmojiChange) {
           </div>
         </div>
         <div style="border-top: 0.5px solid rgba(0, 0, 0, 0.1); margin: 0 12px;"></div>
-        <div style="padding: 12px;">
-          <button id="emoji-change-button" style="
+        <div style="padding: 12px; display: flex; gap: 8px;">
+          <button id="favorite-button" style="
             background: none;
-            color: #666;
+            color: ${place.group === 'favorite' ? '#ef4444' : '#666'};
             border: none;
             border-radius: 8px;
-            padding: 10px 14px;
-            font-size: 14px;
-            font-weight: 400;
+            padding: 10px;
             cursor: pointer;
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            width: 100%;
-            font-family: 'Google Sans', Roboto, Arial, sans-serif;
-          ">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
+            flex: 1;
+          " title="${place.group === 'favorite' ? 'Remove from Favorites' : 'Add to Favorites'}">
+            <svg stroke="currentColor" fill="${place.group === 'favorite' ? '#ef4444' : 'none'}" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px;">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+          </button>
+          <button id="emoji-change-button" style="
+            background: none;
+            color: #666;
+            border: none;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+          " title="Change Emoji">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px;">
               <circle cx="12" cy="12" r="10"></circle>
               <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
               <line x1="9" y1="9" x2="9.01" y2="9"></line>
               <line x1="15" y1="9" x2="15.01" y2="9"></line>
             </svg>
-            <span>Change Emoji</span>
           </button>
         </div>`;
 
@@ -89,9 +102,36 @@ export function createInfoWindow(map, marker, place, onClose, onEmojiChange) {
         }
     });
 
-    // Add event listener to the button after the info window is opened
+    // Add event listeners to the buttons after the info window is opened
     infoWindow.addListener('domready', () => {
+        const favoriteButton = document.getElementById('favorite-button');
         const emojiButton = document.getElementById('emoji-change-button');
+
+        if (favoriteButton) {
+            // Add hover effect
+            favoriteButton.addEventListener('mouseenter', () => {
+                favoriteButton.style.background = 'rgba(0, 0, 0, 0.05)';
+            });
+            favoriteButton.addEventListener('mouseleave', () => {
+                favoriteButton.style.background = 'none';
+            });
+            favoriteButton.addEventListener('mousedown', () => {
+                favoriteButton.style.background = 'rgba(0, 0, 0, 0.1)';
+                favoriteButton.style.transform = 'scale(0.95)';
+            });
+            favoriteButton.addEventListener('mouseup', () => {
+                favoriteButton.style.background = 'rgba(0, 0, 0, 0.05)';
+                favoriteButton.style.transform = 'scale(1)';
+            });
+
+            // Add click handler
+            favoriteButton.addEventListener('click', () => {
+                if (onToggleFavorite) {
+                    onToggleFavorite(place);
+                }
+            });
+        }
+
         if (emojiButton) {
             // Add hover effect
             emojiButton.addEventListener('mouseenter', () => {
