@@ -1,8 +1,44 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { Wrapper } from '@googlemaps/react-wrapper';
-import { createRegularMarker, createSelectedMarker } from '../utils/markerTemplates';
+/*
+ * Based on Google Maps React sample pattern
+ * Custom business logic preserved
+ */
 
-// Map component following Google's recommended pattern
+import React, { useRef, useEffect, useState } from 'react';
+import { Wrapper, Status } from '@googlemaps/react-wrapper';
+import { createRegularMarker, createSelectedMarker } from '../utils/markerTemplates';
+import { createCustomEqual } from 'fast-equals';
+import { isLatLngLiteral } from '@googlemaps/typescript-guards';
+
+// ---------------------------------------------------------------------------
+// Utility: deep compare hook for map options
+// ---------------------------------------------------------------------------
+const deepCompareEqualsForMaps = createCustomEqual((deepEqual) => (a, b) => {
+    if (
+        isLatLngLiteral(a) ||
+        a instanceof google.maps.LatLng ||
+        isLatLngLiteral(b) ||
+        b instanceof google.maps.LatLng
+    ) {
+        return new google.maps.LatLng(a).equals(new google.maps.LatLng(b));
+    }
+    return deepEqual(a, b);
+});
+
+function useDeepCompareMemoize(value) {
+    const ref = useRef();
+    if (!deepCompareEqualsForMaps(value, ref.current)) {
+        ref.current = value;
+    }
+    return ref.current;
+}
+
+function useDeepCompareEffectForMaps(callback, dependencies) {
+    useEffect(callback, dependencies.map(useDeepCompareMemoize));
+}
+
+// ---------------------------------------------------------------------------
+// Map component
+// ---------------------------------------------------------------------------
 const Map = ({ onClick, onIdle, children, style, ...options }) => {
     const ref = useRef(null);
     const [map, setMap] = useState();
@@ -14,8 +50,8 @@ const Map = ({ onClick, onIdle, children, style, ...options }) => {
         }
     }, [ref, map]);
 
-    // Update map options when they change
-    useEffect(() => {
+    // Update map options with deep compare
+    useDeepCompareEffectForMaps(() => {
         if (map) {
             map.setOptions(options);
         }
@@ -25,7 +61,7 @@ const Map = ({ onClick, onIdle, children, style, ...options }) => {
     useEffect(() => {
         if (map) {
             ['click', 'idle'].forEach((eventName) =>
-                window.google.maps.event.clearListeners(map, eventName)
+                google.maps.event.clearListeners(map, eventName)
             );
 
             if (onClick) {
@@ -50,7 +86,9 @@ const Map = ({ onClick, onIdle, children, style, ...options }) => {
     );
 };
 
-// Markers component to manage all markers
+// ---------------------------------------------------------------------------
+// Markers component
+// ---------------------------------------------------------------------------
 const Markers = ({ map, places, selectedPlace, onPlaceSelect, hiddenLayers }) => {
     const markersRef = useRef([]);
     const infoWindowRef = useRef(null);
@@ -59,8 +97,8 @@ const Markers = ({ map, places, selectedPlace, onPlaceSelect, hiddenLayers }) =>
         if (!map) return;
 
         const createMarkers = async () => {
-            // Remove old markers and close info window
-            markersRef.current.forEach(marker => marker.map = null);
+            // Cleanup old markers
+            markersRef.current.forEach(marker => marker.setMap(null));
             if (infoWindowRef.current) {
                 infoWindowRef.current.close();
             }
@@ -99,27 +137,37 @@ const Markers = ({ map, places, selectedPlace, onPlaceSelect, hiddenLayers }) =>
                     const infoWindow = new window.google.maps.InfoWindow({
                         headerContent: headerDiv,
                         content: `
-                            <div style="font-family: 'Google Sans', Roboto, Arial, sans-serif; max-width: 280px;">
-                                <div style="padding: 8px 12px 12px 12px;">
-                                    <div style="color: #70757a; font-size: 14px; line-height: 20px; margin-bottom: 12px;">
-                                        ${place.formatted_address || place.vicinity || 'Address not available'}
-                                    </div>
-                                    ${place.rating ? `
-                                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                                            <span style="color: #fbbc04; margin-right: 4px;">★</span>
-                                            <span style="color: #202124; font-size: 14px;">${place.rating}</span>
-                                            ${place.user_ratings_total ? `<span style="color: #70757a; font-size: 14px; margin-left: 4px;">(${place.user_ratings_total})</span>` : ''}
-                                        </div>
-                                    ` : ''}
-                                    <div style="margin-top: 12px;">
-                                        <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}&query_place_id=${place.place_id || ''}"
-                                           target="_blank"
-                                           style="color: #1a73e8; text-decoration: none; font-size: 14px; font-weight: 500;">
-                                            View on Google Maps
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>`,
+              <div style="font-family: 'Google Sans', Roboto, Arial, sans-serif; max-width: 280px;">
+                <div style="padding: 8px 12px 12px 12px;">
+                  <div style="color: #70757a; font-size: 14px; line-height: 20px; margin-bottom: 12px;">
+                    ${place.formatted_address || place.vicinity || 'Address not available'}
+                  </div>
+                  ${
+                            place.rating
+                                ? `
+                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                      <span style="color: #fbbc04; margin-right: 4px;">★</span>
+                      <span style="color: #202124; font-size: 14px;">${place.rating}</span>
+                      ${
+                                    place.user_ratings_total
+                                        ? `<span style="color: #70757a; font-size: 14px; margin-left: 4px;">(${place.user_ratings_total})</span>`
+                                        : ''
+                                }
+                    </div>
+                  `
+                                : ''
+                        }
+                  <div style="margin-top: 12px;">
+                    <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                            place.name
+                        )}&query_place_id=${place.place_id || ''}"
+                       target="_blank"
+                       style="color: #1a73e8; text-decoration: none; font-size: 14px; font-weight: 500;">
+                      View on Google Maps
+                    </a>
+                  </div>
+                </div>
+              </div>`,
                         ariaLabel: place.name
                     });
 
@@ -141,6 +189,10 @@ const Markers = ({ map, places, selectedPlace, onPlaceSelect, hiddenLayers }) =>
         };
 
         createMarkers();
+
+        return () => {
+            markersRef.current.forEach(marker => marker.setMap(null));
+        };
     }, [map, places, hiddenLayers, onPlaceSelect]);
 
     // Update marker appearance when selection changes
@@ -153,21 +205,19 @@ const Markers = ({ map, places, selectedPlace, onPlaceSelect, hiddenLayers }) =>
 
         markersRef.current.forEach(marker => {
             const emoji = marker.placeData.emoji || '📍';
-            const regularContent = createRegularMarker(emoji);
-            marker.content = regularContent;
+            marker.content = createRegularMarker(emoji);
             marker.zIndex = 1;
         });
 
         if (!selectedPlace) return;
 
-        const selectedMarker = markersRef.current.find(marker =>
-            marker.placeData?.name === selectedPlace.name
+        const selectedMarker = markersRef.current.find(
+            marker => marker.placeData?.name === selectedPlace.name
         );
 
         if (selectedMarker) {
             const emoji = selectedPlace.emoji || '📍';
-            const selectedContent = createSelectedMarker(emoji);
-            selectedMarker.content = selectedContent;
+            selectedMarker.content = createSelectedMarker(emoji);
             selectedMarker.zIndex = 999;
         }
     }, [selectedPlace, map]);
@@ -175,14 +225,16 @@ const Markers = ({ map, places, selectedPlace, onPlaceSelect, hiddenLayers }) =>
     return null;
 };
 
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
 const MapComponent = ({
-    places,
-    selectedPlace,
-    onPlaceSelect,
-    onMapClick,
-    hiddenLayers,
-    groups
-}) => {
+                          places,
+                          selectedPlace,
+                          onPlaceSelect,
+                          onMapClick,
+                          hiddenLayers
+                      }) => {
     const [center] = useState({ lat: 37.7749, lng: -122.4194 });
     const [zoom] = useState(13);
 
@@ -193,7 +245,6 @@ const MapComponent = ({
     };
 
     const onIdle = (map) => {
-        // Can be used for tracking map state changes
         console.log('Map idle');
     };
 
