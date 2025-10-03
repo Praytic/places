@@ -1,9 +1,10 @@
 /* global google */
-import React, { useRef, useEffect, useState } from 'react';
-import { Wrapper } from '@googlemaps/react-wrapper';
-import { createRegularMarker, createSelectedMarker } from '../utils/markerTemplates';
-import { createCustomEqual } from 'fast-equals';
-import { isLatLngLiteral } from '@googlemaps/typescript-guards';
+import React, {useRef, useEffect, useState} from 'react';
+import {Wrapper} from '@googlemaps/react-wrapper';
+import {createRegularMarker, createSelectedMarker} from '../utils/markerTemplates';
+import {createInfoWindow} from '../utils/infoWindow';
+import {createCustomEqual} from 'fast-equals';
+import {isLatLngLiteral} from '@googlemaps/typescript-guards';
 
 const deepCompareEqualsForMaps = createCustomEqual((deepEqual) => (a, b) => {
     if (
@@ -29,7 +30,7 @@ function useDeepCompareEffectForMaps(callback, dependencies) {
     useEffect(callback, dependencies.map(useDeepCompareMemoize));
 }
 
-const Map = ({ onClick, onIdle, children, style, ...options }) => {
+const Map = ({onClick, onIdle, children, style, ...options}) => {
     const ref = useRef(null);
     const [map, setMap] = useState();
 
@@ -63,17 +64,17 @@ const Map = ({ onClick, onIdle, children, style, ...options }) => {
 
     return (
         <>
-            <div ref={ref} style={style} />
+            <div ref={ref} style={style}/>
             {React.Children.map(children, (child) => {
                 if (React.isValidElement(child)) {
-                    return React.cloneElement(child, { map });
+                    return React.cloneElement(child, {map});
                 }
             })}
         </>
     );
 };
 
-const Markers = ({ map, places, selectedPlace, onPlaceSelect, hiddenLayers }) => {
+const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmojiChangeRequest}) => {
     const markersRef = useRef([]);
     const infoWindowRef = useRef(null);
 
@@ -87,7 +88,7 @@ const Markers = ({ map, places, selectedPlace, onPlaceSelect, hiddenLayers }) =>
                 infoWindowRef.current.close();
             }
 
-            const { AdvancedMarkerElement } = await window.google.maps.importLibrary('marker');
+            const {AdvancedMarkerElement} = await window.google.maps.importLibrary('marker');
 
             const filteredPlaces = places.filter(place => {
                 const group = place.group || 'want to go';
@@ -111,56 +112,13 @@ const Markers = ({ map, places, selectedPlace, onPlaceSelect, hiddenLayers }) =>
                         infoWindowRef.current.close();
                     }
 
-                    const headerDiv = document.createElement('div');
-                    headerDiv.style.cssText = 'padding: 12px 12px 0 12px;';
-                    const h3 = document.createElement('h3');
-                    h3.style.cssText = 'margin: 0; font-size: 16px; font-weight: 500; color: #202124; line-height: 20px;';
-                    h3.textContent = place.name;
-                    headerDiv.appendChild(h3);
-
-                    const infoWindow = new window.google.maps.InfoWindow({
-                        headerContent: headerDiv,
-                        content: `
-              <div style="font-family: 'Google Sans', Roboto, Arial, sans-serif; max-width: 280px;">
-                <div style="padding: 8px 12px 12px 12px;">
-                  <div style="color: #70757a; font-size: 14px; line-height: 20px; margin-bottom: 12px;">
-                    ${place.formatted_address || place.vicinity || 'Address not available'}
-                  </div>
-                  ${
-                            place.rating
-                                ? `
-                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                      <span style="color: #fbbc04; margin-right: 4px;">★</span>
-                      <span style="color: #202124; font-size: 14px;">${place.rating}</span>
-                      ${
-                                    place.user_ratings_total
-                                        ? `<span style="color: #70757a; font-size: 14px; margin-left: 4px;">(${place.user_ratings_total})</span>`
-                                        : ''
-                                }
-                    </div>
-                  `
-                                : ''
-                        }
-                  <div style="margin-top: 12px;">
-                    <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                            place.name
-                        )}&query_place_id=${place.place_id || ''}"
-                       target="_blank"
-                       style="color: #1a73e8; text-decoration: none; font-size: 14px; font-weight: 500;">
-                      View on Google Maps
-                    </a>
-                  </div>
-                </div>
-              </div>`,
-                        ariaLabel: place.name
-                    });
-
-                    infoWindow.addListener('closeclick', () => {
-                        onPlaceSelect(null);
-                    });
-
-                    infoWindow.open(map, marker);
-                    infoWindowRef.current = infoWindow;
+                    infoWindowRef.current = createInfoWindow(
+                        map,
+                        marker,
+                        place,
+                        () => onPlaceSelect(null),
+                        onEmojiChangeRequest
+                    );
 
                     onPlaceSelect(place);
                 });
@@ -177,7 +135,7 @@ const Markers = ({ map, places, selectedPlace, onPlaceSelect, hiddenLayers }) =>
         return () => {
             markersRef.current.forEach(marker => marker.setMap(null));
         };
-    }, [map, places, hiddenLayers, onPlaceSelect]);
+    }, [map, places, hiddenLayers, onPlaceSelect, onEmojiChangeRequest]);
 
     // Update marker appearance when selection changes
     useEffect(() => {
@@ -214,9 +172,10 @@ const MapComponent = ({
                           selectedPlace,
                           onPlaceSelect,
                           onMapClick,
+                          onEmojiChangeRequest,
                           hiddenLayers
                       }) => {
-    const [center] = useState({ lat: 37.7749, lng: -122.4194 });
+    const [center] = useState({lat: 37.7749, lng: -122.4194});
     const [zoom] = useState(13);
 
     const onClick = (e) => {
@@ -248,12 +207,13 @@ const MapComponent = ({
                 streetViewControl={false}
                 fullscreenControl={false}
                 mapId={process.env.REACT_APP_GOOGLE_MAP_ID || 'DEMO_MAP_ID'}
-                style={{ width: '100%', height: '100%' }}
+                style={{width: '100%', height: '100%'}}
             >
                 <Markers
                     places={places}
                     selectedPlace={selectedPlace}
                     onPlaceSelect={onPlaceSelect}
+                    onEmojiChangeRequest={onEmojiChangeRequest}
                     hiddenLayers={hiddenLayers}
                 />
             </Map>

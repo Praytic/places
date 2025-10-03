@@ -147,6 +147,16 @@ export class PlacesService {
   static async updatePlaceGroup(placeId, newGroup) {
     return this.updatePlace(placeId, { group: newGroup });
   }
+
+  /**
+   * Update a place's emoji
+   * @param {string} placeId - The Firestore document ID
+   * @param {string} emoji - The new emoji
+   * @returns {Promise<void>}
+   */
+  static async updatePlaceEmoji(placeId, emoji) {
+    return this.updatePlace(placeId, { emoji });
+  }
 }
 
 export default PlacesService;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import MapComponent from './components/MapComponent';
 import ControlPanel from './components/ControlPanel';
 import PlaceSearch from './components/PlaceSearch';
+import EmojiPicker from 'emoji-picker-react';
 import Auth from './components/Auth';
 import PlacesService from './services/PlacesService';
 import './App.css';
@@ -10,6 +11,8 @@ const App = () => {
   const [places, setPlaces] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [emojiPickerPlace, setEmojiPickerPlace] = useState(null);
   const [hiddenLayers, setHiddenLayers] = useState(new Set());
   const [groups] = useState(['want to go', 'favorite']);
   const [loading, setLoading] = useState(true);
@@ -100,6 +103,35 @@ const App = () => {
     setSelectedPlace(null);
   };
 
+  const handleEmojiChangeRequest = (place) => {
+    setEmojiPickerPlace(place);
+    setShowEmojiPicker(true);
+  };
+
+  const handleEmojiSelect = async (emojiObject) => {
+    if (emojiPickerPlace) {
+      try {
+        setError(null);
+        await PlacesService.updatePlaceEmoji(emojiPickerPlace.id, emojiObject.emoji);
+        // Update selected place if it's the one being changed
+        if (selectedPlace && selectedPlace.id === emojiPickerPlace.id) {
+          setSelectedPlace({ ...selectedPlace, emoji: emojiObject.emoji });
+        }
+        setShowEmojiPicker(false);
+        setEmojiPickerPlace(null);
+        console.log('Place emoji updated successfully');
+      } catch (error) {
+        console.error('Failed to update place emoji:', error);
+        setError('Failed to update emoji. Please try again.');
+      }
+    }
+  };
+
+  const handleEmojiCancel = () => {
+    setShowEmojiPicker(false);
+    setEmojiPickerPlace(null);
+  };
+
   return (
     <Auth>
       <div className="app">
@@ -122,6 +154,7 @@ const App = () => {
             selectedPlace={selectedPlace}
             onPlaceSelect={handleMapPlaceSelect}
             onMapClick={handleMapClick}
+            onEmojiChangeRequest={handleEmojiChangeRequest}
             hiddenLayers={hiddenLayers}
             groups={groups}
           />
@@ -143,6 +176,24 @@ const App = () => {
             onPlaceSelect={handlePlaceSelect}
             onClose={() => setShowSearch(false)}
           />
+        )}
+
+        {showEmojiPicker && emojiPickerPlace && (
+          <div className="emoji-picker-overlay">
+            <div className="emoji-picker-container">
+              <div className="emoji-picker-header">
+                <h3>Choose an emoji for {emojiPickerPlace.name}</h3>
+                <button onClick={handleEmojiCancel} className="close-button">×</button>
+              </div>
+              <div className="emoji-picker-content">
+                <EmojiPicker
+                  onEmojiClick={handleEmojiSelect}
+                  width="100%"
+                  height={400}
+                />
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </Auth>
