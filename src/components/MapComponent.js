@@ -27,10 +27,11 @@ function useDeepCompareMemoize(value) {
 }
 
 function useDeepCompareEffectForMaps(callback, dependencies) {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(callback, dependencies.map(useDeepCompareMemoize));
 }
 
-const Map = ({onClick, onIdle, children, style, ...options}) => {
+const MapWrapper = ({onClick, onIdle, children, style, ...options}) => {
     const ref = useRef(null);
     const [map, setMap] = useState();
 
@@ -75,7 +76,7 @@ const Map = ({onClick, onIdle, children, style, ...options}) => {
 };
 
 const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmojiChangeRequest}) => {
-    const markersRef = useRef([]);
+    const markersRef = useRef(new Map()); // Map of placeId -> marker
     const infoWindowRef = useRef(null);
     const onPlaceSelectRef = useRef(onPlaceSelect);
     const onEmojiChangeRequestRef = useRef(onEmojiChangeRequest);
@@ -85,64 +86,87 @@ const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmo
         onEmojiChangeRequestRef.current = onEmojiChangeRequest;
     }, [onPlaceSelect, onEmojiChangeRequest]);
 
+    // Create/remove markers when places are added/removed
     useEffect(() => {
         if (!map) return;
 
-        const createMarkers = async () => {
-            // Cleanup old markers
-            markersRef.current.forEach(marker => marker.setMap(null));
-            if (infoWindowRef.current) {
-                infoWindowRef.current.close();
-            }
+        const currentMarkers = markersRef.current;
 
+        const updateMarkers = async () => {
             const {AdvancedMarkerElement} = await window.google.maps.importLibrary('marker');
+            const placeIds = new Set(places.map(p => p.id));
 
-            const filteredPlaces = places.filter(place => {
-                const group = place.group || 'want to go';
-                return !hiddenLayers.has(group);
+            // Remove markers for places that no longer exist
+            currentMarkers.forEach((marker, placeId) => {
+                if (!placeIds.has(placeId)) {
+                    marker.setMap(null);
+                    currentMarkers.delete(placeId);
+                }
             });
 
-            const newMarkers = filteredPlaces.map(place => {
-                const emoji = place.emoji || '📍';
-                const content = createRegularMarker(emoji);
+            // Add markers for new places
+            places.forEach(place => {
+                if (!currentMarkers.has(place.id)) {
+                    const emoji = place.emoji || '📍';
+                    const content = createRegularMarker(emoji);
+                    const group = place.group || 'want to go';
+                    const shouldShow = !hiddenLayers.has(group);
 
-                const marker = new AdvancedMarkerElement({
-                    map,
-                    position: place.geometry.location,
-                    content,
-                    title: place.name,
-                    zIndex: 1
-                });
+                    const marker = new AdvancedMarkerElement({
+                        map: shouldShow ? map : null,
+                        position: place.geometry.location,
+                        content,
+                        title: place.name,
+                        zIndex: 1
+                    });
 
-                marker.addListener('click', () => {
-                    if (infoWindowRef.current) {
-                        infoWindowRef.current.close();
-                    }
+                    marker.addListener('click', () => {
+                        if (infoWindowRef.current) {
+                            infoWindowRef.current.close();
+                        }
 
-                    infoWindowRef.current = createInfoWindow(
-                        map,
-                        marker,
-                        place,
-                        () => onPlaceSelectRef.current(null),
-                        onEmojiChangeRequestRef.current
-                    );
+                        infoWindowRef.current = createInfoWindow(
+                            map,
+                            marker,
+                            place,
+                            () => onPlaceSelectRef.current(null),
+                            onEmojiChangeRequestRef.current
+                        );
 
-                    onPlaceSelectRef.current(place);
-                });
+                        onPlaceSelectRef.current(place);
+                    });
 
-                marker.placeData = place;
-                return marker;
+                    marker.placeData = place;
+                    currentMarkers.set(place.id, marker);
+                }
             });
-
-            markersRef.current = newMarkers;
         };
 
-        createMarkers();
-
-        return () => {
-            markersRef.current.forEach(marker => marker.setMap(null));
-        };
+        updateMarkers();
     }, [map, places, hiddenLayers]);
+
+    // Update marker appearance when emoji changes
+    useEffect(() => {
+        places.forEach(place => {
+            const marker = markersRef.current.get(place.id);
+            if (marker && marker.placeData.emoji !== place.emoji) {
+                const emoji = place.emoji || '📍';
+                marker.content = createRegularMarker(emoji);
+                marker.placeData = place;
+            }
+        });
+    }, [places]);
+
+    // Update marker visibility based on hidden layers
+    useEffect(() => {
+        places.forEach(place => {
+            const marker = markersRef.current.get(place.id);
+            if (marker) {
+                const group = place.group || 'want to go';
+                marker.setMap(hiddenLayers.has(group) ? null : map);
+            }
+        });
+    }, [hiddenLayers, places, map]);
 
     // Update marker appearance when selection changes
     useEffect(() => {
@@ -160,9 +184,14 @@ const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmo
 
         if (!selectedPlace) return;
 
-        const selectedMarker = markersRef.current.find(
-            marker => marker.placeData?.name === selectedPlace.name
-        );
+        // Find the selected marker
+        let selectedMarker = null;
+        for (const marker of markersRef.current.values()) {
+            if (marker.placeData?.name === selectedPlace.name) {
+                selectedMarker = marker;
+                break;
+            }
+        }
 
         if (selectedMarker) {
             const emoji = selectedPlace.emoji || '📍';
@@ -205,7 +234,7 @@ const MapComponent = ({
             render={render}
             libraries={['places', 'marker']}
         >
-            <Map
+            <MapWrapper
                 center={center}
                 zoom={zoom}
                 onClick={onClick}
@@ -223,7 +252,7 @@ const MapComponent = ({
                     onEmojiChangeRequest={onEmojiChangeRequest}
                     hiddenLayers={hiddenLayers}
                 />
-            </Map>
+            </MapWrapper>
         </Wrapper>
     );
 };

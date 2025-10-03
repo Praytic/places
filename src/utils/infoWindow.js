@@ -1,5 +1,3 @@
-/* global google */
-
 /**
  * Creates and displays an info window for a place marker
  * @param {google.maps.Map} map - The Google Maps instance
