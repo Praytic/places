@@ -1,17 +1,10 @@
-/*
- * Based on Google Maps React sample pattern
- * Custom business logic preserved
- */
-
+/* global google */
 import React, { useRef, useEffect, useState } from 'react';
-import { Wrapper, Status } from '@googlemaps/react-wrapper';
+import { Wrapper } from '@googlemaps/react-wrapper';
 import { createRegularMarker, createSelectedMarker } from '../utils/markerTemplates';
 import { createCustomEqual } from 'fast-equals';
 import { isLatLngLiteral } from '@googlemaps/typescript-guards';
 
-// ---------------------------------------------------------------------------
-// Utility: deep compare hook for map options
-// ---------------------------------------------------------------------------
 const deepCompareEqualsForMaps = createCustomEqual((deepEqual) => (a, b) => {
     if (
         isLatLngLiteral(a) ||
@@ -36,28 +29,22 @@ function useDeepCompareEffectForMaps(callback, dependencies) {
     useEffect(callback, dependencies.map(useDeepCompareMemoize));
 }
 
-// ---------------------------------------------------------------------------
-// Map component
-// ---------------------------------------------------------------------------
 const Map = ({ onClick, onIdle, children, style, ...options }) => {
     const ref = useRef(null);
     const [map, setMap] = useState();
 
-    // Initialize map
     useEffect(() => {
         if (ref.current && !map) {
             setMap(new window.google.maps.Map(ref.current, {}));
         }
     }, [ref, map]);
 
-    // Update map options with deep compare
     useDeepCompareEffectForMaps(() => {
         if (map) {
             map.setOptions(options);
         }
     }, [map, options]);
 
-    // Set up event listeners
     useEffect(() => {
         if (map) {
             ['click', 'idle'].forEach((eventName) =>
@@ -86,9 +73,6 @@ const Map = ({ onClick, onIdle, children, style, ...options }) => {
     );
 };
 
-// ---------------------------------------------------------------------------
-// Markers component
-// ---------------------------------------------------------------------------
 const Markers = ({ map, places, selectedPlace, onPlaceSelect, hiddenLayers }) => {
     const markersRef = useRef([]);
     const infoWindowRef = useRef(null);
@@ -225,9 +209,6 @@ const Markers = ({ map, places, selectedPlace, onPlaceSelect, hiddenLayers }) =>
     return null;
 };
 
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
 const MapComponent = ({
                           places,
                           selectedPlace,
