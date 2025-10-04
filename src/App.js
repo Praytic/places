@@ -5,6 +5,7 @@ import PlaceSearch from './components/PlaceSearch';
 import EmojiPicker, {EmojiStyle} from 'emoji-picker-react';
 import Auth from './components/Auth';
 import PlacesService from './services/PlacesService';
+import { getUserMaps, createMap } from './services/MapsService';
 import { auth } from './config/firebase';
 import './App.css';
 
@@ -19,6 +20,7 @@ const App = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [currentMapId, setCurrentMapId] = useState(null);
 
   const availableLayers = groups;
 
@@ -29,6 +31,35 @@ const App = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  // Get or create user's map when user changes
+  useEffect(() => {
+    const initializeMap = async () => {
+      if (!currentUser?.email) {
+        setCurrentMapId(null);
+        return;
+      }
+
+      try {
+        // Get user's maps
+        const maps = await getUserMaps(currentUser.email);
+
+        if (maps.length > 0) {
+          // Use first map
+          setCurrentMapId(maps[0].id);
+        } else {
+          // Create a new map for the user
+          const newMap = await createMap(currentUser.email, 'My Places');
+          setCurrentMapId(newMap.id);
+        }
+      } catch (err) {
+        console.error('Error initializing map:', err);
+        setError('Failed to initialize map');
+      }
+    };
+
+    initializeMap();
+  }, [currentUser]);
 
   // Subscribe to places when user changes
   useEffect(() => {
@@ -53,10 +84,10 @@ const App = () => {
   };
 
   const handlePlaceSelect = async (place) => {
-    if (place && currentUser?.email) {
+    if (place && currentMapId) {
       try {
         setError(null);
-        const addedPlace = await PlacesService.addPlace(place, currentUser.email);
+        const addedPlace = await PlacesService.addPlace(place, currentMapId);
         // The real-time listener will update the places state automatically
         console.log('Place added successfully:', addedPlace);
       } catch (error) {
@@ -70,7 +101,7 @@ const App = () => {
     if (selectedPlace) {
       try {
         setError(null);
-        await PlacesService.deletePlace(selectedPlace.id, currentUser.email);
+        await PlacesService.deletePlace(selectedPlace.id);
         setSelectedPlace(null);
         // The real-time listener will update the places state automatically
         console.log('Place removed successfully');

@@ -1,21 +1,18 @@
 import {
   collection,
   doc,
+  getDocs,
   updateDoc,
   deleteDoc,
   getDoc,
   setDoc,
-  writeBatch,
+  query,
+  where,
+  onSnapshot,
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import {
-  createMap,
-  getUserMaps,
-  deletePlaceMaps,
-  subscribeToUserMaps,
-  ROLES
-} from './MapsService';
+import { getUserMaps, ROLES } from './MapsService';
 
 const PLACES_COLLECTION = 'places';
 const USERS_COLLECTION = 'users';
@@ -25,33 +22,22 @@ export { ROLES };
 
 export class PlacesService {
   /**
-   * Get all places accessible to the current user via /maps collection
-   * @param {string} userId - Current user's ID (email)
-   * @returns {Promise<Array>} Array of places user has access to
+   * Get all places for a specific map
+   * @param {string} mapId - Map ID
+   * @returns {Promise<Array>} Array of places
    */
-  static async getPlaces(userId) {
+  static async getPlacesForMap(mapId) {
     try {
-      // Query user's maps to get places and roles
-      const userMaps = await getUserMaps(userId);
+      const placesQuery = query(
+        collection(db, PLACES_COLLECTION),
+        where('mapId', '==', mapId)
+      );
+      const placesSnapshot = await getDocs(placesQuery);
 
-      if (userMaps.length === 0) {
-        return [];
-      }
-
-      // Fetch the actual place documents
-      const placesPromises = userMaps.map(async (map) => {
-        const placeDoc = await getDoc(doc(db, PLACES_COLLECTION, map.placeId));
-        if (placeDoc.exists()) {
-          return {
-            id: placeDoc.id,
-            ...placeDoc.data(),
-            userRole: map.role // Include user's role for this place
-          };
-        }
-        return null;
-      });
-
-      const places = (await Promise.all(placesPromises)).filter(p => p !== null);
+      const places = placesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
 
       // Sort by createdAt in descending order
       places.sort((a, b) => {
@@ -62,18 +48,60 @@ export class PlacesService {
 
       return places;
     } catch (error) {
+      console.error('Error fetching places for map:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all places accessible to the current user (from all their maps)
+   * @param {string} userId - Current user's ID (email)
+   * @returns {Promise<Array>} Array of places with userRole
+   */
+  static async getPlaces(userId) {
+    try {
+      // Get all maps user has access to
+      const userMaps = await getUserMaps(userId);
+
+      if (userMaps.length === 0) {
+        return [];
+      }
+
+      // Fetch places from all maps
+      const placesPromises = userMaps.map(async (map) => {
+        const places = await this.getPlacesForMap(map.id);
+        // Add userRole to each place based on their map role
+        return places.map(place => ({
+          ...place,
+          userRole: map.userRole,
+          mapId: map.id
+        }));
+      });
+
+      const placesArrays = await Promise.all(placesPromises);
+      const allPlaces = placesArrays.flat();
+
+      // Sort by createdAt in descending order
+      allPlaces.sort((a, b) => {
+        const aTime = a.createdAt?.toDate?.() || new Date(0);
+        const bTime = b.createdAt?.toDate?.() || new Date(0);
+        return bTime - aTime;
+      });
+
+      return allPlaces;
+    } catch (error) {
       console.error('Error fetching places:', error);
       throw error;
     }
   }
 
   /**
-   * Add a new place to Firestore with /maps entry
+   * Add a new place to a map
    * @param {Object} place - The place object to add
-   * @param {string} userId - The user's ID (email)
+   * @param {string} mapId - The map ID to add the place to
    * @returns {Promise<Object>} The added place with Firestore ID
    */
-  static async addPlace(place, userId) {
+  static async addPlace(place, mapId) {
     try {
       // Handle both LatLng objects and plain objects
       let location;
@@ -91,6 +119,7 @@ export class PlacesService {
 
       const placeData = {
         ...place,
+        mapId,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
         geometry: {
@@ -98,31 +127,13 @@ export class PlacesService {
         }
       };
 
-      // Use batch write to create place and map entry atomically
-      const batch = writeBatch(db);
-
       // Create the place document
       const placeRef = doc(collection(db, PLACES_COLLECTION));
-      batch.set(placeRef, placeData);
-
-      // Create map entry for owner
-      const mapId = `${userId}_${placeRef.id}`;
-      const mapRef = doc(db, 'maps', mapId);
-      batch.set(mapRef, {
-        id: mapId,
-        placeId: placeRef.id,
-        userId: userId,
-        role: ROLES.OWNER,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now()
-      });
-
-      await batch.commit();
+      await setDoc(placeRef, placeData);
 
       return {
         id: placeRef.id,
-        ...placeData,
-        userRole: ROLES.OWNER
+        ...placeData
       };
     } catch (error) {
       console.error('Error adding place:', error);
@@ -150,17 +161,12 @@ export class PlacesService {
   }
 
   /**
-   * Delete a place from Firestore (with all map entries)
+   * Delete a place from Firestore
    * @param {string} placeId - The Firestore document ID
-   * @param {string} userId - The user's ID (for verification)
    * @returns {Promise<void>}
    */
-  static async deletePlace(placeId, userId) {
+  static async deletePlace(placeId) {
     try {
-      // Delete all map entries for this place
-      await deletePlaceMaps(placeId);
-
-      // Delete the place document
       await deleteDoc(doc(db, PLACES_COLLECTION, placeId));
     } catch (error) {
       console.error('Error deleting place:', error);
@@ -169,44 +175,52 @@ export class PlacesService {
   }
 
   /**
-   * Set up real-time listener for places accessible to the user via /maps
+   * Set up real-time listener for places accessible to the user (from all their maps)
    * @param {string} userId - Current user's ID (email)
    * @param {Function} callback - Callback function to handle data updates
    * @returns {Function} Unsubscribe function
    */
   static subscribeToPlaces(userId, callback) {
     try {
-      // Listen to changes in user's maps
-      return subscribeToUserMaps(userId, async (maps) => {
+      // Listen to user's maps first
+      const userMapsRef = collection(db, 'users', userId, 'maps');
+
+      return onSnapshot(userMapsRef, async (mapsSnapshot) => {
         try {
-          if (maps.length === 0) {
+          if (mapsSnapshot.empty) {
             callback([]);
             return;
           }
 
-          // Fetch the actual place documents
-          const placesPromises = maps.map(async (map) => {
-            const placeDoc = await getDoc(doc(db, PLACES_COLLECTION, map.placeId));
-            if (placeDoc.exists()) {
-              return {
-                id: placeDoc.id,
-                ...placeDoc.data(),
-                userRole: map.role
-              };
-            }
-            return null;
+          // Get map IDs
+          const mapIds = mapsSnapshot.docs.map(doc => doc.id);
+          const mapRoles = {};
+          mapsSnapshot.docs.forEach(doc => {
+            mapRoles[doc.id] = doc.data().role;
           });
 
-          const places = (await Promise.all(placesPromises)).filter(p => p !== null);
+          // Subscribe to places from all maps
+          const placesQuery = query(
+            collection(db, PLACES_COLLECTION),
+            where('mapId', 'in', mapIds)
+          );
 
-          // Sort by createdAt in descending order
-          places.sort((a, b) => {
-            const aTime = a.createdAt?.toDate?.() || new Date(0);
-            const bTime = b.createdAt?.toDate?.() || new Date(0);
-            return bTime - aTime;
+          return onSnapshot(placesQuery, (placesSnapshot) => {
+            const places = placesSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+              userRole: mapRoles[doc.data().mapId]
+            }));
+
+            // Sort by createdAt in descending order
+            places.sort((a, b) => {
+              const aTime = a.createdAt?.toDate?.() || new Date(0);
+              const bTime = b.createdAt?.toDate?.() || new Date(0);
+              return bTime - aTime;
+            });
+
+            callback(places);
           });
-
-          callback(places);
         } catch (error) {
           console.error('Error processing places snapshot:', error);
           callback([]);
@@ -236,24 +250,6 @@ export class PlacesService {
    */
   static async updatePlaceEmoji(placeId, emoji) {
     return this.updatePlace(placeId, { emoji });
-  }
-
-  /**
-   * Get user document by email
-   * @param {string} email - The email to search for
-   * @returns {Promise<Object|null>} User document or null
-   */
-  static async getUserByEmail(email) {
-    try {
-      const userDoc = await getDoc(doc(db, USERS_COLLECTION, email));
-      if (userDoc.exists()) {
-        return { id: userDoc.id, ...userDoc.data() };
-      }
-      return null;
-    } catch (error) {
-      console.error('Error getting user by email:', error);
-      throw error;
-    }
   }
 
   /**

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PlacesService from '../services/PlacesService';
-import { shareAllPlacesWithUser, unshareAllPlacesWithUser, getSharedWithUsers } from '../services/MapsService';
+import { getUserMaps, shareMapWithUser, unshareMapWithUser, getMapCollaborators, ROLES } from '../services/MapsService';
 
 const ShareDialog = ({ userEmail, onClose }) => {
   const [email, setEmail] = useState('');
@@ -8,19 +8,30 @@ const ShareDialog = ({ userEmail, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-
-  const loadSharedWithList = async () => {
-    try {
-      const list = await getSharedWithUsers(userEmail);
-      setSharedWithList(list);
-    } catch (err) {
-      console.error('Error loading shared with list:', err);
-    }
-  };
+  const [currentMapId, setCurrentMapId] = useState(null);
 
   useEffect(() => {
-    loadSharedWithList();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const loadMapAndCollaborators = async () => {
+      try {
+        // Get user's first map (main map)
+        const maps = await getUserMaps(userEmail);
+        if (maps.length > 0 && maps[0].userRole === ROLES.OWNER) {
+          const mapId = maps[0].id;
+          setCurrentMapId(mapId);
+
+          // Load collaborators for this map
+          const collaborators = await getMapCollaborators(mapId);
+          const nonOwners = collaborators
+            .filter(c => c.userId !== userEmail)
+            .map(c => c.userId);
+          setSharedWithList(nonOwners);
+        }
+      } catch (err) {
+        console.error('Error loading map and collaborators:', err);
+      }
+    };
+
+    loadMapAndCollaborators();
   }, [userEmail]);
 
   const handleShare = async (e) => {
@@ -40,6 +51,11 @@ const ShareDialog = ({ userEmail, onClose }) => {
       return;
     }
 
+    if (!currentMapId) {
+      setError('No map to share');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -47,10 +63,16 @@ const ShareDialog = ({ userEmail, onClose }) => {
     try {
       // Ensure user exists before sharing
       await PlacesService.getOrCreateUser(email);
-      await shareAllPlacesWithUser(userEmail, email);
-      setSuccess(`Successfully shared with ${email}`);
+      await shareMapWithUser(currentMapId, email, ROLES.VIEWER);
+      setSuccess(`Successfully shared map with ${email}`);
       setEmail('');
-      await loadSharedWithList();
+
+      // Reload collaborators
+      const collaborators = await getMapCollaborators(currentMapId);
+      const nonOwners = collaborators
+        .filter(c => c.userId !== userEmail)
+        .map(c => c.userId);
+      setSharedWithList(nonOwners);
     } catch (err) {
       console.error('Error sharing:', err);
       setError('Failed to share. Please try again.');
@@ -60,14 +82,24 @@ const ShareDialog = ({ userEmail, onClose }) => {
   };
 
   const handleRemoveShare = async (collaboratorEmail) => {
+    if (!currentMapId) {
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setSuccess(null);
 
     try {
-      await unshareAllPlacesWithUser(userEmail, collaboratorEmail);
+      await unshareMapWithUser(currentMapId, collaboratorEmail);
       setSuccess(`Removed access for ${collaboratorEmail}`);
-      await loadSharedWithList();
+
+      // Reload collaborators
+      const collaborators = await getMapCollaborators(currentMapId);
+      const nonOwners = collaborators
+        .filter(c => c.userId !== userEmail)
+        .map(c => c.userId);
+      setSharedWithList(nonOwners);
     } catch (err) {
       console.error('Error removing share:', err);
       setError('Failed to remove access. Please try again.');
@@ -80,7 +112,7 @@ const ShareDialog = ({ userEmail, onClose }) => {
     <div className="share-dialog-overlay" onClick={onClose}>
       <div className="share-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="share-dialog-header">
-          <h2>Share Places</h2>
+          <h2>Share Map</h2>
           <button onClick={onClose} className="close-button">×</button>
         </div>
 
