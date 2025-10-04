@@ -31,12 +31,7 @@ const Auth = ({ children }) => {
 
       const uiConfig = {
         signInOptions: [
-          {
-            provider: GoogleAuthProvider.PROVIDER_ID,
-            customParameters: {
-              prompt: 'select_account'
-            }
-          }
+          GoogleAuthProvider.PROVIDER_ID
         ],
         signInFlow: 'popup',
         callbacks: {

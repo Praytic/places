@@ -5,6 +5,7 @@ import PlaceSearch from './components/PlaceSearch';
 import EmojiPicker, {EmojiStyle} from 'emoji-picker-react';
 import Auth from './components/Auth';
 import PlacesService from './services/PlacesService';
+import { getUserMaps, createMap } from './services/MapsService';
 import { auth } from './config/firebase';
 import './App.css';
 
@@ -19,7 +20,7 @@ const App = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
-  const [sharedFromUsers, setSharedFromUsers] = useState([]);
+  const [currentMapId, setCurrentMapId] = useState(null);
 
   const availableLayers = groups;
 
@@ -31,36 +32,36 @@ const App = () => {
     return () => unsubscribe();
   }, []);
 
-  // Load shared users when user changes
+  // Get or create user's map when user changes
   useEffect(() => {
-    const migrateLegacyMarkers = async () => {
-      if (!currentUser?.email) return;
+    const initializeMap = async () => {
+      if (!currentUser?.email) {
+        setCurrentMapId(null);
+        return;
+      }
+
       try {
-        const migratedCount = await PlacesService.migrateLegacyMarkers(currentUser.email);
-        if (migratedCount > 0) {
-          console.log(`Migrated ${migratedCount} legacy markers to your account`);
+        // Get user's maps
+        const maps = await getUserMaps(currentUser.email);
+
+        if (maps.length > 0) {
+          // Use first map
+          setCurrentMapId(maps[0].id);
+        } else {
+          // Create a new map for the user
+          const newMap = await createMap(currentUser.email, 'My Places');
+          setCurrentMapId(newMap.id);
         }
       } catch (err) {
-        console.error('Error migrating legacy markers:', err);
+        console.error('Error initializing map:', err);
+        setError('Failed to initialize map');
       }
     };
 
-    const loadSharedUsers = async () => {
-      if (!currentUser?.email) return;
-      try {
-        const sharedUsers = await PlacesService.getSharedFromUsers(currentUser.email);
-        setSharedFromUsers(sharedUsers);
-      } catch (err) {
-        console.error('Error loading shared users:', err);
-      }
-    };
-
-    if (currentUser?.email) {
-      loadSharedUsers();
-      migrateLegacyMarkers();
-    }
+    initializeMap();
   }, [currentUser]);
 
+  // Subscribe to places when user changes
   useEffect(() => {
     if (!currentUser?.email) {
       setPlaces([]);
@@ -70,24 +71,23 @@ const App = () => {
 
     const unsubscribe = PlacesService.subscribeToPlaces(
       currentUser.email,
-      sharedFromUsers,
       (placesData) => {
         setPlaces(placesData);
         setLoading(false);
       }
     );
     return () => unsubscribe();
-  }, [currentUser, sharedFromUsers]);
+  }, [currentUser]);
 
   const handleAddPlace = () => {
     setShowSearch(true);
   };
 
   const handlePlaceSelect = async (place) => {
-    if (place && currentUser?.email) {
+    if (place && currentMapId) {
       try {
         setError(null);
-        const addedPlace = await PlacesService.addPlace(place, currentUser.email);
+        const addedPlace = await PlacesService.addPlace(place, currentMapId);
         // The real-time listener will update the places state automatically
         console.log('Place added successfully:', addedPlace);
       } catch (error) {
