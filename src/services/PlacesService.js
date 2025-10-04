@@ -11,53 +11,48 @@ import {
   getDoc,
   setDoc,
   writeBatch,
-  collectionGroup,
-  FieldPath,
+  Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import {
+  createMap,
+  getUserMaps,
+  deletePlaceMaps,
+  subscribeToUserMaps,
+  shareAllPlacesWithUser as mapsShareAll,
+  unshareAllPlacesWithUser as mapsUnshareAll,
+  ROLES
+} from './MapsService';
 
 const PLACES_COLLECTION = 'places';
 const USERS_COLLECTION = 'users';
 
-// Role types for access control
-export const ROLES = {
-  OWNER: 'owner',
-  EDITOR: 'editor',
-  VIEWER: 'viewer'
-};
+// Re-export ROLES for backward compatibility
+export { ROLES };
 
 export class PlacesService {
   /**
-   * Get all places accessible to the current user using collection group query
+   * Get all places accessible to the current user via /maps collection
    * @param {string} userId - Current user's ID (email)
    * @returns {Promise<Array>} Array of places user has access to
    */
   static async getPlaces(userId) {
     try {
-      // Query the user's accessible places index
-      const accessQuery = query(
-        collection(db, USERS_COLLECTION, userId, 'accessiblePlaces')
-      );
-      const accessSnapshot = await getDocs(accessQuery);
+      // Query user's maps to get places and roles
+      const userMaps = await getUserMaps(userId);
 
-      // Get all place IDs with their roles
-      const placeAccess = accessSnapshot.docs.map(doc => ({
-        placeId: doc.id,
-        role: doc.data().role
-      }));
-
-      if (placeAccess.length === 0) {
+      if (userMaps.length === 0) {
         return [];
       }
 
       // Fetch the actual place documents
-      const placesPromises = placeAccess.map(async ({ placeId, role }) => {
-        const placeDoc = await getDoc(doc(db, PLACES_COLLECTION, placeId));
+      const placesPromises = userMaps.map(async (map) => {
+        const placeDoc = await getDoc(doc(db, PLACES_COLLECTION, map.placeId));
         if (placeDoc.exists()) {
           return {
             id: placeDoc.id,
             ...placeDoc.data(),
-            userRole: role // Include user's role for this place
+            userRole: map.role // Include user's role for this place
           };
         }
         return null;
@@ -80,7 +75,7 @@ export class PlacesService {
   }
 
   /**
-   * Add a new place to Firestore with access control
+   * Add a new place to Firestore with /maps entry
    * @param {Object} place - The place object to add
    * @param {string} userId - The user's ID (email)
    * @returns {Promise<Object>} The added place with Firestore ID
@@ -103,36 +98,30 @@ export class PlacesService {
 
       const placeData = {
         ...place,
-        owner: userId,
-        access: {
-          [userId]: ROLES.OWNER
-        },
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
         geometry: {
           location: location
         }
       };
 
-      // Use batch write to create place and access records atomically
+      // Use batch write to create place and map entry atomically
       const batch = writeBatch(db);
 
       // Create the place document
       const placeRef = doc(collection(db, PLACES_COLLECTION));
       batch.set(placeRef, placeData);
 
-      // Create access control record (for backward compatibility/subcollection support)
-      const accessRef = doc(db, PLACES_COLLECTION, placeRef.id, 'access', userId);
-      batch.set(accessRef, {
+      // Create map entry for owner
+      const mapId = `${userId}_${placeRef.id}`;
+      const mapRef = doc(db, 'maps', mapId);
+      batch.set(mapRef, {
+        id: mapId,
+        placeId: placeRef.id,
+        userId: userId,
         role: ROLES.OWNER,
-        grantedAt: new Date()
-      });
-
-      // Create user's accessible places index
-      const userAccessRef = doc(db, USERS_COLLECTION, userId, 'accessiblePlaces', placeRef.id);
-      batch.set(userAccessRef, {
-        role: ROLES.OWNER,
-        grantedAt: new Date()
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now()
       });
 
       await batch.commit();
@@ -159,7 +148,7 @@ export class PlacesService {
       const placeRef = doc(db, PLACES_COLLECTION, placeId);
       await updateDoc(placeRef, {
         ...updates,
-        updatedAt: new Date()
+        updatedAt: Timestamp.now()
       });
     } catch (error) {
       console.error('Error updating place:', error);
@@ -168,31 +157,18 @@ export class PlacesService {
   }
 
   /**
-   * Delete a place from Firestore (with all access records)
+   * Delete a place from Firestore (with all map entries)
    * @param {string} placeId - The Firestore document ID
    * @param {string} userId - The user's ID (for verification)
    * @returns {Promise<void>}
    */
   static async deletePlace(placeId, userId) {
     try {
-      // Get all access records for this place
-      const accessQuery = query(collection(db, PLACES_COLLECTION, placeId, 'access'));
-      const accessSnapshot = await getDocs(accessQuery);
-
-      const batch = writeBatch(db);
+      // Delete all map entries for this place
+      await deletePlaceMaps(placeId);
 
       // Delete the place document
-      batch.delete(doc(db, PLACES_COLLECTION, placeId));
-
-      // Delete all access records
-      accessSnapshot.docs.forEach((accessDoc) => {
-        batch.delete(accessDoc.ref);
-        // Also delete from user's accessible places index
-        const userAccessRef = doc(db, USERS_COLLECTION, accessDoc.id, 'accessiblePlaces', placeId);
-        batch.delete(userAccessRef);
-      });
-
-      await batch.commit();
+      await deleteDoc(doc(db, PLACES_COLLECTION, placeId));
     } catch (error) {
       console.error('Error deleting place:', error);
       throw error;
@@ -200,38 +176,29 @@ export class PlacesService {
   }
 
   /**
-   * Set up real-time listener for places accessible to the user
+   * Set up real-time listener for places accessible to the user via /maps
    * @param {string} userId - Current user's ID (email)
    * @param {Function} callback - Callback function to handle data updates
    * @returns {Function} Unsubscribe function
    */
   static subscribeToPlaces(userId, callback) {
     try {
-      // Listen to changes in user's accessible places index
-      const accessQuery = query(
-        collection(db, USERS_COLLECTION, userId, 'accessiblePlaces')
-      );
-
-      return onSnapshot(accessQuery, async (accessSnapshot) => {
+      // Listen to changes in user's maps
+      return subscribeToUserMaps(userId, async (maps) => {
         try {
-          const placeAccess = accessSnapshot.docs.map(doc => ({
-            placeId: doc.id,
-            role: doc.data().role
-          }));
-
-          if (placeAccess.length === 0) {
+          if (maps.length === 0) {
             callback([]);
             return;
           }
 
           // Fetch the actual place documents
-          const placesPromises = placeAccess.map(async ({ placeId, role }) => {
-            const placeDoc = await getDoc(doc(db, PLACES_COLLECTION, placeId));
+          const placesPromises = maps.map(async (map) => {
+            const placeDoc = await getDoc(doc(db, PLACES_COLLECTION, map.placeId));
             if (placeDoc.exists()) {
               return {
                 id: placeDoc.id,
                 ...placeDoc.data(),
-                userRole: role
+                userRole: map.role
               };
             }
             return null;
@@ -251,9 +218,6 @@ export class PlacesService {
           console.error('Error processing places snapshot:', error);
           callback([]);
         }
-      }, (error) => {
-        console.error('Error in places subscription:', error);
-        callback([]);
       });
     } catch (error) {
       console.error('Error setting up places subscription:', error);
@@ -313,17 +277,13 @@ export class PlacesService {
       if (!userDoc.exists()) {
         await setDoc(userRef, {
           email: userId,
-          sharedWith: [],
-          sharedFrom: [],
           ...userData,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now()
         });
         return {
           id: userId,
           email: userId,
-          sharedWith: [],
-          sharedFrom: [],
           ...userData
         };
       }
@@ -336,88 +296,7 @@ export class PlacesService {
   }
 
   /**
-   * Share a place with another user
-   * @param {string} placeId - The place ID
-   * @param {string} collaboratorEmail - The collaborator's email
-   * @param {string} role - The role to grant (OWNER, EDITOR, VIEWER)
-   * @returns {Promise<void>}
-   */
-  static async sharePlaceWithUser(placeId, collaboratorEmail, role = ROLES.VIEWER) {
-    try {
-      // Ensure user exists
-      await this.getOrCreateUser(collaboratorEmail);
-
-      const batch = writeBatch(db);
-
-      // Update the access map in the place document using FieldPath
-      const placeRef = doc(db, PLACES_COLLECTION, placeId);
-      batch.update(placeRef, {
-        [new FieldPath('access', collaboratorEmail)]: role,
-        updatedAt: new Date()
-      });
-
-      // Create access control record (for backward compatibility)
-      const accessRef = doc(db, PLACES_COLLECTION, placeId, 'access', collaboratorEmail);
-      batch.set(accessRef, {
-        role: role,
-        grantedAt: new Date()
-      });
-
-      // Add to user's accessible places index
-      const userAccessRef = doc(db, USERS_COLLECTION, collaboratorEmail, 'accessiblePlaces', placeId);
-      batch.set(userAccessRef, {
-        role: role,
-        grantedAt: new Date()
-      });
-
-      await batch.commit();
-    } catch (error) {
-      console.error('Error sharing place:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Remove access to a place from a user
-   * @param {string} placeId - The place ID
-   * @param {string} collaboratorEmail - The collaborator's email
-   * @returns {Promise<void>}
-   */
-  static async unsharePlaceWithUser(placeId, collaboratorEmail) {
-    try {
-      const batch = writeBatch(db);
-
-      // Remove from access map in place document
-      const placeRef = doc(db, PLACES_COLLECTION, placeId);
-      const placeDoc = await getDoc(placeRef);
-      if (placeDoc.exists()) {
-        const placeData = placeDoc.data();
-        const newAccess = { ...placeData.access };
-        delete newAccess[collaboratorEmail];
-
-        batch.update(placeRef, {
-          access: newAccess,
-          updatedAt: new Date()
-        });
-      }
-
-      // Remove access control record
-      const accessRef = doc(db, PLACES_COLLECTION, placeId, 'access', collaboratorEmail);
-      batch.delete(accessRef);
-
-      // Remove from user's accessible places index
-      const userAccessRef = doc(db, USERS_COLLECTION, collaboratorEmail, 'accessiblePlaces', placeId);
-      batch.delete(userAccessRef);
-
-      await batch.commit();
-    } catch (error) {
-      console.error('Error unsharing place:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Share all user's places with another user
+   * Share all user's owned places with another user
    * @param {string} ownerEmail - The owner's email
    * @param {string} collaboratorEmail - The collaborator's email
    * @param {string} role - The role to grant (default: VIEWER)
@@ -425,25 +304,11 @@ export class PlacesService {
    */
   static async shareAllPlacesWithUser(ownerEmail, collaboratorEmail, role = ROLES.VIEWER) {
     try {
-      // Get all places owned by the user
-      const accessQuery = query(
-        collection(db, USERS_COLLECTION, ownerEmail, 'accessiblePlaces'),
-        where('role', '==', ROLES.OWNER)
-      );
-      const accessSnapshot = await getDocs(accessQuery);
-
       // Ensure collaborator user exists
       await this.getOrCreateUser(collaboratorEmail);
 
-      // Share each place
-      const sharePromises = accessSnapshot.docs.map(doc =>
-        this.sharePlaceWithUser(doc.id, collaboratorEmail, role)
-      );
-
-      await Promise.all(sharePromises);
-
-      // Update user documents to track sharing relationships
-      await this.updateSharingRelationship(ownerEmail, collaboratorEmail);
+      // Use MapsService to share all places
+      await mapsShareAll(ownerEmail, collaboratorEmail, role);
     } catch (error) {
       console.error('Error sharing all places:', error);
       throw error;
@@ -458,24 +323,8 @@ export class PlacesService {
    */
   static async unshareAllPlacesWithUser(ownerEmail, collaboratorEmail) {
     try {
-      // Get all places the collaborator has access to from this owner
-      const ownerPlacesQuery = query(
-        collection(db, USERS_COLLECTION, ownerEmail, 'accessiblePlaces'),
-        where('role', '==', ROLES.OWNER)
-      );
-      const ownerPlacesSnapshot = await getDocs(ownerPlacesQuery);
-
-      const placeIds = ownerPlacesSnapshot.docs.map(doc => doc.id);
-
-      // Remove access for each place
-      const unsharePromises = placeIds.map(placeId =>
-        this.unsharePlaceWithUser(placeId, collaboratorEmail)
-      );
-
-      await Promise.all(unsharePromises);
-
-      // Update user documents to remove sharing relationship
-      await this.removeSharingRelationship(ownerEmail, collaboratorEmail);
+      // Use MapsService to unshare all places
+      await mapsUnshareAll(ownerEmail, collaboratorEmail);
     } catch (error) {
       console.error('Error unsharing all places:', error);
       throw error;
@@ -483,101 +332,45 @@ export class PlacesService {
   }
 
   /**
-   * Update sharing relationship between users
-   * @param {string} ownerEmail - Owner's email
-   * @param {string} collaboratorEmail - Collaborator's email
-   * @returns {Promise<void>}
-   */
-  static async updateSharingRelationship(ownerEmail, collaboratorEmail) {
-    try {
-      const ownerRef = doc(db, USERS_COLLECTION, ownerEmail);
-      const collaboratorRef = doc(db, USERS_COLLECTION, collaboratorEmail);
-
-      const batch = writeBatch(db);
-
-      // Get current data
-      const [ownerDoc, collaboratorDoc] = await Promise.all([
-        getDoc(ownerRef),
-        getDoc(collaboratorRef)
-      ]);
-
-      const ownerData = ownerDoc.data() || {};
-      const collaboratorData = collaboratorDoc.data() || {};
-
-      const sharedWith = ownerData.sharedWith || [];
-      const sharedFrom = collaboratorData.sharedFrom || [];
-
-      if (!sharedWith.includes(collaboratorEmail)) {
-        batch.update(ownerRef, {
-          sharedWith: [...sharedWith, collaboratorEmail],
-          updatedAt: new Date()
-        });
-      }
-
-      if (!sharedFrom.includes(ownerEmail)) {
-        batch.update(collaboratorRef, {
-          sharedFrom: [...sharedFrom, ownerEmail],
-          updatedAt: new Date()
-        });
-      }
-
-      await batch.commit();
-    } catch (error) {
-      console.error('Error updating sharing relationship:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Remove sharing relationship between users
-   * @param {string} ownerEmail - Owner's email
-   * @param {string} collaboratorEmail - Collaborator's email
-   * @returns {Promise<void>}
-   */
-  static async removeSharingRelationship(ownerEmail, collaboratorEmail) {
-    try {
-      const ownerRef = doc(db, USERS_COLLECTION, ownerEmail);
-      const collaboratorRef = doc(db, USERS_COLLECTION, collaboratorEmail);
-
-      const batch = writeBatch(db);
-
-      const [ownerDoc, collaboratorDoc] = await Promise.all([
-        getDoc(ownerRef),
-        getDoc(collaboratorRef)
-      ]);
-
-      const ownerData = ownerDoc.data() || {};
-      const collaboratorData = collaboratorDoc.data() || {};
-
-      const sharedWith = (ownerData.sharedWith || []).filter(e => e !== collaboratorEmail);
-      const sharedFrom = (collaboratorData.sharedFrom || []).filter(e => e !== ownerEmail);
-
-      batch.update(ownerRef, {
-        sharedWith,
-        updatedAt: new Date()
-      });
-
-      batch.update(collaboratorRef, {
-        sharedFrom,
-        updatedAt: new Date()
-      });
-
-      await batch.commit();
-    } catch (error) {
-      console.error('Error removing sharing relationship:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Get list of users who shared their places with current user
+   * Note: This functionality requires a new approach with /maps collection
+   * Returns unique list of users who have shared places
    * @param {string} userId - The user's ID (email)
    * @returns {Promise<Array<string>>} Array of user emails
    */
   static async getSharedFromUsers(userId) {
     try {
-      const userData = await this.getOrCreateUser(userId);
-      return userData.sharedFrom || [];
+      // Get all maps where user has access
+      const userMaps = await getUserMaps(userId);
+
+      // Filter to non-owner maps and get unique user IDs
+      const sharedFromSet = new Set();
+
+      for (const map of userMaps) {
+        if (map.role !== ROLES.OWNER) {
+          // Get the place to find who owns it
+          const placeDoc = await getDoc(doc(db, PLACES_COLLECTION, map.placeId));
+          if (placeDoc.exists()) {
+            // Find owner by looking for owner map entry
+            const ownerMaps = await getDocs(
+              query(
+                collection(db, 'maps'),
+                where('placeId', '==', map.placeId),
+                where('role', '==', ROLES.OWNER)
+              )
+            );
+
+            ownerMaps.docs.forEach(ownerDoc => {
+              const ownerData = ownerDoc.data();
+              if (ownerData.userId !== userId) {
+                sharedFromSet.add(ownerData.userId);
+              }
+            });
+          }
+        }
+      }
+
+      return Array.from(sharedFromSet);
     } catch (error) {
       console.error('Error getting shared from users:', error);
       return [];
@@ -586,89 +379,42 @@ export class PlacesService {
 
   /**
    * Get list of users who current user shared places with
+   * Note: This functionality requires querying all owned places and their maps
    * @param {string} userId - The user's ID (email)
    * @returns {Promise<Array<string>>} Array of user emails
    */
   static async getSharedWithUsers(userId) {
     try {
-      const userData = await this.getOrCreateUser(userId);
-      return userData.sharedWith || [];
+      // Get all places owned by user
+      const userMaps = await getUserMaps(userId);
+      const ownedPlaces = userMaps.filter(map => map.role === ROLES.OWNER);
+
+      const sharedWithSet = new Set();
+
+      // For each owned place, find all non-owner collaborators
+      for (const map of ownedPlaces) {
+        const placeMaps = await getDocs(
+          query(
+            collection(db, 'maps'),
+            where('placeId', '==', map.placeId)
+          )
+        );
+
+        placeMaps.docs.forEach(placeMapDoc => {
+          const placeMapData = placeMapDoc.data();
+          if (placeMapData.userId !== userId && placeMapData.role !== ROLES.OWNER) {
+            sharedWithSet.add(placeMapData.userId);
+          }
+        });
+      }
+
+      return Array.from(sharedWithSet);
     } catch (error) {
       console.error('Error getting shared with users:', error);
       return [];
     }
   }
 
-  /**
-   * Migrate legacy markers (old collection) to new structure
-   * @param {string} userId - The user's ID to assign legacy markers to
-   * @returns {Promise<number>} Number of markers migrated
-   */
-  static async migrateLegacyMarkers(userId) {
-    try {
-      // Check if old 'markers' collection exists
-      const legacyQuery = query(collection(db, 'markers'));
-      const legacySnapshot = await getDocs(legacyQuery);
-
-      if (legacySnapshot.empty) {
-        return 0;
-      }
-
-      let migratedCount = 0;
-
-      for (const legacyDoc of legacySnapshot.docs) {
-        const legacyData = legacyDoc.data();
-
-        // Skip if already migrated or belongs to someone else
-        if (legacyData.owner || (legacyData.userId && legacyData.userId !== userId)) {
-          continue;
-        }
-
-        try {
-          // Create new place with access control
-          const batch = writeBatch(db);
-
-          const placeRef = doc(collection(db, PLACES_COLLECTION));
-          batch.set(placeRef, {
-            ...legacyData,
-            owner: userId,
-            access: {
-              [userId]: ROLES.OWNER
-            },
-            updatedAt: new Date()
-          });
-
-          // Create access control record
-          const accessRef = doc(db, PLACES_COLLECTION, placeRef.id, 'access', userId);
-          batch.set(accessRef, {
-            role: ROLES.OWNER,
-            grantedAt: new Date()
-          });
-
-          // Create user's accessible places index
-          const userAccessRef = doc(db, USERS_COLLECTION, userId, 'accessiblePlaces', placeRef.id);
-          batch.set(userAccessRef, {
-            role: ROLES.OWNER,
-            grantedAt: new Date()
-          });
-
-          await batch.commit();
-          migratedCount++;
-
-          // Delete old marker
-          await deleteDoc(doc(db, 'markers', legacyDoc.id));
-        } catch (error) {
-          console.error(`Error migrating marker ${legacyDoc.id}:`, error);
-        }
-      }
-
-      console.log(`Migrated ${migratedCount} legacy markers to user ${userId}`);
-      return migratedCount;
-    } catch (error) {
-      console.error('Error migrating legacy markers:', error);
-      return 0;
-    }
-  }
 }
 
 export default PlacesService;

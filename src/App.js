@@ -30,25 +30,7 @@ const App = () => {
     return () => unsubscribe();
   }, []);
 
-  // Load shared users when user changes
-  useEffect(() => {
-    const migrateLegacyMarkers = async () => {
-      if (!currentUser?.email) return;
-      try {
-        const migratedCount = await PlacesService.migrateLegacyMarkers(currentUser.email);
-        if (migratedCount > 0) {
-          console.log(`Migrated ${migratedCount} legacy markers to your account`);
-        }
-      } catch (err) {
-        console.error('Error migrating legacy markers:', err);
-      }
-    };
-
-    if (currentUser?.email) {
-      migrateLegacyMarkers();
-    }
-  }, [currentUser]);
-
+  // Subscribe to places when user changes
   useEffect(() => {
     if (!currentUser?.email) {
       setPlaces([]);
