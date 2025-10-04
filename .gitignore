@@ -4,3 +4,4 @@ node_modules
 .claude
 build/
 package-lock.json
+firestore.rules

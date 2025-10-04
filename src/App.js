@@ -19,7 +19,6 @@ const App = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
-  const [sharedFromUsers, setSharedFromUsers] = useState([]);
 
   const availableLayers = groups;
 
@@ -45,18 +44,7 @@ const App = () => {
       }
     };
 
-    const loadSharedUsers = async () => {
-      if (!currentUser?.email) return;
-      try {
-        const sharedUsers = await PlacesService.getSharedFromUsers(currentUser.email);
-        setSharedFromUsers(sharedUsers);
-      } catch (err) {
-        console.error('Error loading shared users:', err);
-      }
-    };
-
     if (currentUser?.email) {
-      loadSharedUsers();
       migrateLegacyMarkers();
     }
   }, [currentUser]);
@@ -70,14 +58,13 @@ const App = () => {
 
     const unsubscribe = PlacesService.subscribeToPlaces(
       currentUser.email,
-      sharedFromUsers,
       (placesData) => {
         setPlaces(placesData);
         setLoading(false);
       }
     );
     return () => unsubscribe();
-  }, [currentUser, sharedFromUsers]);
+  }, [currentUser]);
 
   const handleAddPlace = () => {
     setShowSearch(true);
@@ -101,7 +88,7 @@ const App = () => {
     if (selectedPlace) {
       try {
         setError(null);
-        await PlacesService.deletePlace(selectedPlace.id);
+        await PlacesService.deletePlace(selectedPlace.id, currentUser.email);
         setSelectedPlace(null);
         // The real-time listener will update the places state automatically
         console.log('Place removed successfully');

@@ -44,7 +44,7 @@ const ShareDialog = ({ userEmail, onClose }) => {
     setSuccess(null);
 
     try {
-      await PlacesService.shareWithUser(userEmail, email);
+      await PlacesService.shareAllPlacesWithUser(userEmail, email);
       setSuccess(`Successfully shared with ${email}`);
       setEmail('');
       await loadSharedWithList();
@@ -62,7 +62,7 @@ const ShareDialog = ({ userEmail, onClose }) => {
     setSuccess(null);
 
     try {
-      await PlacesService.unshareWithUser(userEmail, collaboratorEmail);
+      await PlacesService.unshareAllPlacesWithUser(userEmail, collaboratorEmail);
       setSuccess(`Removed access for ${collaboratorEmail}`);
       await loadSharedWithList();
     } catch (err) {
