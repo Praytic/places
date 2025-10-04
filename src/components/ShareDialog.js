@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PlacesService from '../services/PlacesService';
+import { shareAllPlacesWithUser, unshareAllPlacesWithUser, getSharedWithUsers } from '../services/MapsService';
 
 const ShareDialog = ({ userEmail, onClose }) => {
   const [email, setEmail] = useState('');
@@ -10,7 +11,7 @@ const ShareDialog = ({ userEmail, onClose }) => {
 
   const loadSharedWithList = async () => {
     try {
-      const list = await PlacesService.getSharedWithUsers(userEmail);
+      const list = await getSharedWithUsers(userEmail);
       setSharedWithList(list);
     } catch (err) {
       console.error('Error loading shared with list:', err);
@@ -44,7 +45,9 @@ const ShareDialog = ({ userEmail, onClose }) => {
     setSuccess(null);
 
     try {
-      await PlacesService.shareAllPlacesWithUser(userEmail, email);
+      // Ensure user exists before sharing
+      await PlacesService.getOrCreateUser(email);
+      await shareAllPlacesWithUser(userEmail, email);
       setSuccess(`Successfully shared with ${email}`);
       setEmail('');
       await loadSharedWithList();
@@ -62,7 +65,7 @@ const ShareDialog = ({ userEmail, onClose }) => {
     setSuccess(null);
 
     try {
-      await PlacesService.unshareAllPlacesWithUser(userEmail, collaboratorEmail);
+      await unshareAllPlacesWithUser(userEmail, collaboratorEmail);
       setSuccess(`Removed access for ${collaboratorEmail}`);
       await loadSharedWithList();
     } catch (err) {

@@ -1,13 +1,8 @@
 import {
   collection,
   doc,
-  getDocs,
-  addDoc,
   updateDoc,
   deleteDoc,
-  onSnapshot,
-  query,
-  where,
   getDoc,
   setDoc,
   writeBatch,
@@ -19,8 +14,6 @@ import {
   getUserMaps,
   deletePlaceMaps,
   subscribeToUserMaps,
-  shareAllPlacesWithUser as mapsShareAll,
-  unshareAllPlacesWithUser as mapsUnshareAll,
   ROLES
 } from './MapsService';
 
@@ -294,127 +287,6 @@ export class PlacesService {
       throw error;
     }
   }
-
-  /**
-   * Share all user's owned places with another user
-   * @param {string} ownerEmail - The owner's email
-   * @param {string} collaboratorEmail - The collaborator's email
-   * @param {string} role - The role to grant (default: VIEWER)
-   * @returns {Promise<void>}
-   */
-  static async shareAllPlacesWithUser(ownerEmail, collaboratorEmail, role = ROLES.VIEWER) {
-    try {
-      // Ensure collaborator user exists
-      await this.getOrCreateUser(collaboratorEmail);
-
-      // Use MapsService to share all places
-      await mapsShareAll(ownerEmail, collaboratorEmail, role);
-    } catch (error) {
-      console.error('Error sharing all places:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Remove access to all owner's places from a user
-   * @param {string} ownerEmail - The owner's email
-   * @param {string} collaboratorEmail - The collaborator's email
-   * @returns {Promise<void>}
-   */
-  static async unshareAllPlacesWithUser(ownerEmail, collaboratorEmail) {
-    try {
-      // Use MapsService to unshare all places
-      await mapsUnshareAll(ownerEmail, collaboratorEmail);
-    } catch (error) {
-      console.error('Error unsharing all places:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get list of users who shared their places with current user
-   * Note: This functionality requires a new approach with /maps collection
-   * Returns unique list of users who have shared places
-   * @param {string} userId - The user's ID (email)
-   * @returns {Promise<Array<string>>} Array of user emails
-   */
-  static async getSharedFromUsers(userId) {
-    try {
-      // Get all maps where user has access
-      const userMaps = await getUserMaps(userId);
-
-      // Filter to non-owner maps and get unique user IDs
-      const sharedFromSet = new Set();
-
-      for (const map of userMaps) {
-        if (map.role !== ROLES.OWNER) {
-          // Get the place to find who owns it
-          const placeDoc = await getDoc(doc(db, PLACES_COLLECTION, map.placeId));
-          if (placeDoc.exists()) {
-            // Find owner by looking for owner map entry
-            const ownerMaps = await getDocs(
-              query(
-                collection(db, 'maps'),
-                where('placeId', '==', map.placeId),
-                where('role', '==', ROLES.OWNER)
-              )
-            );
-
-            ownerMaps.docs.forEach(ownerDoc => {
-              const ownerData = ownerDoc.data();
-              if (ownerData.userId !== userId) {
-                sharedFromSet.add(ownerData.userId);
-              }
-            });
-          }
-        }
-      }
-
-      return Array.from(sharedFromSet);
-    } catch (error) {
-      console.error('Error getting shared from users:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Get list of users who current user shared places with
-   * Note: This functionality requires querying all owned places and their maps
-   * @param {string} userId - The user's ID (email)
-   * @returns {Promise<Array<string>>} Array of user emails
-   */
-  static async getSharedWithUsers(userId) {
-    try {
-      // Get all places owned by user
-      const userMaps = await getUserMaps(userId);
-      const ownedPlaces = userMaps.filter(map => map.role === ROLES.OWNER);
-
-      const sharedWithSet = new Set();
-
-      // For each owned place, find all non-owner collaborators
-      for (const map of ownedPlaces) {
-        const placeMaps = await getDocs(
-          query(
-            collection(db, 'maps'),
-            where('placeId', '==', map.placeId)
-          )
-        );
-
-        placeMaps.docs.forEach(placeMapDoc => {
-          const placeMapData = placeMapDoc.data();
-          if (placeMapData.userId !== userId && placeMapData.role !== ROLES.OWNER) {
-            sharedWithSet.add(placeMapData.userId);
-          }
-        });
-      }
-
-      return Array.from(sharedWithSet);
-    } catch (error) {
-      console.error('Error getting shared with users:', error);
-      return [];
-    }
-  }
-
 }
 
 export default PlacesService;
