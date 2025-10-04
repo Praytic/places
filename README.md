@@ -1,6 +1,6 @@
 # Places App
 
-A mobile-friendly web app for managing places on a map with emoji markers, similar to Google MyMaps.
+A mobile-friendly web app for managing places on a map with emoji markers, similar to [Google MyMaps](https://www.google.com/maps/about/mymaps/).
 
 <p align="center">
   <img src="docs/images/overall.png" width="30%" />
