@@ -5,7 +5,7 @@ import PlaceSearch from './components/PlaceSearch';
 import EmojiPicker, {EmojiStyle} from 'emoji-picker-react';
 import Auth from './components/Auth';
 import PlacesService from './services/PlacesService';
-import { getUserMaps, createMap } from './services/MapsService';
+import { getUserMaps, createMap, ROLES } from './services/MapsService';
 import { auth } from './config/firebase';
 import './App.css';
 
@@ -21,6 +21,7 @@ const App = () => {
   const [error, setError] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [currentMapId, setCurrentMapId] = useState(null);
+  const [userRole, setUserRole] = useState(null);
 
   const availableLayers = groups;
 
@@ -37,6 +38,7 @@ const App = () => {
     const initializeMap = async () => {
       if (!currentUser?.email) {
         setCurrentMapId(null);
+        setUserRole(null);
         return;
       }
 
@@ -47,10 +49,12 @@ const App = () => {
         if (maps.length > 0) {
           // Use first map
           setCurrentMapId(maps[0].id);
+          setUserRole(maps[0].userRole);
         } else {
           // Create a new map for the user
           const newMap = await createMap(currentUser.email, 'My Places');
           setCurrentMapId(newMap.id);
+          setUserRole(ROLES.OWNER);
         }
       } catch (err) {
         console.error('Error initializing map:', err);
@@ -211,6 +215,7 @@ const App = () => {
             onChangeGroup={handleChangeGroup}
             hiddenLayers={hiddenLayers}
             groups={groups}
+            userRole={userRole}
           />
         </div>
 
@@ -223,6 +228,7 @@ const App = () => {
           availableLayers={availableLayers}
           hiddenLayers={hiddenLayers}
           groups={groups}
+          userRole={userRole}
         />
 
         {showSearch && (

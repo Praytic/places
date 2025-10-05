@@ -75,7 +75,7 @@ const MapWrapper = ({onClick, onIdle, children, style, ...options}) => {
     );
 };
 
-const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmojiChangeRequest, onChangeGroup}) => {
+const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmojiChangeRequest, onChangeGroup, userRole}) => {
     const markersRef = useRef(new Map()); // Map of placeId -> marker
     const infoWindowRef = useRef(null);
     const onPlaceSelectRef = useRef(onPlaceSelect);
@@ -146,7 +146,8 @@ const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmo
                                     // Update the place data with new group and recreate info window
                                     const updatedPlace = { ...placeToToggle, group: newGroup };
                                     createInfoWindowWithToggle(updatedPlace);
-                                }
+                                },
+                                userRole
                             );
                         };
 
@@ -228,7 +229,8 @@ const MapComponent = ({
                           onMapClick,
                           onEmojiChangeRequest,
                           onChangeGroup,
-                          hiddenLayers
+                          hiddenLayers,
+                          userRole
                       }) => {
     const [center] = useState({lat: 37.7749, lng: -122.4194});
     const [zoom] = useState(13);
@@ -271,6 +273,7 @@ const MapComponent = ({
                     onEmojiChangeRequest={onEmojiChangeRequest}
                     onChangeGroup={onChangeGroup}
                     hiddenLayers={hiddenLayers}
+                    userRole={userRole}
                 />
             </MapWrapper>
         </Wrapper>

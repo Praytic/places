@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { ROLES } from '../services/MapsService';
 
 const ControlPanel = ({
   selectedPlace,
@@ -8,7 +9,8 @@ const ControlPanel = ({
   onToggleLayer,
   availableLayers,
   hiddenLayers,
-  groups
+  groups,
+  userRole
 }) => {
   const [showLayerToggle, setShowLayerToggle] = useState(false);
   const layerToggleRef = useRef(null);
@@ -34,6 +36,8 @@ const ControlPanel = ({
     onToggleLayer(layer);
   };
 
+  const isReadOnly = userRole === ROLES.VIEWER;
+
   return (
     <div className="control-panel">
       <div className="control-buttons">
@@ -43,7 +47,8 @@ const ControlPanel = ({
             onAddPlace();
             setShowLayerToggle(false);
           }}
-          title="Add Place"
+          disabled={isReadOnly}
+          title={isReadOnly ? "View-only access" : "Add Place"}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -52,13 +57,13 @@ const ControlPanel = ({
         </button>
 
         <button
-          className={`control-button remove-button ${!selectedPlace ? 'disabled' : ''}`}
+          className={`control-button remove-button ${!selectedPlace || isReadOnly ? 'disabled' : ''}`}
           onClick={() => {
             onRemovePlace();
             setShowLayerToggle(false);
           }}
-          disabled={!selectedPlace}
-          title="Remove Place"
+          disabled={!selectedPlace || isReadOnly}
+          title={isReadOnly ? "View-only access" : "Remove Place"}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="3,6 5,6 21,6"></polyline>
