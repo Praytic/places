@@ -77,6 +77,11 @@ const ShareDialog = ({ userEmail, mapId = null, onClose }) => {
         .filter(c => c.userId !== userEmail)
         .map(c => c.userId);
       setSharedWithList(nonOwners);
+
+      // Close dialog after successful share
+      setTimeout(() => {
+        onClose();
+      }, 500);
     } catch (err) {
       console.error('Error sharing:', err);
       setError('Failed to share. Please try again.');

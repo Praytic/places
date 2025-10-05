@@ -37,6 +37,11 @@ const AccountMenu = ({ user, currentMapId, onMapSwitch }) => {
     setShowMenu(false);
   };
 
+  const handleShareDialogClose = () => {
+    setShowShareDialog(false);
+    setShowManageMapsDialog(false);
+  };
+
   const handleManageMapsClick = () => {
     setShowManageMapsDialog(true);
     setShowMenu(false);
@@ -124,7 +129,8 @@ const AccountMenu = ({ user, currentMapId, onMapSwitch }) => {
       {showShareDialog && (
         <ShareDialog
           userEmail={user.email}
-          onClose={() => setShowShareDialog(false)}
+          mapId={currentMapId}
+          onClose={handleShareDialogClose}
         />
       )}
       {showManageMapsDialog && (
