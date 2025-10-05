@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import PlacesService from '../services/PlacesService';
 import { getUserMaps, shareMapWithUser, unshareMapWithUser, getMapCollaborators, ROLES } from '../services/MapsService';
 
 const ShareDialog = ({ userEmail, onClose }) => {
@@ -61,8 +60,6 @@ const ShareDialog = ({ userEmail, onClose }) => {
     setSuccess(null);
 
     try {
-      // Ensure user exists before sharing
-      await PlacesService.getOrCreateUser(email);
       await shareMapWithUser(currentMapId, email, ROLES.VIEWER);
       setSuccess(`Successfully shared map with ${email}`);
       setEmail('');

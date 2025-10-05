@@ -15,7 +15,6 @@ import { db } from '../config/firebase';
 import { getUserMaps, ROLES } from './MapsService';
 
 const PLACES_COLLECTION = 'places';
-const USERS_COLLECTION = 'users';
 
 // Re-export ROLES for backward compatibility
 export { ROLES };
@@ -182,21 +181,24 @@ export class PlacesService {
    */
   static subscribeToPlaces(userId, callback) {
     try {
-      // Listen to user's maps first
-      const userMapsRef = collection(db, 'users', userId, 'maps');
+      // Query maps where user has access
+      const mapsQuery = query(
+        collection(db, 'maps'),
+        where(`access.${userId}`, '!=', null)
+      );
 
-      return onSnapshot(userMapsRef, async (mapsSnapshot) => {
+      return onSnapshot(mapsQuery, async (mapsSnapshot) => {
         try {
           if (mapsSnapshot.empty) {
             callback([]);
             return;
           }
 
-          // Get map IDs
+          // Get map IDs and roles
           const mapIds = mapsSnapshot.docs.map(doc => doc.id);
           const mapRoles = {};
           mapsSnapshot.docs.forEach(doc => {
-            mapRoles[doc.id] = doc.data().role;
+            mapRoles[doc.id] = doc.data().access[userId];
           });
 
           // Subscribe to places from all maps
@@ -250,38 +252,6 @@ export class PlacesService {
    */
   static async updatePlaceEmoji(placeId, emoji) {
     return this.updatePlace(placeId, { emoji });
-  }
-
-  /**
-   * Get or create user document
-   * @param {string} userId - The user's ID (email)
-   * @param {Object} userData - User data to store
-   * @returns {Promise<Object>} User document
-   */
-  static async getOrCreateUser(userId, userData = {}) {
-    try {
-      const userRef = doc(db, USERS_COLLECTION, userId);
-      const userDoc = await getDoc(userRef);
-
-      if (!userDoc.exists()) {
-        await setDoc(userRef, {
-          email: userId,
-          ...userData,
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now()
-        });
-        return {
-          id: userId,
-          email: userId,
-          ...userData
-        };
-      }
-
-      return { id: userDoc.id, ...userDoc.data() };
-    } catch (error) {
-      console.error('Error getting/creating user:', error);
-      throw error;
-    }
   }
 }
 

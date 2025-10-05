@@ -40,19 +40,8 @@ export const createMap = async (ownerId, name = 'My Places') => {
       updatedAt: Timestamp.now()
     };
 
-    const batch = writeBatch(db);
-
     // Create map document
-    batch.set(mapRef, mapData);
-
-    // Create user's map index entry
-    const userMapRef = doc(db, 'users', ownerId, 'maps', mapRef.id);
-    batch.set(userMapRef, {
-      role: ROLES.OWNER,
-      grantedAt: Timestamp.now()
-    });
-
-    await batch.commit();
+    await setDoc(mapRef, mapData);
 
     return mapData;
   } catch (error) {
@@ -86,30 +75,26 @@ export const getMap = async (mapId) => {
  */
 export const getUserMaps = async (userId) => {
   try {
-    const userMapsRef = collection(db, 'users', userId, 'maps');
-    const userMapsSnapshot = await getDocs(userMapsRef);
+    // Fetch all maps - we'll filter client-side
+    // This is necessary because querying nested map fields with email keys is problematic
+    const mapsSnapshot = await getDocs(collection(db, 'maps'));
 
-    if (userMapsSnapshot.empty) {
+    if (mapsSnapshot.empty) {
       return [];
     }
 
-    // Fetch actual map documents
-    const mapPromises = userMapsSnapshot.docs.map(async (userMapDoc) => {
-      const mapId = userMapDoc.id;
-      const role = userMapDoc.data().role;
+    // Filter maps where user has access
+    const maps = mapsSnapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      .filter(map => map.access && map.access[userId])
+      .map(map => ({
+        ...map,
+        userRole: map.access[userId]
+      }));
 
-      const mapDoc = await getDoc(doc(db, 'maps', mapId));
-      if (mapDoc.exists()) {
-        return {
-          id: mapDoc.id,
-          ...mapDoc.data(),
-          userRole: role
-        };
-      }
-      return null;
-    });
-
-    const maps = (await Promise.all(mapPromises)).filter(m => m !== null);
     return maps;
   } catch (error) {
     console.error('Error getting user maps:', error);
@@ -119,37 +104,33 @@ export const getUserMaps = async (userId) => {
 
 /**
  * Subscribe to user's maps in real-time
- * @param {string} userId - User ID
+ * @param {string} userId - User ID (email)
  * @param {Function} callback - Callback with maps array
  * @returns {Function} Unsubscribe function
  */
 export const subscribeToUserMaps = (userId, callback) => {
   try {
-    const userMapsRef = collection(db, 'users', userId, 'maps');
-
-    return onSnapshot(userMapsRef, async (snapshot) => {
+    // Subscribe to all maps - we'll filter client-side
+    // This is necessary because querying nested map fields with email keys is problematic
+    return onSnapshot(collection(db, 'maps'), (snapshot) => {
       try {
         if (snapshot.empty) {
           callback([]);
           return;
         }
 
-        const mapPromises = snapshot.docs.map(async (userMapDoc) => {
-          const mapId = userMapDoc.id;
-          const role = userMapDoc.data().role;
+        // Filter maps where user has access
+        const maps = snapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          .filter(map => map.access && map.access[userId])
+          .map(map => ({
+            ...map,
+            userRole: map.access[userId]
+          }));
 
-          const mapDoc = await getDoc(doc(db, 'maps', mapId));
-          if (mapDoc.exists()) {
-            return {
-              id: mapDoc.id,
-              ...mapDoc.data(),
-              userRole: role
-            };
-          }
-          return null;
-        });
-
-        const maps = (await Promise.all(mapPromises)).filter(m => m !== null);
         callback(maps);
       } catch (error) {
         console.error('Error in maps subscription:', error);
@@ -190,23 +171,8 @@ export const deleteMap = async (mapId) => {
   try {
     const batch = writeBatch(db);
 
-    // Get map to find all users with access
-    const mapDoc = await getDoc(doc(db, 'maps', mapId));
-    if (!mapDoc.exists()) {
-      throw new Error('Map not found');
-    }
-
-    const mapData = mapDoc.data();
-    const userIds = Object.keys(mapData.access || {});
-
     // Delete map document
     batch.delete(doc(db, 'maps', mapId));
-
-    // Delete from all users' map indexes
-    for (const userId of userIds) {
-      const userMapRef = doc(db, 'users', userId, 'maps', mapId);
-      batch.delete(userMapRef);
-    }
 
     // Delete all places in this map
     const placesQuery = query(collection(db, 'places'), where('mapId', '==', mapId));
@@ -226,29 +192,18 @@ export const deleteMap = async (mapId) => {
 /**
  * Share a map with a user
  * @param {string} mapId - Map ID
- * @param {string} userId - User ID to share with
+ * @param {string} userId - User ID (email) to share with
  * @param {string} role - Role to grant
  * @returns {Promise<void>}
  */
 export const shareMapWithUser = async (mapId, userId, role = ROLES.VIEWER) => {
   try {
-    const batch = writeBatch(db);
-
     // Update map's access field
     const mapRef = doc(db, 'maps', mapId);
-    batch.update(mapRef, {
+    await setDoc(mapRef, {
       [new FieldPath('access', userId)]: role,
       updatedAt: Timestamp.now()
-    });
-
-    // Add to user's maps index
-    const userMapRef = doc(db, 'users', userId, 'maps', mapId);
-    batch.set(userMapRef, {
-      role,
-      grantedAt: Timestamp.now()
-    });
-
-    await batch.commit();
+    }, { merge: true });
   } catch (error) {
     console.error('Error sharing map:', error);
     throw error;
@@ -258,13 +213,11 @@ export const shareMapWithUser = async (mapId, userId, role = ROLES.VIEWER) => {
 /**
  * Unshare a map with a user
  * @param {string} mapId - Map ID
- * @param {string} userId - User ID to unshare from
+ * @param {string} userId - User ID (email) to unshare from
  * @returns {Promise<void>}
  */
 export const unshareMapWithUser = async (mapId, userId) => {
   try {
-    const batch = writeBatch(db);
-
     // Remove from map's access field
     const mapRef = doc(db, 'maps', mapId);
     const mapDoc = await getDoc(mapRef);
@@ -274,17 +227,11 @@ export const unshareMapWithUser = async (mapId, userId) => {
       const newAccess = { ...mapData.access };
       delete newAccess[userId];
 
-      batch.update(mapRef, {
+      await setDoc(mapRef, {
         access: newAccess,
         updatedAt: Timestamp.now()
-      });
+      }, { merge: true });
     }
-
-    // Remove from user's maps index
-    const userMapRef = doc(db, 'users', userId, 'maps', mapId);
-    batch.delete(userMapRef);
-
-    await batch.commit();
   } catch (error) {
     console.error('Error unsharing map:', error);
     throw error;
@@ -293,15 +240,16 @@ export const unshareMapWithUser = async (mapId, userId) => {
 
 /**
  * Get user's role for a map
- * @param {string} userId - User ID
+ * @param {string} userId - User ID (email)
  * @param {string} mapId - Map ID
  * @returns {Promise<string|null>} Role or null
  */
 export const getUserMapRole = async (userId, mapId) => {
   try {
-    const userMapDoc = await getDoc(doc(db, 'users', userId, 'maps', mapId));
-    if (userMapDoc.exists()) {
-      return userMapDoc.data().role;
+    const mapDoc = await getDoc(doc(db, 'maps', mapId));
+    if (mapDoc.exists()) {
+      const mapData = mapDoc.data();
+      return mapData.access?.[userId] || null;
     }
     return null;
   } catch (error) {
@@ -312,7 +260,7 @@ export const getUserMapRole = async (userId, mapId) => {
 
 /**
  * Check if user is map owner
- * @param {string} userId - User ID
+ * @param {string} userId - User ID (email)
  * @param {string} mapId - Map ID
  * @returns {Promise<boolean>}
  */
@@ -353,7 +301,7 @@ export const getMapCollaborators = async (mapId) => {
 
 /**
  * Get list of users who shared their maps with current user
- * @param {string} userId - User ID
+ * @param {string} userId - User ID (email)
  * @returns {Promise<Array<string>>} Array of user emails
  */
 export const getSharedFromUsers = async (userId) => {
@@ -376,7 +324,7 @@ export const getSharedFromUsers = async (userId) => {
 
 /**
  * Get list of users who current user shared maps with
- * @param {string} userId - User ID
+ * @param {string} userId - User ID (email)
  * @returns {Promise<Array<string>>} Array of user emails
  */
 export const getSharedWithUsers = async (userId) => {
