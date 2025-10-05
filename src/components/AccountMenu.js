@@ -64,11 +64,8 @@ const AccountMenu = ({ user, currentMapId, onMapSwitch }) => {
           alt={user.displayName || user.email}
           onClick={(e) => setAnchorEl(e.currentTarget)}
           sx={{
-            width: 40,
-            height: 40,
             cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-            border: '2px solid rgba(0, 0, 0, 0.1)',
+            boxShadow: 'rgba(0, 0, 0, 0.3) 0px 1px 4px -1px',
             transition: 'transform 0.2s ease, box-shadow 0.2s ease',
             '&:hover': {
               transform: 'scale(1.05)',
