@@ -14,6 +14,9 @@ import {
   ListItemText
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import { getUserMaps, shareMapWithUser, unshareMapWithUser, getMapCollaborators, ROLES } from '../services/MapsService';
 
 const ShareDialog = ({ userEmail, mapId = null, onClose }) => {
@@ -44,7 +47,7 @@ const ShareDialog = ({ userEmail, mapId = null, onClose }) => {
           const collaborators = await getMapCollaborators(targetMapId);
           const nonOwners = collaborators
             .filter(c => c.userId !== userEmail)
-            .map(c => c.userId);
+            .map(c => ({ email: c.userId, role: c.userRole }));
           setSharedWithList(nonOwners);
         }
       } catch (err) {
@@ -67,7 +70,7 @@ const ShareDialog = ({ userEmail, mapId = null, onClose }) => {
       return;
     }
 
-    if (sharedWithList.includes(email)) {
+    if (sharedWithList.some(item => item.email === email)) {
       setError('Already shared with this user');
       return;
     }
@@ -90,7 +93,7 @@ const ShareDialog = ({ userEmail, mapId = null, onClose }) => {
       const collaborators = await getMapCollaborators(currentMapId);
       const nonOwners = collaborators
         .filter(c => c.userId !== userEmail)
-        .map(c => c.userId);
+        .map(c => ({ email: c.userId, role: c.userRole }));
       setSharedWithList(nonOwners);
 
       // Close dialog after successful share
@@ -100,6 +103,35 @@ const ShareDialog = ({ userEmail, mapId = null, onClose }) => {
     } catch (err) {
       console.error('Error sharing:', err);
       setError('Failed to share. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleRole = async (collaboratorEmail, currentRole) => {
+    if (!currentMapId) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    const newRole = currentRole === ROLES.EDITOR ? ROLES.VIEWER : ROLES.EDITOR;
+
+    try {
+      await shareMapWithUser(currentMapId, collaboratorEmail, newRole);
+      setSuccess(`Updated ${collaboratorEmail} to ${newRole}`);
+
+      // Reload collaborators
+      const collaborators = await getMapCollaborators(currentMapId);
+      const nonOwners = collaborators
+        .filter(c => c.userId !== userEmail)
+        .map(c => ({ email: c.userId, role: c.userRole }));
+      setSharedWithList(nonOwners);
+    } catch (err) {
+      console.error('Error updating role:', err);
+      setError('Failed to update role. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -122,7 +154,7 @@ const ShareDialog = ({ userEmail, mapId = null, onClose }) => {
       const collaborators = await getMapCollaborators(currentMapId);
       const nonOwners = collaborators
         .filter(c => c.userId !== userEmail)
-        .map(c => c.userId);
+        .map(c => ({ email: c.userId, role: c.userRole }));
       setSharedWithList(nonOwners);
     } catch (err) {
       console.error('Error removing share:', err);
@@ -185,9 +217,9 @@ const ShareDialog = ({ userEmail, mapId = null, onClose }) => {
               Shared with:
             </Typography>
             <List disablePadding>
-              {sharedWithList.map((collaboratorEmail) => (
+              {sharedWithList.map((collaborator) => (
                 <ListItem
-                  key={collaboratorEmail}
+                  key={collaborator.email}
                   sx={{
                     bgcolor: 'action.hover',
                     borderRadius: 1,
@@ -196,15 +228,33 @@ const ShareDialog = ({ userEmail, mapId = null, onClose }) => {
                     justifyContent: 'space-between',
                   }}
                 >
-                  <ListItemText primary={collaboratorEmail} />
-                  <Button
-                    size="small"
-                    color="error"
-                    onClick={() => handleRemoveShare(collaboratorEmail)}
-                    disabled={loading}
-                  >
-                    Remove
-                  </Button>
+                  <ListItemText
+                    primary={collaborator.email}
+                    sx={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      mr: 1
+                    }}
+                  />
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleToggleRole(collaborator.email, collaborator.role)}
+                      disabled={loading}
+                      title={collaborator.role === ROLES.EDITOR ? 'Switch to viewer' : 'Switch to editor'}
+                    >
+                      {collaborator.role === ROLES.EDITOR ? <EditIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleRemoveShare(collaborator.email)}
+                      disabled={loading}
+                      title="Remove access"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
                 </ListItem>
               ))}
             </List>

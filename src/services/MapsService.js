@@ -8,8 +8,7 @@ import {
   where,
   onSnapshot,
   writeBatch,
-  Timestamp,
-  FieldPath
+  Timestamp
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
@@ -206,16 +205,20 @@ export const shareMapWithUser = async (mapId, userId, role = ROLES.VIEWER) => {
 
     const mapData = mapDoc.data();
     const newAccessList = mapData.accessList || [];
+    const newAccess = { ...(mapData.access || {}) };
 
     // Add user to accessList if not already present
     if (!newAccessList.includes(userId)) {
       newAccessList.push(userId);
     }
 
+    // Update the role in access object
+    newAccess[userId] = role;
+
     // Update both accessList and access role
     await setDoc(mapRef, {
       accessList: newAccessList,
-      [new FieldPath('access', userId)]: role,
+      access: newAccess,
       updatedAt: Timestamp.now()
     }, { merge: true });
   } catch (error) {
@@ -306,9 +309,9 @@ export const getMapCollaborators = async (mapId) => {
     const mapData = mapDoc.data();
     const access = mapData.access || {};
 
-    return Object.entries(access).map(([userId, role]) => ({
+    return Object.entries(access).map(([userId, userRole]) => ({
       userId,
-      role
+      userRole
     }));
   } catch (error) {
     console.error('Error getting map collaborators:', error);
