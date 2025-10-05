@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getUserMaps, deleteMap, updateMap, ROLES } from '../services/MapsService';
 import CreateMapDialog from './CreateMapDialog';
 
