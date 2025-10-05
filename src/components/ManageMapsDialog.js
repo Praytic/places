@@ -1,4 +1,25 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Box,
+  Typography,
+  IconButton,
+  List,
+  ListItem,
+  ListItemText,
+  TextField,
+  Chip,
+  Divider,
+  CircularProgress
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import LayersIcon from '@mui/icons-material/Layers';
+import EditIcon from '@mui/icons-material/Edit';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import { getUserMaps, deleteMap, updateMap, ROLES } from '../services/MapsService';
 import CreateMapDialog from './CreateMapDialog';
 
@@ -139,27 +160,11 @@ const ManageMapsDialog = ({ userEmail, currentMapId, onMapSelect, onClose }) => 
   const getRoleIcon = (role) => {
     switch (role) {
       case ROLES.OWNER:
-        return (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" title="Owner">
-            <path d="M12 2L2 7l10 5 10-5-10-5z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M2 17l10 5 10-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M2 12l10 5 10-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        );
+        return <LayersIcon fontSize="small" />;
       case ROLES.EDITOR:
-        return (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" title="Editor">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        );
+        return <EditIcon fontSize="small" />;
       case ROLES.VIEWER:
-        return (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" title="Viewer">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <circle cx="12" cy="12" r="3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        );
+        return <VisibilityIcon fontSize="small" />;
       default:
         return null;
     }
@@ -167,109 +172,122 @@ const ManageMapsDialog = ({ userEmail, currentMapId, onMapSelect, onClose }) => 
 
   return (
     <>
-      <div className="share-dialog-overlay" onClick={onClose}>
-        <div className="share-dialog manage-maps-dialog" onClick={(e) => e.stopPropagation()}>
-        <div className="share-dialog-header">
-          <h2>Manage Maps</h2>
-          <button onClick={onClose} className="close-button">×</button>
-        </div>
+      <Dialog open={true} onClose={onClose} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Manage Maps
+          <IconButton onClick={onClose} size="small">
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
 
-        <div className="share-dialog-content">
+        <DialogContent>
           {loading ? (
-            <div className="maps-loading">Loading maps...</div>
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 5 }}>
+              <CircularProgress />
+            </Box>
           ) : error ? (
-            <div className="maps-error">{error}</div>
+            <Typography color="error" align="center" sx={{ py: 5 }}>
+              {error}
+            </Typography>
           ) : maps.length === 0 ? (
-            <div className="maps-empty">No maps found</div>
+            <Typography color="text.secondary" align="center" sx={{ py: 5 }}>
+              No maps found
+            </Typography>
           ) : (
-            <div className="maps-list">
+            <List>
               {maps.map((map) => (
-                <div
+                <ListItem
                   key={map.id}
-                  className={`map-item ${map.id === selectedMapId ? 'selected' : ''} ${map.id === currentMapId ? 'active' : ''}`}
                   onClick={() => handleMapClick(map)}
+                  sx={{
+                    bgcolor: map.id === selectedMapId ? 'primary.light' : map.id === currentMapId ? 'action.hover' : 'transparent',
+                    borderRadius: 1,
+                    mb: 1,
+                    border: 2,
+                    borderColor: map.id === selectedMapId ? 'primary.main' : 'transparent',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      bgcolor: map.id === selectedMapId ? 'primary.light' : 'action.hover',
+                    },
+                  }}
+                  secondaryAction={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {getRoleIcon(map.userRole)}
+                    </Box>
+                  }
                 >
-                  <div className="map-item-content">
-                    {editingMapId === map.id ? (
-                      <input
-                        type="text"
-                        className="map-name-input"
-                        value={editingName}
-                        onChange={(e) => setEditingName(e.target.value)}
-                        onBlur={() => handleSaveMapName(map.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleSaveMapName(map.id);
-                          } else if (e.key === 'Escape') {
-                            handleCancelEditing(map.id);
-                          }
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        autoFocus
-                        placeholder="Enter map name"
-                      />
-                    ) : (
-                      <span
-                        className="map-name"
-                        onDoubleClick={(e) => {
-                          e.stopPropagation();
-                          if (map.userRole === ROLES.OWNER) {
-                            handleStartEditing(map);
-                          }
-                        }}
-                      >
-                        {map.name || 'Untitled Map'}
-                      </span>
-                    )}
-                    {map.id === currentMapId && (
-                      <span className="map-current-badge">Current</span>
-                    )}
-                  </div>
-                  <div className="map-role-icon">
-                    {getRoleIcon(map.userRole)}
-                  </div>
-                </div>
+                  <ListItemText
+                    primary={
+                      editingMapId === map.id ? (
+                        <TextField
+                          size="small"
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onBlur={() => handleSaveMapName(map.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleSaveMapName(map.id);
+                            } else if (e.key === 'Escape') {
+                              handleCancelEditing(map.id);
+                            }
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                          placeholder="Enter map name"
+                        />
+                      ) : (
+                        <Box
+                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                          onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            if (map.userRole === ROLES.OWNER) {
+                              handleStartEditing(map);
+                            }
+                          }}
+                        >
+                          <Typography>{map.name || 'Untitled Map'}</Typography>
+                          {map.id === currentMapId && (
+                            <Chip label="Current" size="small" color="primary" />
+                          )}
+                        </Box>
+                      )
+                    }
+                  />
+                </ListItem>
               ))}
-            </div>
+            </List>
           )}
-        </div>
+        </DialogContent>
 
-        <div className="account-menu-divider"></div>
+        <Divider />
 
-        <div className="manage-maps-footer">
-          <button
-            className="footer-button"
+        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, p: 1.5 }}>
+          <IconButton
             onClick={handleCreateMap}
             disabled={loading}
-            title={loading ? "" : "Create new map"}
+            title="Create new map"
+            color="primary"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-          </button>
-          <button
-            className="footer-button"
+            <AddIcon />
+          </IconButton>
+          <IconButton
             onClick={handleDeleteMap}
             disabled={!selectedMapId || deleting || loading || maps.find(m => m.id === selectedMapId)?.userRole !== ROLES.OWNER}
-            title={!selectedMapId || maps.find(m => m.id === selectedMapId)?.userRole !== ROLES.OWNER ? "" : "Delete selected map"}
+            title="Delete selected map"
+            color="error"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-          </button>
-        </div>
-      </div>
-    </div>
-    {showCreateDialog && (
-      <CreateMapDialog
-        userEmail={userEmail}
-        onMapCreated={handleMapCreated}
-        onClose={() => setShowCreateDialog(false)}
-      />
-    )}
-  </>
+            <DeleteIcon />
+          </IconButton>
+        </Box>
+      </Dialog>
+      {showCreateDialog && (
+        <CreateMapDialog
+          userEmail={userEmail}
+          onMapCreated={handleMapCreated}
+          onClose={() => setShowCreateDialog(false)}
+        />
+      )}
+    </>
   );
 };
 

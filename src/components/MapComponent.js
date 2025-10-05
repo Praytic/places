@@ -31,7 +31,7 @@ function useDeepCompareEffectForMaps(callback, dependencies) {
     useEffect(callback, dependencies.map(useDeepCompareMemoize));
 }
 
-const MapWrapper = ({onClick, onIdle, children, style, ...options}) => {
+const MapWrapper = ({onClick, onIdle, children, sx, ...options}) => {
     const ref = useRef(null);
     const [map, setMap] = useState();
 
@@ -65,7 +65,7 @@ const MapWrapper = ({onClick, onIdle, children, style, ...options}) => {
 
     return (
         <>
-            <div ref={ref} style={style}/>
+            <div ref={ref} style={{width: '100%', height: '100%', ...sx}}/>
             {React.Children.map(children, (child) => {
                 if (React.isValidElement(child)) {
                     return React.cloneElement(child, {map});
@@ -265,7 +265,6 @@ const MapComponent = ({
                 fullscreenControl={false}
                 gestureHandling={'greedy'}
                 mapId={process.env.REACT_APP_GOOGLE_MAP_ID || 'DEMO_MAP_ID'}
-                style={{width: '100%', height: '100%'}}
             >
                 <Markers
                     places={places}
