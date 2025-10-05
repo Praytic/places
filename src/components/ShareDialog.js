@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getUserMaps, shareMapWithUser, unshareMapWithUser, getMapCollaborators, ROLES } from '../services/MapsService';
 
-const ShareDialog = ({ userEmail, onClose }) => {
+const ShareDialog = ({ userEmail, mapId = null, onClose }) => {
   const [email, setEmail] = useState('');
   const [sharedWithList, setSharedWithList] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -12,14 +12,21 @@ const ShareDialog = ({ userEmail, onClose }) => {
   useEffect(() => {
     const loadMapAndCollaborators = async () => {
       try {
-        // Get user's first map (main map)
-        const maps = await getUserMaps(userEmail);
-        if (maps.length > 0 && maps[0].userRole === ROLES.OWNER) {
-          const mapId = maps[0].id;
-          setCurrentMapId(mapId);
+        let targetMapId = mapId;
+
+        // If mapId is not provided, get user's first owned map
+        if (!targetMapId) {
+          const maps = await getUserMaps(userEmail);
+          if (maps.length > 0 && maps[0].userRole === ROLES.OWNER) {
+            targetMapId = maps[0].id;
+          }
+        }
+
+        if (targetMapId) {
+          setCurrentMapId(targetMapId);
 
           // Load collaborators for this map
-          const collaborators = await getMapCollaborators(mapId);
+          const collaborators = await getMapCollaborators(targetMapId);
           const nonOwners = collaborators
             .filter(c => c.userId !== userEmail)
             .map(c => c.userId);
@@ -31,7 +38,7 @@ const ShareDialog = ({ userEmail, onClose }) => {
     };
 
     loadMapAndCollaborators();
-  }, [userEmail]);
+  }, [userEmail, mapId]);
 
   const handleShare = async (e) => {
     e.preventDefault();

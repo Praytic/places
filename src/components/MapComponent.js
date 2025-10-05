@@ -162,7 +162,7 @@ const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmo
         };
 
         updateMarkers();
-    }, [map, places, hiddenLayers]);
+    }, [map, places, hiddenLayers, userRole]);
 
     // Update marker appearance when emoji changes
     useEffect(() => {

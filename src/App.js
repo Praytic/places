@@ -65,7 +65,7 @@ const App = () => {
     initializeMap();
   }, [currentUser]);
 
-  // Subscribe to places when user changes
+  // Subscribe to places when user or current map changes
   useEffect(() => {
     if (!currentUser?.email) {
       setPlaces([]);
@@ -76,12 +76,16 @@ const App = () => {
     const unsubscribe = PlacesService.subscribeToPlaces(
       currentUser.email,
       (placesData) => {
-        setPlaces(placesData);
+        // Filter places to only show those from the current map
+        const filteredPlaces = currentMapId
+          ? placesData.filter(place => place.mapId === currentMapId)
+          : [];
+        setPlaces(filteredPlaces);
         setLoading(false);
       }
     );
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [currentUser, currentMapId]);
 
   const handleAddPlace = () => {
     setShowSearch(true);
@@ -189,8 +193,13 @@ const App = () => {
     setEmojiPickerPlace(null);
   };
 
+  const handleMapSwitch = (mapId, role) => {
+    setCurrentMapId(mapId);
+    setUserRole(role);
+  };
+
   return (
-    <Auth>
+    <Auth currentMapId={currentMapId} onMapSwitch={handleMapSwitch}>
       <div className="app">
         {loading && (
           <div className="loading-overlay">
