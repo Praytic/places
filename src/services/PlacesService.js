@@ -181,10 +181,10 @@ export class PlacesService {
    */
   static subscribeToPlaces(userId, callback) {
     try {
-      // Query maps where user has access
+      // Query maps where user is in accessList array
       const mapsQuery = query(
         collection(db, 'maps'),
-        where(`access.${userId}`, '!=', null)
+        where('accessList', 'array-contains', userId)
       );
 
       return onSnapshot(mapsQuery, async (mapsSnapshot) => {
