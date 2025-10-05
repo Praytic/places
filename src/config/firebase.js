@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -17,3 +17,5 @@ export const db = getFirestore(app, "places");
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export default app;
+
+setPersistence(auth, browserLocalPersistence);
