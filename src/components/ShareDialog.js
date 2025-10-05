@@ -11,8 +11,7 @@ import {
   Alert,
   List,
   ListItem,
-  ListItemText,
-  Chip
+  ListItemText
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { getUserMaps, shareMapWithUser, unshareMapWithUser, getMapCollaborators, ROLES } from '../services/MapsService';
