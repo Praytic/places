@@ -1,4 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  TextField,
+  Button,
+  IconButton,
+  Box,
+  Typography,
+  Alert,
+  List,
+  ListItem,
+  ListItemText,
+  Chip
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { getUserMaps, shareMapWithUser, unshareMapWithUser, getMapCollaborators, ROLES } from '../services/MapsService';
 
 const ShareDialog = ({ userEmail, mapId = null, onClose }) => {
@@ -118,60 +134,85 @@ const ShareDialog = ({ userEmail, mapId = null, onClose }) => {
   };
 
   return (
-    <div className="share-dialog-overlay" onClick={onClose}>
-      <div className="share-dialog" onClick={(e) => e.stopPropagation()}>
-        <div className="share-dialog-header">
-          <h2>Share Map</h2>
-          <button onClick={onClose} className="close-button">×</button>
-        </div>
+    <Dialog open={true} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        Share Map
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
 
-        <div className="share-dialog-content">
-          <form onSubmit={handleShare} className="share-form">
-            <label>Add collaborator by email:</label>
-            <div className="share-input-group">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@example.com"
-                disabled={loading}
-              />
-              <button type="submit" disabled={loading || !email}>
-                {loading ? 'Sharing...' : 'Share'}
-              </button>
-            </div>
-          </form>
+      <DialogContent>
+        <Box component="form" onSubmit={handleShare} sx={{ mb: 2 }}>
+          <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+            Add collaborator by email:
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <TextField
+              fullWidth
+              size="small"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="email@example.com"
+              disabled={loading}
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={loading || !email}
+              sx={{ minWidth: 100 }}
+            >
+              {loading ? 'Sharing...' : 'Share'}
+            </Button>
+          </Box>
+        </Box>
 
-          {error && (
-            <div className="share-message error">{error}</div>
-          )}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
 
-          {success && (
-            <div className="share-message success">{success}</div>
-          )}
+        {success && (
+          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
+            {success}
+          </Alert>
+        )}
 
-          {sharedWithList.length > 0 && (
-            <div className="shared-with-list">
-              <h3>Shared with:</h3>
-              <ul>
-                {sharedWithList.map((collaboratorEmail) => (
-                  <li key={collaboratorEmail}>
-                    <span>{collaboratorEmail}</span>
-                    <button
-                      onClick={() => handleRemoveShare(collaboratorEmail)}
-                      disabled={loading}
-                      className="remove-button"
-                    >
-                      Remove
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+        {sharedWithList.length > 0 && (
+          <Box sx={{ mt: 3, pt: 3, borderTop: 1, borderColor: 'divider' }}>
+            <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 600 }}>
+              Shared with:
+            </Typography>
+            <List disablePadding>
+              {sharedWithList.map((collaboratorEmail) => (
+                <ListItem
+                  key={collaboratorEmail}
+                  sx={{
+                    bgcolor: 'action.hover',
+                    borderRadius: 1,
+                    mb: 1,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <ListItemText primary={collaboratorEmail} />
+                  <Button
+                    size="small"
+                    color="error"
+                    onClick={() => handleRemoveShare(collaboratorEmail)}
+                    disabled={loading}
+                  >
+                    Remove
+                  </Button>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 };
 

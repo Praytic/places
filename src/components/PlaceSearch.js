@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Box, Dialog, DialogContent, TextField, IconButton, List, ListItem, ListItemButton, ListItemText, Typography, CircularProgress } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import EmojiPicker, {EmojiStyle} from 'emoji-picker-react';
 
 const PlaceSearch = ({ onPlaceSelect, onClose }) => {
@@ -92,66 +94,88 @@ const PlaceSearch = ({ onPlaceSelect, onClose }) => {
 
     return (
         <>
-            <div className="search-overlay">
-                <div className="search-container">
-                    <div className="search-header">
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            value={query}
-                            onChange={handleInputChange}
-                            onKeyDown={handleKeyDown}
-                            placeholder="Search for places..."
-                            className="search-input"
-                        />
-                        <button onClick={onClose} className="close-button">×</button>
-                    </div>
+            <Dialog
+                open={true}
+                onClose={onClose}
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{
+                    sx: {
+                        mt: 5,
+                        maxHeight: '80vh',
+                    }
+                }}
+            >
+                <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, borderBottom: 1, borderColor: 'divider' }}>
+                    <TextField
+                        inputRef={inputRef}
+                        fullWidth
+                        variant="standard"
+                        value={query}
+                        onChange={handleInputChange}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Search for places..."
+                        InputProps={{
+                            disableUnderline: true,
+                        }}
+                    />
+                    <IconButton onClick={onClose} size="small">
+                        <CloseIcon />
+                    </IconButton>
+                </Box>
 
-                    {isLoading && <div className="loading">Searching...</div>}
+                <DialogContent sx={{ p: 0 }}>
+                    {isLoading && (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 2 }}>
+                            <CircularProgress size={24} />
+                            <Typography sx={{ ml: 2 }} color="text.secondary">Searching...</Typography>
+                        </Box>
+                    )}
 
                     {suggestions.length > 0 && (
-                        <div className="suggestions-list">
+                        <List sx={{ maxHeight: 400, overflow: 'auto' }}>
                             {suggestions.map((suggestion) => {
                                 const prediction = suggestion.placePrediction;
                                 return (
-                                    <div
-                                        key={prediction.placeId}
-                                        className="suggestion-item"
-                                        onClick={() => handleSuggestionClick(suggestion)}
-                                    >
-                                        <div className="suggestion-name">
-                                            {prediction.mainText.text}
-                                        </div>
-                                        <div className="suggestion-address">
-                                            {prediction.secondaryText?.text}
-                                        </div>
-                                    </div>
+                                    <ListItem key={prediction.placeId} disablePadding>
+                                        <ListItemButton onClick={() => handleSuggestionClick(suggestion)}>
+                                            <ListItemText
+                                                primary={prediction.mainText.text}
+                                                secondary={prediction.secondaryText?.text}
+                                            />
+                                        </ListItemButton>
+                                    </ListItem>
                                 );
                             })}
-                        </div>
+                        </List>
                     )}
-                </div>
-            </div>
+                </DialogContent>
+            </Dialog>
 
-            {showEmojiPicker && selectedPlaceData && (
-                <div className="emoji-picker-overlay">
-                    <div className="emoji-picker-container">
-                        <div className="emoji-picker-header">
-                            <h3>Choose an emoji for {selectedPlaceData.name}</h3>
-                            <button onClick={handleEmojiCancel} className="close-button">×</button>
-                        </div>
-                        <div className="emoji-picker-content">
-                            <EmojiPicker
-                                onEmojiClick={handleEmojiSelect}
-                                width="100%"
-                                height={400}
-                                previewConfig={{showPreview: false}}
-                                emojiStyle={EmojiStyle.APPLE}
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
+            <Dialog
+                open={showEmojiPicker && !!selectedPlaceData}
+                onClose={handleEmojiCancel}
+                maxWidth="sm"
+                fullWidth
+            >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2.5, borderBottom: 1, borderColor: 'divider' }}>
+                    <Typography variant="h6">
+                        Choose an emoji for {selectedPlaceData?.name}
+                    </Typography>
+                    <IconButton onClick={handleEmojiCancel} size="small">
+                        <CloseIcon />
+                    </IconButton>
+                </Box>
+                <DialogContent>
+                    <EmojiPicker
+                        onEmojiClick={handleEmojiSelect}
+                        width="100%"
+                        height={400}
+                        previewConfig={{showPreview: false}}
+                        emojiStyle={EmojiStyle.APPLE}
+                    />
+                </DialogContent>
+            </Dialog>
         </>
     );
 };

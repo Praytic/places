@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Box, Card, Typography, CircularProgress } from '@mui/material';
 import { auth } from '../config/firebase';
 import { onAuthStateChanged, GoogleAuthProvider } from 'firebase/auth';
 import * as firebaseui from 'firebaseui';
@@ -51,21 +52,49 @@ const Auth = ({ children, currentMapId, onMapSwitch }) => {
 
   if (loading) {
     return (
-      <div className="auth-loading">
-        <div className="loading-spinner">Loading...</div>
-      </div>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        }}
+      >
+        <CircularProgress sx={{ color: 'white' }} />
+      </Box>
     );
   }
 
   if (!user) {
     return (
-      <div className="auth-container">
-        <div className="auth-card">
-          <h1>Places App</h1>
-          <p>Sign in to continue</p>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        }}
+      >
+        <Card
+          sx={{
+            p: 5,
+            maxWidth: 400,
+            width: '90%',
+            textAlign: 'center',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+          }}
+        >
+          <Typography variant="h4" gutterBottom>
+            Places App
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+            Sign in to continue
+          </Typography>
           <div id="firebaseui-auth-container"></div>
-        </div>
-      </div>
+        </Card>
+      </Box>
     );
   }
 
