@@ -6,9 +6,11 @@
  * @param {Function} onClose - Callback function when info window is closed
  * @param {Function} onEmojiChange - Callback function when emoji is changed
  * @param {Function} onToggleFavorite - Callback function when favorite is toggled
+ * @param {string} userRole - User's role for the map (owner, editor, viewer)
  * @returns {google.maps.InfoWindow} The created info window instance
  */
-export function createInfoWindow(map, marker, place, onClose, onEmojiChange, onToggleFavorite) {
+export function createInfoWindow(map, marker, place, onClose, onEmojiChange, onToggleFavorite, userRole) {
+    const isReadOnly = userRole === 'viewer';
     const headerDiv = document.createElement('div');
     headerDiv.style.cssText = 'padding: 12px 12px 0 12px;';
     const h3 = document.createElement('h3');
@@ -57,13 +59,14 @@ export function createInfoWindow(map, marker, place, onClose, onEmojiChange, onT
             border: none;
             border-radius: 8px;
             padding: 10px;
-            cursor: pointer;
+            cursor: ${isReadOnly ? 'not-allowed' : 'pointer'};
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             flex: 1;
-          " title="${place.group === 'favorite' ? 'Remove from Favorites' : 'Add to Favorites'}">
+            opacity: ${isReadOnly ? '0.5' : '1'};
+          " title="${isReadOnly ? '' : (place.group === 'favorite' ? 'Remove from Favorites' : 'Add to Favorites')}" ${isReadOnly ? 'disabled' : ''}>
             <svg stroke="currentColor" fill="${place.group === 'favorite' ? '#ef4444' : 'none'}" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px;">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
             </svg>
@@ -74,13 +77,14 @@ export function createInfoWindow(map, marker, place, onClose, onEmojiChange, onT
             border: none;
             border-radius: 8px;
             padding: 10px;
-            cursor: pointer;
+            cursor: ${isReadOnly ? 'not-allowed' : 'pointer'};
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             flex: 1;
-          " title="Change Emoji">
+            opacity: ${isReadOnly ? '0.5' : '1'};
+          " title="${isReadOnly ? '' : 'Change Emoji'}" ${isReadOnly ? 'disabled' : ''}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px;">
               <circle cx="12" cy="12" r="10"></circle>
               <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
@@ -107,7 +111,7 @@ export function createInfoWindow(map, marker, place, onClose, onEmojiChange, onT
         const favoriteButton = document.getElementById('favorite-button');
         const emojiButton = document.getElementById('emoji-change-button');
 
-        if (favoriteButton) {
+        if (favoriteButton && !isReadOnly) {
             // Add hover effect
             favoriteButton.addEventListener('mouseenter', () => {
                 favoriteButton.style.background = 'rgba(0, 0, 0, 0.05)';
@@ -132,7 +136,7 @@ export function createInfoWindow(map, marker, place, onClose, onEmojiChange, onT
             });
         }
 
-        if (emojiButton) {
+        if (emojiButton && !isReadOnly) {
             // Add hover effect
             emojiButton.addEventListener('mouseenter', () => {
                 emojiButton.style.background = 'rgba(0, 0, 0, 0.05)';

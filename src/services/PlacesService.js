@@ -2,42 +2,37 @@ import {
   collection,
   doc,
   getDocs,
-  addDoc,
   updateDoc,
   deleteDoc,
-  onSnapshot,
+  setDoc,
   query,
   where,
-  getDoc,
-  setDoc,
-  arrayUnion,
-  arrayRemove,
+  onSnapshot,
+  Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { getUserMaps, ROLES } from './MapsService';
 
-const COLLECTION_NAME = 'markers';
-const USERS_COLLECTION = 'users';
+const PLACES_COLLECTION = 'places';
+
+// Re-export ROLES for backward compatibility
+export { ROLES };
 
 export class PlacesService {
   /**
-   * Get all places from Firestore for current user and shared users
-   * @param {string} userId - Current user's ID
-   * @param {Array<string>} sharedUserIds - Array of user IDs that shared their places
+   * Get all places for a specific map
+   * @param {string} mapId - Map ID
    * @returns {Promise<Array>} Array of places
    */
-  static async getPlaces(userId, sharedUserIds = []) {
+  static async getPlacesForMap(mapId) {
     try {
-      // Get all user IDs (current user + shared users)
-      const allUserIds = [userId, ...sharedUserIds];
-
-      const q = query(
-        collection(db, COLLECTION_NAME),
-        where('userId', 'in', allUserIds)
+      const placesQuery = query(
+        collection(db, PLACES_COLLECTION),
+        where('mapId', '==', mapId)
       );
-      const querySnapshot = await getDocs(q);
+      const placesSnapshot = await getDocs(placesQuery);
 
-      // Sort in memory instead of using orderBy to avoid composite index requirement
-      const places = querySnapshot.docs.map(doc => ({
+      const places = placesSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
@@ -51,32 +46,69 @@ export class PlacesService {
 
       return places;
     } catch (error) {
-      console.error('Error fetching places:', error);
-      if (error.code === 'unavailable') {
-        console.error('Firestore database is not available. Please check your Firebase setup and "markers" collection.');
-      }
+      console.error('Error fetching places for map:', error);
       throw error;
     }
   }
 
   /**
-   * Add a new place to Firestore
+   * Get all places accessible to the current user (from all their maps)
+   * @param {string} userId - Current user's ID (email)
+   * @returns {Promise<Array>} Array of places with userRole
+   */
+  static async getPlaces(userId) {
+    try {
+      // Get all maps user has access to
+      const userMaps = await getUserMaps(userId);
+
+      if (userMaps.length === 0) {
+        return [];
+      }
+
+      // Fetch places from all maps
+      const placesPromises = userMaps.map(async (map) => {
+        const places = await this.getPlacesForMap(map.id);
+        // Add userRole to each place based on their map role
+        return places.map(place => ({
+          ...place,
+          userRole: map.userRole,
+          mapId: map.id
+        }));
+      });
+
+      const placesArrays = await Promise.all(placesPromises);
+      const allPlaces = placesArrays.flat();
+
+      // Sort by createdAt in descending order
+      allPlaces.sort((a, b) => {
+        const aTime = a.createdAt?.toDate?.() || new Date(0);
+        const bTime = b.createdAt?.toDate?.() || new Date(0);
+        return bTime - aTime;
+      });
+
+      return allPlaces;
+    } catch (error) {
+      console.error('Error fetching places:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add a new place to a map
    * @param {Object} place - The place object to add
-   * @param {string} userId - The user's ID
+   * @param {string} mapId - The map ID to add the place to
    * @returns {Promise<Object>} The added place with Firestore ID
    */
-  static async addPlace(place, userId) {
+  static async addPlace(place, mapId) {
     try {
       // Handle both LatLng objects and plain objects
       let location;
       if (place.geometry.location.lat && typeof place.geometry.location.lat === 'function') {
-        // Google Maps LatLng object
         location = {
           lat: place.geometry.location.lat(),
           lng: place.geometry.location.lng()
         };
       } else {
-        // Plain object
         location = {
           lat: place.geometry.location.lat,
           lng: place.geometry.location.lng
@@ -85,18 +117,20 @@ export class PlacesService {
 
       const placeData = {
         ...place,
-        userId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        mapId,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
         geometry: {
           location: location
         }
       };
 
-      const docRef = await addDoc(collection(db, COLLECTION_NAME), placeData);
+      // Create the place document
+      const placeRef = doc(collection(db, PLACES_COLLECTION));
+      await setDoc(placeRef, placeData);
 
       return {
-        id: docRef.id,
+        id: placeRef.id,
         ...placeData
       };
     } catch (error) {
@@ -113,10 +147,10 @@ export class PlacesService {
    */
   static async updatePlace(placeId, updates) {
     try {
-      const placeRef = doc(db, COLLECTION_NAME, placeId);
+      const placeRef = doc(db, PLACES_COLLECTION, placeId);
       await updateDoc(placeRef, {
         ...updates,
-        updatedAt: new Date()
+        updatedAt: Timestamp.now()
       });
     } catch (error) {
       console.error('Error updating place:', error);
@@ -131,7 +165,7 @@ export class PlacesService {
    */
   static async deletePlace(placeId) {
     try {
-      await deleteDoc(doc(db, COLLECTION_NAME, placeId));
+      await deleteDoc(doc(db, PLACES_COLLECTION, placeId));
     } catch (error) {
       console.error('Error deleting place:', error);
       throw error;
@@ -139,48 +173,59 @@ export class PlacesService {
   }
 
   /**
-   * Set up real-time listener for places collection
-   * @param {string} userId - Current user's ID
-   * @param {Array<string>} sharedUserIds - Array of user IDs that shared their places
+   * Set up real-time listener for places accessible to the user (from all their maps)
+   * @param {string} userId - Current user's ID (email)
    * @param {Function} callback - Callback function to handle data updates
    * @returns {Function} Unsubscribe function
    */
-  static subscribeToPlaces(userId, sharedUserIds, callback) {
+  static subscribeToPlaces(userId, callback) {
     try {
-      // Get all user IDs (current user + shared users)
-      const allUserIds = [userId, ...sharedUserIds];
+      // Query maps where user is in accessList array
+      const mapsQuery = query(
+        collection(db, 'maps'),
+        where('accessList', 'array-contains', userId)
+      );
 
-      // Query for all markers and filter in memory
-      // This handles both user-specific and legacy markers without userId
-      const q = query(collection(db, COLLECTION_NAME));
-
-      return onSnapshot(q, (querySnapshot) => {
-        const allPlaces = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-
-        // Filter: include markers that belong to current user, shared users, or have no userId (legacy)
-        const filteredPlaces = allPlaces.filter(place => {
-          // Include legacy markers without userId
-          if (!place.userId || place.userId === null || place.userId === undefined) {
-            return true;
+      return onSnapshot(mapsQuery, async (mapsSnapshot) => {
+        try {
+          if (mapsSnapshot.empty) {
+            callback([]);
+            return;
           }
-          // Include markers from current user or shared users
-          return allUserIds.includes(place.userId);
-        });
 
-        // Sort by createdAt in descending order
-        filteredPlaces.sort((a, b) => {
-          const aTime = a.createdAt?.toDate?.() || new Date(0);
-          const bTime = b.createdAt?.toDate?.() || new Date(0);
-          return bTime - aTime;
-        });
+          // Get map IDs and roles
+          const mapIds = mapsSnapshot.docs.map(doc => doc.id);
+          const mapRoles = {};
+          mapsSnapshot.docs.forEach(doc => {
+            mapRoles[doc.id] = doc.data().access[userId];
+          });
 
-        callback(filteredPlaces);
-      }, (error) => {
-        console.error('Error in places subscription:', error);
-        callback([]);
+          // Subscribe to places from all maps
+          const placesQuery = query(
+            collection(db, PLACES_COLLECTION),
+            where('mapId', 'in', mapIds)
+          );
+
+          return onSnapshot(placesQuery, (placesSnapshot) => {
+            const places = placesSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+              userRole: mapRoles[doc.data().mapId]
+            }));
+
+            // Sort by createdAt in descending order
+            places.sort((a, b) => {
+              const aTime = a.createdAt?.toDate?.() || new Date(0);
+              const bTime = b.createdAt?.toDate?.() || new Date(0);
+              return bTime - aTime;
+            });
+
+            callback(places);
+          });
+        } catch (error) {
+          console.error('Error processing places snapshot:', error);
+          callback([]);
+        }
       });
     } catch (error) {
       console.error('Error setting up places subscription:', error);
@@ -206,182 +251,6 @@ export class PlacesService {
    */
   static async updatePlaceEmoji(placeId, emoji) {
     return this.updatePlace(placeId, { emoji });
-  }
-
-  /**
-   * Get user document by email
-   * @param {string} email - The email to search for
-   * @returns {Promise<Object|null>} User document or null
-   */
-  static async getUserByEmail(email) {
-    try {
-      const userDoc = await getDoc(doc(db, USERS_COLLECTION, email));
-      if (userDoc.exists()) {
-        return { id: userDoc.id, ...userDoc.data() };
-      }
-      return null;
-    } catch (error) {
-      console.error('Error getting user by email:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get or create user document
-   * @param {string} userId - The user's ID (email)
-   * @param {Object} userData - User data to store
-   * @returns {Promise<Object>} User document
-   */
-  static async getOrCreateUser(userId, userData = {}) {
-    try {
-      const userRef = doc(db, USERS_COLLECTION, userId);
-      const userDoc = await getDoc(userRef);
-
-      if (!userDoc.exists()) {
-        await setDoc(userRef, {
-          email: userId,
-          sharedWith: [],
-          sharedFrom: [],
-          ...userData,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        });
-        return {
-          id: userId,
-          email: userId,
-          sharedWith: [],
-          sharedFrom: [],
-          ...userData
-        };
-      }
-
-      return { id: userDoc.id, ...userDoc.data() };
-    } catch (error) {
-      console.error('Error getting/creating user:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Share access with another user by email
-   * @param {string} ownerEmail - The owner's email
-   * @param {string} collaboratorEmail - The collaborator's email
-   * @returns {Promise<void>}
-   */
-  static async shareWithUser(ownerEmail, collaboratorEmail) {
-    try {
-      // Get or create both user documents
-      await this.getOrCreateUser(ownerEmail);
-      await this.getOrCreateUser(collaboratorEmail);
-
-      const ownerRef = doc(db, USERS_COLLECTION, ownerEmail);
-      const collaboratorRef = doc(db, USERS_COLLECTION, collaboratorEmail);
-
-      // Add collaborator to owner's sharedWith list
-      await updateDoc(ownerRef, {
-        sharedWith: arrayUnion(collaboratorEmail),
-        updatedAt: new Date()
-      });
-
-      // Add owner to collaborator's sharedFrom list
-      await updateDoc(collaboratorRef, {
-        sharedFrom: arrayUnion(ownerEmail),
-        updatedAt: new Date()
-      });
-    } catch (error) {
-      console.error('Error sharing with user:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Remove shared access from a user
-   * @param {string} ownerEmail - The owner's email
-   * @param {string} collaboratorEmail - The collaborator's email
-   * @returns {Promise<void>}
-   */
-  static async unshareWithUser(ownerEmail, collaboratorEmail) {
-    try {
-      const ownerRef = doc(db, USERS_COLLECTION, ownerEmail);
-      const collaboratorRef = doc(db, USERS_COLLECTION, collaboratorEmail);
-
-      // Remove collaborator from owner's sharedWith list
-      await updateDoc(ownerRef, {
-        sharedWith: arrayRemove(collaboratorEmail),
-        updatedAt: new Date()
-      });
-
-      // Remove owner from collaborator's sharedFrom list
-      await updateDoc(collaboratorRef, {
-        sharedFrom: arrayRemove(ownerEmail),
-        updatedAt: new Date()
-      });
-    } catch (error) {
-      console.error('Error unsharing with user:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get list of users who shared their places with current user
-   * @param {string} userId - The user's ID (email)
-   * @returns {Promise<Array<string>>} Array of user emails
-   */
-  static async getSharedFromUsers(userId) {
-    try {
-      const userData = await this.getOrCreateUser(userId);
-      return userData.sharedFrom || [];
-    } catch (error) {
-      console.error('Error getting shared from users:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Get list of users who current user shared places with
-   * @param {string} userId - The user's ID (email)
-   * @returns {Promise<Array<string>>} Array of user emails
-   */
-  static async getSharedWithUsers(userId) {
-    try {
-      const userData = await this.getOrCreateUser(userId);
-      return userData.sharedWith || [];
-    } catch (error) {
-      console.error('Error getting shared with users:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Migrate legacy markers (without userId) to a specific user
-   * @param {string} userId - The user's ID to assign legacy markers to
-   * @returns {Promise<number>} Number of markers migrated
-   */
-  static async migrateLegacyMarkers(userId) {
-    try {
-      const legacyQuery = query(
-        collection(db, COLLECTION_NAME),
-        where('userId', '==', null)
-      );
-      const querySnapshot = await getDocs(legacyQuery);
-
-      const batch = [];
-      querySnapshot.docs.forEach((docSnapshot) => {
-        batch.push(
-          updateDoc(doc(db, COLLECTION_NAME, docSnapshot.id), {
-            userId,
-            updatedAt: new Date()
-          })
-        );
-      });
-
-      await Promise.all(batch);
-      console.log(`Migrated ${batch.length} legacy markers to user ${userId}`);
-      return batch.length;
-    } catch (error) {
-      console.error('Error migrating legacy markers:', error);
-      throw error;
-    }
   }
 }
 
