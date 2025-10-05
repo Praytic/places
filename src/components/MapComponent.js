@@ -206,7 +206,7 @@ const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmo
         // Find the selected marker
         let selectedMarker = null;
         for (const marker of markersRef.current.values()) {
-            if (marker.placeData?.name === selectedPlace.name) {
+            if (marker.placeData?.id === selectedPlace.id) {
                 selectedMarker = marker;
                 break;
             }
