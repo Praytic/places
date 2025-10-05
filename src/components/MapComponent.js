@@ -263,6 +263,7 @@ const MapComponent = ({
                 mapTypeControl={false}
                 streetViewControl={false}
                 fullscreenControl={false}
+                gestureHandling={'greedy'}
                 mapId={process.env.REACT_APP_GOOGLE_MAP_ID || 'DEMO_MAP_ID'}
                 style={{width: '100%', height: '100%'}}
             >
