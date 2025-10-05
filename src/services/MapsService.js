@@ -33,6 +33,7 @@ export const createMap = async (ownerId, name = 'My Places') => {
       id: mapRef.id,
       name,
       owner: ownerId,
+      accessList: [ownerId],
       access: {
         [ownerId]: ROLES.OWNER
       },
@@ -75,21 +76,20 @@ export const getMap = async (mapId) => {
  */
 export const getUserMaps = async (userId) => {
   try {
-    // Fetch all maps - we'll filter client-side
-    // This is necessary because querying nested map fields with email keys is problematic
-    const mapsSnapshot = await getDocs(collection(db, 'maps'));
+    // Query maps where user is in accessList array
+    const q = query(collection(db, 'maps'), where('accessList', 'array-contains', userId));
+    const mapsSnapshot = await getDocs(q);
 
     if (mapsSnapshot.empty) {
       return [];
     }
 
-    // Filter maps where user has access
+    // Map to include user's role
     const maps = mapsSnapshot.docs
       .map(doc => ({
         id: doc.id,
         ...doc.data()
       }))
-      .filter(map => map.access && map.access[userId])
       .map(map => ({
         ...map,
         userRole: map.access[userId]
@@ -110,22 +110,21 @@ export const getUserMaps = async (userId) => {
  */
 export const subscribeToUserMaps = (userId, callback) => {
   try {
-    // Subscribe to all maps - we'll filter client-side
-    // This is necessary because querying nested map fields with email keys is problematic
-    return onSnapshot(collection(db, 'maps'), (snapshot) => {
+    // Subscribe to maps where user is in accessList array
+    const q = query(collection(db, 'maps'), where('accessList', 'array-contains', userId));
+    return onSnapshot(q, (snapshot) => {
       try {
         if (snapshot.empty) {
           callback([]);
           return;
         }
 
-        // Filter maps where user has access
+        // Map to include user's role
         const maps = snapshot.docs
           .map(doc => ({
             id: doc.id,
             ...doc.data()
           }))
-          .filter(map => map.access && map.access[userId])
           .map(map => ({
             ...map,
             userRole: map.access[userId]
@@ -198,9 +197,24 @@ export const deleteMap = async (mapId) => {
  */
 export const shareMapWithUser = async (mapId, userId, role = ROLES.VIEWER) => {
   try {
-    // Update map's access field
     const mapRef = doc(db, 'maps', mapId);
+    const mapDoc = await getDoc(mapRef);
+
+    if (!mapDoc.exists()) {
+      throw new Error('Map not found');
+    }
+
+    const mapData = mapDoc.data();
+    const newAccessList = mapData.accessList || [];
+
+    // Add user to accessList if not already present
+    if (!newAccessList.includes(userId)) {
+      newAccessList.push(userId);
+    }
+
+    // Update both accessList and access role
     await setDoc(mapRef, {
+      accessList: newAccessList,
       [new FieldPath('access', userId)]: role,
       updatedAt: Timestamp.now()
     }, { merge: true });
@@ -218,7 +232,6 @@ export const shareMapWithUser = async (mapId, userId, role = ROLES.VIEWER) => {
  */
 export const unshareMapWithUser = async (mapId, userId) => {
   try {
-    // Remove from map's access field
     const mapRef = doc(db, 'maps', mapId);
     const mapDoc = await getDoc(mapRef);
 
@@ -227,8 +240,12 @@ export const unshareMapWithUser = async (mapId, userId) => {
       const newAccess = { ...mapData.access };
       delete newAccess[userId];
 
+      // Remove user from accessList
+      const newAccessList = (mapData.accessList || []).filter(id => id !== userId);
+
       await setDoc(mapRef, {
         access: newAccess,
+        accessList: newAccessList,
         updatedAt: Timestamp.now()
       }, { merge: true });
     }
