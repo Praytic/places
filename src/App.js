@@ -25,8 +25,10 @@ const App = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [currentUser, setCurrentUser] = useState(null);
-    const [currentMapId, setCurrentMapId] = useState(null);
-    const [userRole, setUserRole] = useState(null);
+    const [visibleMapIds, setVisibleMapIds] = useState(new Set());
+    const [userMaps, setUserMaps] = useState([]);
+    const [currentMapId, setCurrentMapId] = useState(null); // Keep for ShareDialog backward compatibility
+    const [userRole, setUserRole] = useState(null); // Keep for backward compatibility
 
     // Listen for auth state changes
     useEffect(() => {
@@ -36,10 +38,12 @@ const App = () => {
         return () => unsubscribe();
     }, []);
 
-    // Get or create user's map when user changes
+    // Get or create user's maps when user changes
     useEffect(() => {
-        const initializeMap = async () => {
+        const initializeMaps = async () => {
             if (!currentUser?.email) {
+                setUserMaps([]);
+                setVisibleMapIds(new Set());
                 setCurrentMapId(null);
                 setUserRole(null);
                 return;
@@ -47,30 +51,32 @@ const App = () => {
 
             try {
                 // Get user's maps
-                const maps = await getUserMaps(currentUser.email);
+                let maps = await getUserMaps(currentUser.email);
 
-                if (maps.length > 0) {
-                    // Use first map
-                    setCurrentMapId(maps[0].id);
-                    setUserRole(maps[0].userRole);
-                } else {
+                if (maps.length === 0) {
                     // Create a new map for the user
                     const newMap = await createMap(currentUser.email, 'My Places');
-                    setCurrentMapId(newMap.id);
-                    setUserRole(ROLES.OWNER);
+                    maps = [{ ...newMap, userRole: ROLES.OWNER }];
                 }
+
+                setUserMaps(maps);
+                // Make first map visible by default
+                setVisibleMapIds(new Set([maps[0].id]));
+                // Set currentMapId to first map for backward compatibility (ShareDialog)
+                setCurrentMapId(maps[0].id);
+                setUserRole(maps[0].userRole);
             } catch (err) {
-                console.error('Error initializing map:', err);
-                setError('Failed to initialize map');
+                console.error('Error initializing maps:', err);
+                setError('Failed to initialize maps');
             }
         };
 
-        initializeMap();
+        initializeMaps();
     }, [currentUser]);
 
-    // Subscribe to places when user or current map changes
+    // Subscribe to places when user or visible maps change
     useEffect(() => {
-        if (!currentUser?.email) {
+        if (!currentUser?.email || visibleMapIds.size === 0) {
             setPlaces([]);
             setLoading(false);
             return;
@@ -79,26 +85,34 @@ const App = () => {
         const unsubscribe = PlacesService.subscribeToPlaces(
             currentUser.email,
             (placesData) => {
-                // Filter places to only show those from the current map
-                const filteredPlaces = currentMapId
-                    ? placesData.filter(place => place.mapId === currentMapId)
-                    : [];
+                // Filter places to only show those from visible maps
+                const filteredPlaces = placesData.filter(place => visibleMapIds.has(place.mapId));
                 setPlaces(filteredPlaces);
                 setLoading(false);
             }
         );
         return () => unsubscribe();
-    }, [currentUser, currentMapId]);
+    }, [currentUser, visibleMapIds]);
 
     const handleAddPlace = () => {
         setShowSearch(true);
     };
 
     const handlePlaceSelect = async (place) => {
-        if (place && currentMapId) {
+        if (place) {
+            // Add to the first visible map, or currentMapId as fallback
+            const targetMapId = visibleMapIds.size > 0
+                ? Array.from(visibleMapIds)[0]
+                : currentMapId;
+
+            if (!targetMapId) {
+                setError('No map available to add place');
+                return;
+            }
+
             try {
                 setError(null);
-                const addedPlace = await PlacesService.addPlace(place, currentMapId);
+                const addedPlace = await PlacesService.addPlace(place, targetMapId);
                 // The real-time listener will update the places state automatically
                 console.log('Place added successfully:', addedPlace);
             } catch (error) {
@@ -201,8 +215,44 @@ const App = () => {
         setUserRole(role);
     };
 
+    const handleMapVisibilityToggle = (mapId) => {
+        setVisibleMapIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(mapId)) {
+                newSet.delete(mapId);
+            } else {
+                newSet.add(mapId);
+            }
+            return newSet;
+        });
+    };
+
+    const handleMapsUpdated = async () => {
+        // Reload maps when they're updated (created/deleted)
+        if (currentUser?.email) {
+            try {
+                const maps = await getUserMaps(currentUser.email);
+                setUserMaps(maps);
+
+                // Update visibleMapIds to remove deleted maps
+                setVisibleMapIds(prev => {
+                    const mapIds = new Set(maps.map(m => m.id));
+                    return new Set([...prev].filter(id => mapIds.has(id)));
+                });
+
+                // If currentMapId was deleted, switch to first available map
+                if (maps.length > 0 && !maps.find(m => m.id === currentMapId)) {
+                    setCurrentMapId(maps[0].id);
+                    setUserRole(maps[0].userRole);
+                }
+            } catch (err) {
+                console.error('Error reloading maps:', err);
+            }
+        }
+    };
+
     return (
-        <Auth currentMapId={currentMapId} onMapSwitch={handleMapSwitch}>
+        <Auth>
             <Box sx={{position: 'relative', height: '100vh', width: '100vw'}}>
                 <Backdrop open={loading} sx={{color: '#fff', zIndex: 3000}}>
                     <CircularProgress color="inherit"/>
@@ -283,6 +333,10 @@ const App = () => {
                         open={showManageMaps}
                         onClose={() => setShowManageMaps(false)}
                         userEmail={currentUser.email}
+                        userMaps={userMaps}
+                        visibleMapIds={visibleMapIds}
+                        onMapVisibilityToggle={handleMapVisibilityToggle}
+                        onMapsUpdated={handleMapsUpdated}
                         currentMapId={currentMapId}
                         onMapSwitch={handleMapSwitch}
                     />

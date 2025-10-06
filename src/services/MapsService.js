@@ -9,8 +9,7 @@ import {
   where,
   onSnapshot,
   writeBatch,
-  Timestamp,
-  deleteField
+  Timestamp
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 

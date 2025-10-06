@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -10,66 +10,32 @@ import {
   ListItem,
   ListItemText,
   TextField,
-  Chip,
   Divider,
-  CircularProgress
+  CircularProgress,
+  Tooltip
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-import LayersIcon from '@mui/icons-material/Layers';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { getUserMaps, deleteMap, updateMap, ROLES } from '../services/MapsService';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import { deleteMap, updateMap, ROLES } from '../services/MapsService';
 import CreateMapDialog from './CreateMapDialog';
 
-const ManageMapsDialog = ({ userEmail, currentMapId, onMapSelect, onClose }) => {
-  const [maps, setMaps] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [deleting, setDeleting] = useState(false);
-  const [selectedMapId, setSelectedMapId] = useState(null);
+const ManageMapsDialog = ({
+  userEmail,
+  userMaps,
+  visibleMapIds,
+  onMapVisibilityToggle,
+  onMapsUpdated,
+  onClose
+}) => {
+  const [deleting, setDeleting] = useState(null);
   const [editingMapId, setEditingMapId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-
-  useEffect(() => {
-    const loadMaps = async () => {
-      try {
-        setLoading(true);
-        const userMaps = await getUserMaps(userEmail);
-        setMaps(userMaps);
-      } catch (err) {
-        console.error('Error loading maps:', err);
-        setError('Failed to load maps');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadMaps();
-  }, [userEmail]);
-
-  const handleMapClick = (map) => {
-    if (map.id !== currentMapId) {
-      if (selectedMapId === map.id) {
-        onMapSelect(map.id, map.userRole);
-        onClose();
-      } else {
-        setSelectedMapId(map.id);
-      }
-    }
-  };
-
-  const handleCreateMap = () => {
-    setShowCreateDialog(true);
-  };
-
-  const handleMapCreated = (mapId, userRole) => {
-    setShowCreateDialog(false);
-    onMapSelect(mapId, userRole);
-    onClose();
-  };
+  const [error, setError] = useState(null);
 
   const handleStartEditing = (map) => {
     setEditingMapId(map.id);
@@ -80,18 +46,15 @@ const ManageMapsDialog = ({ userEmail, currentMapId, onMapSelect, onClose }) => 
     const trimmedName = editingName.trim();
 
     if (!trimmedName) {
-      // If name is empty, delete the map if it's new or revert to original name
-      const map = maps.find(m => m.id === mapId);
-      if (!map.name) {
+      const map = userMaps.find(m => m.id === mapId);
+      if (map && !map.name) {
         // New map with no name, delete it
         try {
           await deleteMap(mapId);
-          setMaps(maps.filter(m => m.id !== mapId));
-          if (selectedMapId === mapId) {
-            setSelectedMapId(null);
-          }
+          await onMapsUpdated();
         } catch (err) {
           console.error('Error deleting empty map:', err);
+          setError('Failed to delete empty map');
         }
       }
       setEditingMapId(null);
@@ -101,7 +64,7 @@ const ManageMapsDialog = ({ userEmail, currentMapId, onMapSelect, onClose }) => 
 
     try {
       await updateMap(mapId, { name: trimmedName });
-      setMaps(maps.map(m => m.id === mapId ? { ...m, name: trimmedName } : m));
+      await onMapsUpdated();
     } catch (err) {
       console.error('Error updating map name:', err);
       setError('Failed to update map name');
@@ -112,62 +75,49 @@ const ManageMapsDialog = ({ userEmail, currentMapId, onMapSelect, onClose }) => 
   };
 
   const handleCancelEditing = (mapId) => {
-    const map = maps.find(m => m.id === mapId);
+    const map = userMaps.find(m => m.id === mapId);
 
-    // If it's a new map with no name, delete it
-    if (!map.name) {
-      deleteMap(mapId).catch(err => console.error('Error deleting cancelled map:', err));
-      setMaps(maps.filter(m => m.id !== mapId));
-      if (selectedMapId === mapId) {
-        setSelectedMapId(null);
-      }
+    if (map && !map.name) {
+      deleteMap(mapId)
+        .then(() => onMapsUpdated())
+        .catch(err => console.error('Error deleting cancelled map:', err));
     }
 
     setEditingMapId(null);
     setEditingName('');
   };
 
-  const handleDeleteMap = async () => {
-    if (!selectedMapId) return;
+  const handleDeleteMap = async (mapId, mapName) => {
+    const map = userMaps.find(m => m.id === mapId);
+    if (!map || map.userRole !== ROLES.OWNER) return;
 
-    const selectedMap = maps.find(m => m.id === selectedMapId);
-    if (!selectedMap || selectedMap.userRole !== ROLES.OWNER) return;
-
-    if (!window.confirm('Are you sure you want to delete this map? All places will be deleted.')) {
+    if (!window.confirm(`Are you sure you want to delete "${mapName}"? All places will be deleted.`)) {
       return;
     }
 
     try {
-      setDeleting(true);
-      await deleteMap(selectedMapId);
-
-      const updatedMaps = maps.filter(m => m.id !== selectedMapId);
-      setMaps(updatedMaps);
-
-      if (selectedMapId === currentMapId && updatedMaps.length > 0) {
-        onMapSelect(updatedMaps[0].id, updatedMaps[0].userRole);
-      }
-
-      setSelectedMapId(null);
+      setDeleting(mapId);
+      await deleteMap(mapId);
+      await onMapsUpdated();
     } catch (err) {
       console.error('Error deleting map:', err);
       setError('Failed to delete map');
     } finally {
-      setDeleting(false);
+      setDeleting(null);
     }
   };
 
-  const getRoleIcon = (role) => {
-    switch (role) {
-      case ROLES.OWNER:
-        return <LayersIcon fontSize="small" />;
-      case ROLES.EDITOR:
-        return <EditIcon fontSize="small" />;
-      case ROLES.VIEWER:
-        return <VisibilityIcon fontSize="small" />;
-      default:
-        return null;
-    }
+  const handleCreateMap = () => {
+    setShowCreateDialog(true);
+  };
+
+  const handleMapCreated = async () => {
+    setShowCreateDialog(false);
+    await onMapsUpdated();
+  };
+
+  const handleToggleVisibility = (mapId) => {
+    onMapVisibilityToggle(mapId);
   };
 
   return (
@@ -181,78 +131,107 @@ const ManageMapsDialog = ({ userEmail, currentMapId, onMapSelect, onClose }) => 
         </DialogTitle>
 
         <DialogContent>
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 5 }}>
-              <CircularProgress />
-            </Box>
-          ) : error ? (
-            <Typography color="error" align="center" sx={{ py: 5 }}>
+          {error && (
+            <Typography color="error" align="center" sx={{ mb: 2 }}>
               {error}
             </Typography>
-          ) : maps.length === 0 ? (
+          )}
+
+          {userMaps.length === 0 ? (
             <Typography color="text.secondary" align="center" sx={{ py: 5 }}>
               No maps found
             </Typography>
           ) : (
             <List>
-              {maps.map((map) => (
+              {userMaps.map((map) => (
                 <ListItem
                   key={map.id}
-                  onClick={() => handleMapClick(map)}
                   sx={{
-                    bgcolor: map.id === selectedMapId ? 'primary.light' : map.id === currentMapId ? 'action.hover' : 'transparent',
+                    bgcolor: 'transparent',
                     borderRadius: 1,
                     mb: 1,
-                    border: 2,
-                    borderColor: map.id === selectedMapId ? 'primary.main' : 'transparent',
-                    cursor: 'pointer',
-                    '&:hover': {
-                      bgcolor: map.id === selectedMapId ? 'primary.light' : 'action.hover',
-                    },
+                    border: 1,
+                    borderColor: visibleMapIds.has(map.id) ? 'primary.main' : 'divider',
+                    px: 2,
+                    py: 1.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
                   }}
-                  secondaryAction={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {getRoleIcon(map.userRole)}
-                    </Box>
-                  }
                 >
-                  <ListItemText
-                    primary={
-                      editingMapId === map.id ? (
-                        <TextField
+                  {editingMapId === map.id ? (
+                    <TextField
+                      size="small"
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      onBlur={() => handleSaveMapName(map.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSaveMapName(map.id);
+                        } else if (e.key === 'Escape') {
+                          handleCancelEditing(map.id);
+                        }
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      autoFocus
+                      placeholder="Enter map name"
+                      sx={{ flex: 1 }}
+                    />
+                  ) : (
+                    <ListItemText
+                      primary={
+                        <Typography sx={{ fontWeight: visibleMapIds.has(map.id) ? 600 : 400 }}>
+                          {map.name || 'Untitled Map'}
+                        </Typography>
+                      }
+                      sx={{ flex: 1, my: 0 }}
+                    />
+                  )}
+
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <Tooltip title={visibleMapIds.has(map.id) ? "Hide markers" : "Show markers"}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleToggleVisibility(map.id)}
+                        color={visibleMapIds.has(map.id) ? "primary" : "default"}
+                      >
+                        {visibleMapIds.has(map.id) ? (
+                          <VisibilityIcon fontSize="small" />
+                        ) : (
+                          <VisibilityOffIcon fontSize="small" />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+
+                    <Tooltip title={map.userRole === ROLES.OWNER ? "Edit name" : "Only owners can edit"}>
+                      <span>
+                        <IconButton
                           size="small"
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          onBlur={() => handleSaveMapName(map.id)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              handleSaveMapName(map.id);
-                            } else if (e.key === 'Escape') {
-                              handleCancelEditing(map.id);
-                            }
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          autoFocus
-                          placeholder="Enter map name"
-                        />
-                      ) : (
-                        <Box
-                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                          onDoubleClick={(e) => {
-                            e.stopPropagation();
-                            if (map.userRole === ROLES.OWNER) {
-                              handleStartEditing(map);
-                            }
-                          }}
+                          onClick={() => handleStartEditing(map)}
+                          disabled={map.userRole !== ROLES.OWNER}
                         >
-                          <Typography>{map.name || 'Untitled Map'}</Typography>
-                          {map.id === currentMapId && (
-                            <Chip label="Current" size="small" color="primary" />
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+
+                    <Tooltip title={map.userRole === ROLES.OWNER ? "Delete map" : "Only owners can delete"}>
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteMap(map.id, map.name)}
+                          disabled={map.userRole !== ROLES.OWNER || deleting === map.id}
+                          color="error"
+                        >
+                          {deleting === map.id ? (
+                            <CircularProgress size={20} />
+                          ) : (
+                            <DeleteIcon fontSize="small" />
                           )}
-                        </Box>
-                      )
-                    }
-                  />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  </Box>
                 </ListItem>
               ))}
             </List>
@@ -261,25 +240,18 @@ const ManageMapsDialog = ({ userEmail, currentMapId, onMapSelect, onClose }) => 
 
         <Divider />
 
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, p: 1.5 }}>
-          <IconButton
-            onClick={handleCreateMap}
-            disabled={loading}
-            title="Create new map"
-            color="primary"
-          >
-            <AddIcon />
-          </IconButton>
-          <IconButton
-            onClick={handleDeleteMap}
-            disabled={!selectedMapId || deleting || loading || maps.find(m => m.id === selectedMapId)?.userRole !== ROLES.OWNER}
-            title="Delete selected map"
-            color="error"
-          >
-            <DeleteIcon />
-          </IconButton>
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 1.5 }}>
+          <Tooltip title="Create new map">
+            <IconButton
+              onClick={handleCreateMap}
+              color="primary"
+            >
+              <AddIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
       </Dialog>
+
       {showCreateDialog && (
         <CreateMapDialog
           userEmail={userEmail}

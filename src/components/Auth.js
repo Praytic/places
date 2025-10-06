@@ -5,14 +5,10 @@ import { onAuthStateChanged, GoogleAuthProvider } from 'firebase/auth';
 import * as firebaseui from 'firebaseui';
 import 'firebaseui/dist/firebaseui.css';
 import AccountMenu from './AccountMenu';
-import ShareDialog from './ShareDialog';
-import ManageMapsDialog from './ManageMapsDialog';
 
-const Auth = ({ children, currentMapId, onMapSwitch }) => {
+const Auth = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showShareDialog, setShowShareDialog] = useState(false);
-  const [showManageMapsDialog, setShowManageMapsDialog] = useState(false);
   const uiRef = useRef(null);
 
   useEffect(() => {
@@ -105,25 +101,7 @@ const Auth = ({ children, currentMapId, onMapSwitch }) => {
   return (
     <div>
       <AccountMenu user={user} />
-      {React.cloneElement(children, {
-        onManageMaps: () => setShowManageMapsDialog(true),
-        onShareMap: () => setShowShareDialog(true)
-      })}
-      {showShareDialog && (
-        <ShareDialog
-          userEmail={user.email}
-          mapId={currentMapId}
-          onClose={() => setShowShareDialog(false)}
-        />
-      )}
-      {showManageMapsDialog && (
-        <ManageMapsDialog
-          userEmail={user.email}
-          currentMapId={currentMapId}
-          onMapSelect={onMapSwitch}
-          onClose={() => setShowManageMapsDialog(false)}
-        />
-      )}
+      {children}
     </div>
   );
 };
