@@ -27,7 +27,8 @@ export function createInfoWindow(
     const contentDiv = document.createElement('div');
     const root = ReactDOM.createRoot(contentDiv);
 
-    root.render(
+    // Render function that we can call when props change
+    const render = () => root.render(
         <Box
             sx={{
                 width: 260,
@@ -95,6 +96,9 @@ export function createInfoWindow(
             </Box>
         </Box>
     );
+
+    // Initial render
+    render();
 
     const infoWindow = new window.google.maps.InfoWindow({
         content: contentDiv,

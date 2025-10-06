@@ -24,8 +24,6 @@ const App = () => {
     const [currentMapId, setCurrentMapId] = useState(null);
     const [userRole, setUserRole] = useState(null);
 
-    const availableLayers = groups;
-
     // Listen for auth state changes
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {

@@ -2,17 +2,11 @@ import React, { useState } from 'react';
 import { Box, Avatar, Menu, MenuItem, ListItemIcon, ListItemText, Divider, Typography } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import ShareIcon from '@mui/icons-material/Share';
-import HomeIcon from '@mui/icons-material/Home';
 import { signOut, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '../config/firebase';
-import ShareDialog from './ShareDialog';
-import ManageMapsDialog from './ManageMapsDialog';
 
-const AccountMenu = ({ user, currentMapId, onMapSwitch }) => {
+const AccountMenu = ({ user }) => {
   const [anchorEl, setAnchorEl] = useState(null);
-  const [showShareDialog, setShowShareDialog] = useState(false);
-  const [showManageMapsDialog, setShowManageMapsDialog] = useState(false);
   const open = Boolean(anchorEl);
 
   const handleSignOut = async () => {
@@ -35,21 +29,6 @@ const AccountMenu = ({ user, currentMapId, onMapSwitch }) => {
     } catch (error) {
       console.error('Error adding account:', error);
     }
-  };
-
-  const handleShareClick = () => {
-    setShowShareDialog(true);
-    setAnchorEl(null);
-  };
-
-  const handleShareDialogClose = () => {
-    setShowShareDialog(false);
-    setShowManageMapsDialog(false);
-  };
-
-  const handleManageMapsClick = () => {
-    setShowManageMapsDialog(true);
-    setAnchorEl(null);
   };
 
   if (!user.photoURL) {
@@ -106,18 +85,6 @@ const AccountMenu = ({ user, currentMapId, onMapSwitch }) => {
             </Box>
           </Box>
           <Divider />
-          <MenuItem onClick={handleManageMapsClick}>
-            <ListItemIcon>
-              <HomeIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Manage maps</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={handleShareClick}>
-            <ListItemIcon>
-              <ShareIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Share places</ListItemText>
-          </MenuItem>
           <MenuItem onClick={handleAddAccount}>
             <ListItemIcon>
               <PersonAddIcon fontSize="small" />
@@ -132,21 +99,6 @@ const AccountMenu = ({ user, currentMapId, onMapSwitch }) => {
           </MenuItem>
         </Menu>
       </Box>
-      {showShareDialog && (
-        <ShareDialog
-          userEmail={user.email}
-          mapId={currentMapId}
-          onClose={handleShareDialogClose}
-        />
-      )}
-      {showManageMapsDialog && (
-        <ManageMapsDialog
-          userEmail={user.email}
-          currentMapId={currentMapId}
-          onMapSelect={onMapSwitch}
-          onClose={() => setShowManageMapsDialog(false)}
-        />
-      )}
     </>
   );
 };

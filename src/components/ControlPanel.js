@@ -5,13 +5,17 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
 import RemoveRedEyeOutlinedIcon from '@mui/icons-material/RemoveRedEyeOutlined';
+import HomeIcon from '@mui/icons-material/Home';
+import ShareIcon from '@mui/icons-material/Share';
 import {ROLES} from '../services/MapsService';
 
 const ControlPanel = ({
                           onAddPlace,
                           onToggleFilter,
                           activeFilters,
-                          userRole
+                          userRole,
+                          onManageMaps,
+                          onShareMap
                       }) => {
     const isReadOnly = userRole === ROLES.VIEWER;
 
@@ -121,6 +125,16 @@ const ControlPanel = ({
                             transform: 'scale(0.95)',
                         },
                         borderRadius: 0,
+                        position: 'relative',
+                        '&::after': {
+                            content: '""',
+                            position: 'absolute',
+                            right: 0,
+                            top: '12px',
+                            bottom: '12px',
+                            width: '1px',
+                            bgcolor: 'action.disabled',
+                        },
                     }}
                 >
                     {activeFilters.has('want to go') ? (
@@ -128,6 +142,56 @@ const ControlPanel = ({
                     ) : (
                         <RemoveRedEyeOutlinedIcon fontSize="small"/>
                     )}
+                </IconButton>
+
+                <IconButton
+                    onClick={onManageMaps}
+                    title="Manage Maps"
+                    sx={{
+                        minWidth: 48,
+                        height: 48,
+                        color: 'text.secondary',
+                        '&:hover': {
+                            bgcolor: 'action.hover',
+                            color: 'text.primary',
+                        },
+                        '&:active': {
+                            transform: 'scale(0.95)',
+                        },
+                        borderRadius: 0,
+                        position: 'relative',
+                        '&::after': {
+                            content: '""',
+                            position: 'absolute',
+                            right: 0,
+                            top: '12px',
+                            bottom: '12px',
+                            width: '1px',
+                            bgcolor: 'action.disabled',
+                        },
+                    }}
+                >
+                    <HomeIcon fontSize="small"/>
+                </IconButton>
+
+                <IconButton
+                    onClick={onShareMap}
+                    title="Share Map"
+                    sx={{
+                        minWidth: 48,
+                        height: 48,
+                        color: 'text.secondary',
+                        '&:hover': {
+                            bgcolor: 'action.hover',
+                            color: 'text.primary',
+                        },
+                        '&:active': {
+                            transform: 'scale(0.95)',
+                        },
+                        borderRadius: 0,
+                    }}
+                >
+                    <ShareIcon fontSize="small"/>
                 </IconButton>
             </Paper>
         </Box>
