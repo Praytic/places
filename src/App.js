@@ -230,6 +230,7 @@ const App = () => {
                         onMapClick={handleMapClick}
                         onEmojiChangeRequest={handleEmojiChangeRequest}
                         onChangeGroup={handleChangeGroup}
+                        onRemovePlace={handleRemovePlace}
                         activeFilters={activeFilters}
                         groups={groups}
                         userRole={userRole}
@@ -237,9 +238,7 @@ const App = () => {
                 </Box>
 
                 <ControlPanel
-                    selectedPlace={selectedPlace}
                     onAddPlace={handleAddPlace}
-                    onRemovePlace={handleRemovePlace}
                     onToggleFilter={handleToggleFilter}
                     activeFilters={activeFilters}
                     userRole={userRole}

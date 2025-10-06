@@ -75,18 +75,20 @@ const MapWrapper = ({onClick, onIdle, children, sx, ...options}) => {
     );
 };
 
-const Markers = ({map, places, selectedPlace, onPlaceSelect, activeFilters, onEmojiChangeRequest, onChangeGroup, userRole}) => {
+const Markers = ({map, places, selectedPlace, onPlaceSelect, activeFilters, onEmojiChangeRequest, onChangeGroup, onRemovePlace, userRole}) => {
     const markersRef = useRef(new Map()); // Map of placeId -> marker
     const infoWindowRef = useRef(null);
     const onPlaceSelectRef = useRef(onPlaceSelect);
     const onEmojiChangeRequestRef = useRef(onEmojiChangeRequest);
     const onChangeGroupRef = useRef(onChangeGroup);
+    const onRemovePlaceRef = useRef(onRemovePlace);
 
     useEffect(() => {
         onPlaceSelectRef.current = onPlaceSelect;
         onEmojiChangeRequestRef.current = onEmojiChangeRequest;
         onChangeGroupRef.current = onChangeGroup;
-    }, [onPlaceSelect, onEmojiChangeRequest, onChangeGroup]);
+        onRemovePlaceRef.current = onRemovePlace;
+    }, [onPlaceSelect, onEmojiChangeRequest, onChangeGroup, onRemovePlace]);
 
     // Create/remove markers when places are added/removed
     useEffect(() => {
@@ -147,6 +149,7 @@ const Markers = ({map, places, selectedPlace, onPlaceSelect, activeFilters, onEm
                                     const updatedPlace = { ...placeToToggle, group: newGroup };
                                     createInfoWindowWithToggle(updatedPlace);
                                 },
+                                onRemovePlaceRef.current,
                                 userRole
                             );
                         };
@@ -230,6 +233,7 @@ const MapComponent = ({
                           onMapClick,
                           onEmojiChangeRequest,
                           onChangeGroup,
+                          onRemovePlace,
                           activeFilters,
                           userRole
                       }) => {
@@ -273,6 +277,7 @@ const MapComponent = ({
                     onPlaceSelect={onPlaceSelect}
                     onEmojiChangeRequest={onEmojiChangeRequest}
                     onChangeGroup={onChangeGroup}
+                    onRemovePlace={onRemovePlace}
                     activeFilters={activeFilters}
                     userRole={userRole}
                 />

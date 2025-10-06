@@ -1,9 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import {Box, IconButton, Link, Typography,} from '@mui/material';
+import {Box, IconButton, Link, Typography} from '@mui/material';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 /**
  * Creates and displays an info window for a place marker
@@ -16,6 +17,7 @@ export function createInfoWindow(
     onClose,
     onEmojiChange,
     onToggleFavorite,
+    onDelete,
     userRole
 ) {
     const isReadOnly = userRole === 'viewer';
@@ -79,6 +81,16 @@ export function createInfoWindow(
                     size="small"
                 >
                     <EmojiEmotionsIcon/>
+                </IconButton>
+
+                <IconButton
+                    onClick={() => !isReadOnly && onDelete(place)}
+                    disabled={isReadOnly}
+                    title={isReadOnly ? '' : 'Delete Place'}
+                    size="small"
+                    color="error"
+                >
+                    <DeleteIcon/>
                 </IconButton>
             </Box>
         </Box>

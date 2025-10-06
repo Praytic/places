@@ -1,7 +1,6 @@
 import React from 'react';
 import {Box, IconButton, Paper} from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
@@ -9,9 +8,7 @@ import RemoveRedEyeOutlinedIcon from '@mui/icons-material/RemoveRedEyeOutlined';
 import {ROLES} from '../services/MapsService';
 
 const ControlPanel = ({
-                          selectedPlace,
                           onAddPlace,
-                          onRemovePlace,
                           onToggleFilter,
                           activeFilters,
                           userRole
@@ -73,39 +70,6 @@ const ControlPanel = ({
                     }}
                 >
                     <AddIcon fontSize="small"/>
-                </IconButton>
-
-                <IconButton
-                    onClick={() => {
-                        onRemovePlace();
-                    }}
-                    disabled={!selectedPlace || isReadOnly}
-                    title={!selectedPlace || isReadOnly ? "" : "Remove Place"}
-                    sx={{
-                        minWidth: 48,
-                        height: 48,
-                        color: !selectedPlace || isReadOnly ? 'text.disabled' : 'text.secondary',
-                        '&:hover': selectedPlace && !isReadOnly && {
-                            bgcolor: 'action.hover',
-                            color: 'text.primary',
-                        },
-                        '&:active': selectedPlace && !isReadOnly && {
-                            transform: 'scale(0.95)',
-                        },
-                        borderRadius: 0,
-                        position: 'relative',
-                        '&::after': {
-                            content: '""',
-                            position: 'absolute',
-                            right: 0,
-                            top: '12px',
-                            bottom: '12px',
-                            width: '1px',
-                            bgcolor: 'action.disabled',
-                        },
-                    }}
-                >
-                    <DeleteIcon fontSize="small"/>
                 </IconButton>
 
                 <IconButton
