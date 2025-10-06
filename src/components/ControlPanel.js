@@ -1,30 +1,21 @@
-import React, {useState} from 'react';
-import {Box, Divider, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Paper} from '@mui/material';
+import React from 'react';
+import {Box, IconButton, Paper} from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-import LayersIcon from '@mui/icons-material/Layers';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
+import RemoveRedEyeOutlinedIcon from '@mui/icons-material/RemoveRedEyeOutlined';
 import {ROLES} from '../services/MapsService';
 
 const ControlPanel = ({
                           selectedPlace,
                           onAddPlace,
                           onRemovePlace,
-                          onChangeGroup,
-                          onToggleLayer,
-                          availableLayers,
-                          hiddenLayers,
-                          groups,
+                          onToggleFilter,
+                          activeFilters,
                           userRole
                       }) => {
-    const [anchorEl, setAnchorEl] = useState(null);
-    const layerToggleOpen = Boolean(anchorEl);
-
-    const handleLayerToggle = (layer) => {
-        onToggleLayer(layer);
-    };
-
     const isReadOnly = userRole === ROLES.VIEWER;
 
     return (
@@ -54,7 +45,6 @@ const ControlPanel = ({
                 <IconButton
                     onClick={() => {
                         onAddPlace();
-                        setAnchorEl(null);
                     }}
                     disabled={isReadOnly}
                     title={isReadOnly ? "" : "Add Place"}
@@ -88,7 +78,6 @@ const ControlPanel = ({
                 <IconButton
                     onClick={() => {
                         onRemovePlace();
-                        setAnchorEl(null);
                     }}
                     disabled={!selectedPlace || isReadOnly}
                     title={!selectedPlace || isReadOnly ? "" : "Remove Place"}
@@ -120,15 +109,49 @@ const ControlPanel = ({
                 </IconButton>
 
                 <IconButton
-                    onClick={(e) => setAnchorEl(e.currentTarget)}
-                    title="Toggle Layers"
+                    onClick={() => onToggleFilter('favorite')}
+                    title="Toggle Favorites"
                     sx={{
                         minWidth: 48,
                         height: 48,
-                        color: 'text.secondary',
+                        color: activeFilters.has('favorite') ? 'error.main' : 'text.disabled',
                         '&:hover': {
                             bgcolor: 'action.hover',
-                            color: 'text.primary',
+                            color: activeFilters.has('favorite') ? 'error.main' : 'text.secondary',
+                        },
+                        '&:active': {
+                            transform: 'scale(0.95)',
+                        },
+                        borderRadius: 0,
+                        position: 'relative',
+                        '&::after': {
+                            content: '""',
+                            position: 'absolute',
+                            right: 0,
+                            top: '12px',
+                            bottom: '12px',
+                            width: '1px',
+                            bgcolor: 'action.disabled',
+                        },
+                    }}
+                >
+                    {activeFilters.has('favorite') ? (
+                        <FavoriteIcon fontSize="small"/>
+                    ) : (
+                        <FavoriteBorderIcon fontSize="small"/>
+                    )}
+                </IconButton>
+
+                <IconButton
+                    onClick={() => onToggleFilter('want to go')}
+                    title="Toggle Want to Go"
+                    sx={{
+                        minWidth: 48,
+                        height: 48,
+                        color: activeFilters.has('want to go') ? 'primary.main' : 'text.disabled',
+                        '&:hover': {
+                            bgcolor: 'action.hover',
+                            color: activeFilters.has('want to go') ? 'primary.main' : 'text.secondary',
                         },
                         '&:active': {
                             transform: 'scale(0.95)',
@@ -136,49 +159,12 @@ const ControlPanel = ({
                         borderRadius: 0,
                     }}
                 >
-                    <LayersIcon fontSize="small"/>
+                    {activeFilters.has('want to go') ? (
+                        <RemoveRedEyeIcon fontSize="small"/>
+                    ) : (
+                        <RemoveRedEyeOutlinedIcon fontSize="small"/>
+                    )}
                 </IconButton>
-
-                <Menu
-                    anchorEl={anchorEl}
-                    open={layerToggleOpen}
-                    onClose={() => setAnchorEl(null)}
-                    anchorOrigin={{
-                        vertical: 'top',
-                        horizontal: 'center',
-                    }}
-                    transformOrigin={{
-                        vertical: 'bottom',
-                        horizontal: 'center',
-                    }}
-                    PaperProps={{
-                        sx: {
-                            mb: 1,
-                            minWidth: 200,
-                        },
-                    }}
-                >
-                    <MenuItem disabled sx={{justifyContent: 'center', fontWeight: 600}}>
-                        Toggle Layers
-                    </MenuItem>
-                    <Divider/>
-                    {availableLayers.map(layer => (
-                        <MenuItem
-                            key={layer}
-                            onClick={() => handleLayerToggle(layer)}
-                            sx={{opacity: hiddenLayers.has(layer) ? 0.5 : 1}}
-                        >
-                            <ListItemIcon>
-                                {hiddenLayers.has(layer) ? (
-                                    <VisibilityOffIcon fontSize="small"/>
-                                ) : (
-                                    <VisibilityIcon fontSize="small"/>
-                                )}
-                            </ListItemIcon>
-                            <ListItemText>{layer}</ListItemText>
-                        </MenuItem>
-                    ))}
-                </Menu>
             </Paper>
         </Box>
     );

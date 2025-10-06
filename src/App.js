@@ -16,7 +16,7 @@ const App = () => {
     const [showSearch, setShowSearch] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [emojiPickerPlace, setEmojiPickerPlace] = useState(null);
-    const [hiddenLayers, setHiddenLayers] = useState(new Set());
+    const [activeFilters, setActiveFilters] = useState(new Set(['favorite', 'want to go']));
     const [groups] = useState(['want to go', 'favorite']);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -137,15 +137,15 @@ const App = () => {
         }
     };
 
-    const handleToggleLayer = (layer) => {
-        setHiddenLayers(prev => {
-            const newHidden = new Set(prev);
-            if (newHidden.has(layer)) {
-                newHidden.delete(layer);
+    const handleToggleFilter = (filter) => {
+        setActiveFilters(prev => {
+            const newFilters = new Set(prev);
+            if (newFilters.has(filter)) {
+                newFilters.delete(filter);
             } else {
-                newHidden.add(layer);
+                newFilters.add(filter);
             }
-            return newHidden;
+            return newFilters;
         });
     };
 
@@ -230,7 +230,7 @@ const App = () => {
                         onMapClick={handleMapClick}
                         onEmojiChangeRequest={handleEmojiChangeRequest}
                         onChangeGroup={handleChangeGroup}
-                        hiddenLayers={hiddenLayers}
+                        activeFilters={activeFilters}
                         groups={groups}
                         userRole={userRole}
                     />
@@ -240,11 +240,8 @@ const App = () => {
                     selectedPlace={selectedPlace}
                     onAddPlace={handleAddPlace}
                     onRemovePlace={handleRemovePlace}
-                    onChangeGroup={handleChangeGroup}
-                    onToggleLayer={handleToggleLayer}
-                    availableLayers={availableLayers}
-                    hiddenLayers={hiddenLayers}
-                    groups={groups}
+                    onToggleFilter={handleToggleFilter}
+                    activeFilters={activeFilters}
                     userRole={userRole}
                 />
 

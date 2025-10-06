@@ -75,7 +75,7 @@ const MapWrapper = ({onClick, onIdle, children, sx, ...options}) => {
     );
 };
 
-const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmojiChangeRequest, onChangeGroup, userRole}) => {
+const Markers = ({map, places, selectedPlace, onPlaceSelect, activeFilters, onEmojiChangeRequest, onChangeGroup, userRole}) => {
     const markersRef = useRef(new Map()); // Map of placeId -> marker
     const infoWindowRef = useRef(null);
     const onPlaceSelectRef = useRef(onPlaceSelect);
@@ -112,7 +112,7 @@ const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmo
                     const emoji = place.emoji || '📍';
                     const content = createRegularMarker(emoji);
                     const group = place.group || 'want to go';
-                    const shouldShow = !hiddenLayers.has(group);
+                    const shouldShow = activeFilters.size === 0 ? false : activeFilters.has(group);
 
                     const marker = new AdvancedMarkerElement({
                         map: shouldShow ? map : null,
@@ -162,7 +162,7 @@ const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmo
         };
 
         updateMarkers();
-    }, [map, places, hiddenLayers, userRole]);
+    }, [map, places, activeFilters, userRole]);
 
     // Update marker appearance when emoji changes
     useEffect(() => {
@@ -176,16 +176,17 @@ const Markers = ({map, places, selectedPlace, onPlaceSelect, hiddenLayers, onEmo
         });
     }, [places]);
 
-    // Update marker visibility based on hidden layers
+    // Update marker visibility based on active filters
     useEffect(() => {
         places.forEach(place => {
             const marker = markersRef.current.get(place.id);
             if (marker) {
                 const group = place.group || 'want to go';
-                marker.setMap(hiddenLayers.has(group) ? null : map);
+                const shouldShow = activeFilters.size === 0 ? false : activeFilters.has(group);
+                marker.setMap(shouldShow ? map : null);
             }
         });
-    }, [hiddenLayers, places, map]);
+    }, [activeFilters, places, map]);
 
     // Update marker appearance when selection changes
     useEffect(() => {
@@ -229,7 +230,7 @@ const MapComponent = ({
                           onMapClick,
                           onEmojiChangeRequest,
                           onChangeGroup,
-                          hiddenLayers,
+                          activeFilters,
                           userRole
                       }) => {
     const [center] = useState({lat: 37.7749, lng: -122.4194});
@@ -272,7 +273,7 @@ const MapComponent = ({
                     onPlaceSelect={onPlaceSelect}
                     onEmojiChangeRequest={onEmojiChangeRequest}
                     onChangeGroup={onChangeGroup}
-                    hiddenLayers={hiddenLayers}
+                    activeFilters={activeFilters}
                     userRole={userRole}
                 />
             </MapWrapper>
