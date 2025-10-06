@@ -77,10 +77,12 @@ const App = () => {
                 // Get user's maps
                 let maps = await getUserMaps(currentUser.email);
 
+                let isNewUser = false;
                 if (maps.length === 0) {
-                    // Create a new map for the user
-                    const newMap = await createMap(currentUser.email, 'My Places');
+                    // Create a new default map for the user
+                    const newMap = await createMap(currentUser.email, 'My Places', true);
                     maps = [{ ...newMap, userRole: ROLES.OWNER }];
+                    isNewUser = true;
                 }
 
                 setUserMaps(maps);
@@ -97,8 +99,13 @@ const App = () => {
                     const validMapIds = maps.map(m => m.id);
                     visibleIds = savedIds.filter(id => validMapIds.includes(id));
                 } else {
-                    // Make only owned maps visible by default
-                    visibleIds = maps.filter(m => m.userRole === ROLES.OWNER).map(m => m.id);
+                    if (isNewUser) {
+                        // Make default map visible for new users
+                        visibleIds = maps.filter(m => m.isDefault).map(m => m.id);
+                    } else {
+                        // Make only owned maps visible by default for existing users
+                        visibleIds = maps.filter(m => m.userRole === ROLES.OWNER).map(m => m.id);
+                    }
                 }
 
                 setVisibleMapIds(new Set(visibleIds));

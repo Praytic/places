@@ -24,9 +24,10 @@ export const ROLES = {
  * Create a new map (container for places)
  * @param {string} ownerId - Owner's user ID (email)
  * @param {string} name - Optional map name
+ * @param {boolean} isDefault - Whether this is the user's default map
  * @returns {Promise<Object>} The created map
  */
-export const createMap = async (ownerId, name = 'My Places') => {
+export const createMap = async (ownerId, name = 'My Places', isDefault = false) => {
   try {
     const mapRef = doc(collection(db, 'maps'));
     const mapData = {
@@ -37,6 +38,7 @@ export const createMap = async (ownerId, name = 'My Places') => {
       access: {
         [ownerId]: ROLES.OWNER
       },
+      isDefault,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now()
     };
