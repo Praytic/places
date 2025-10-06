@@ -60,8 +60,9 @@ const App = () => {
                 }
 
                 setUserMaps(maps);
-                // Make first map visible by default
-                setVisibleMapIds(new Set([maps[0].id]));
+                // Make only owned maps visible by default
+                const ownedMapIds = maps.filter(m => m.userRole === ROLES.OWNER).map(m => m.id);
+                setVisibleMapIds(new Set(ownedMapIds));
                 // Set currentMapId to first map for backward compatibility (ShareDialog)
                 setCurrentMapId(maps[0].id);
                 setUserRole(maps[0].userRole);
