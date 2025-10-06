@@ -75,7 +75,7 @@ const MapWrapper = ({onClick, onIdle, children, sx, ...options}) => {
     );
 };
 
-const Markers = ({map, places, selectedPlace, onPlaceSelect, activeFilters, onEmojiChangeRequest, onChangeGroup, onRemovePlace, userRole}) => {
+const Markers = ({map, places, selectedPlace, onPlaceSelect, activeFilters, onEmojiChangeRequest, onChangeGroup, onRemovePlace, userRole, onInfoWindowRefUpdate}) => {
     const markersRef = useRef(new Map()); // Map of placeId -> marker
     const infoWindowRef = useRef(null);
     const onPlaceSelectRef = useRef(onPlaceSelect);
@@ -89,6 +89,13 @@ const Markers = ({map, places, selectedPlace, onPlaceSelect, activeFilters, onEm
         onChangeGroupRef.current = onChangeGroup;
         onRemovePlaceRef.current = onRemovePlace;
     }, [onPlaceSelect, onEmojiChangeRequest, onChangeGroup, onRemovePlace]);
+
+    // Expose infoWindowRef to parent component
+    useEffect(() => {
+        if (onInfoWindowRefUpdate) {
+            onInfoWindowRefUpdate(infoWindowRef);
+        }
+    }, [onInfoWindowRefUpdate]);
 
     // Create/remove markers when places are added/removed
     useEffect(() => {
@@ -235,7 +242,8 @@ const MapComponent = ({
                           onChangeGroup,
                           onRemovePlace,
                           activeFilters,
-                          userRole
+                          userRole,
+                          onInfoWindowRefUpdate
                       }) => {
     const [center] = useState({lat: 37.7749, lng: -122.4194});
     const [zoom] = useState(13);
@@ -280,6 +288,7 @@ const MapComponent = ({
                     onRemovePlace={onRemovePlace}
                     activeFilters={activeFilters}
                     userRole={userRole}
+                    onInfoWindowRefUpdate={onInfoWindowRefUpdate}
                 />
             </MapWrapper>
         </Wrapper>

@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import {Alert, Backdrop, Box, CircularProgress, Dialog, DialogContent, DialogTitle, IconButton} from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import MapComponent from './components/MapComponent';
@@ -33,6 +33,7 @@ const App = () => {
     const [userMaps, setUserMaps] = useState([]);
     const [currentMapId, setCurrentMapId] = useState(null); // Keep for ShareDialog backward compatibility
     const [userRole, setUserRole] = useState(null); // Keep for backward compatibility
+    const infoWindowRef = useRef(null);
 
     // Listen for auth state changes
     useEffect(() => {
@@ -187,6 +188,12 @@ const App = () => {
     };
 
     const handleToggleFilter = (filter) => {
+        // Close InfoWindow and unselect marker when filter toggles
+        if (infoWindowRef.current?.current) {
+            infoWindowRef.current.current.close();
+        }
+        setSelectedPlace(null);
+
         setActiveFilters(prev => {
             const newFilters = new Set(prev);
             if (newFilters.has(filter)) {
@@ -284,6 +291,10 @@ const App = () => {
         }
     };
 
+    const handleInfoWindowRefUpdate = (ref) => {
+        infoWindowRef.current = ref;
+    };
+
     return (
         <Auth>
             <Box sx={{position: 'relative', height: '100vh', width: '100vw'}}>
@@ -319,6 +330,7 @@ const App = () => {
                         activeFilters={activeFilters}
                         groups={groups}
                         userRole={userRole}
+                        onInfoWindowRefUpdate={handleInfoWindowRefUpdate}
                     />
                 </Box>
 
