@@ -4,6 +4,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import MapComponent from './components/MapComponent';
 import ControlPanel from './components/ControlPanel';
 import PlaceSearch from './components/PlaceSearch';
+import ManageMapsDialog from './components/ManageMapsDialog';
+import ShareDialog from './components/ShareDialog';
 import EmojiPicker, {EmojiStyle} from 'emoji-picker-react';
 import Auth from './components/Auth';
 import PlacesService from './services/PlacesService';
@@ -16,6 +18,8 @@ const App = () => {
     const [showSearch, setShowSearch] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [emojiPickerPlace, setEmojiPickerPlace] = useState(null);
+    const [showManageMaps, setShowManageMaps] = useState(false);
+    const [showShareMap, setShowShareMap] = useState(false);
     const [activeFilters, setActiveFilters] = useState(new Set(['favorite', 'want to go']));
     const [groups] = useState(['want to go', 'favorite']);
     const [loading, setLoading] = useState(true);
@@ -240,6 +244,8 @@ const App = () => {
                     onToggleFilter={handleToggleFilter}
                     activeFilters={activeFilters}
                     userRole={userRole}
+                    onManageMaps={() => setShowManageMaps(true)}
+                    onShareMap={() => setShowShareMap(true)}
                 />
 
                 {showSearch && (
@@ -271,6 +277,25 @@ const App = () => {
                         />
                     </DialogContent>
                 </Dialog>
+
+                {showManageMaps && currentUser && (
+                    <ManageMapsDialog
+                        open={showManageMaps}
+                        onClose={() => setShowManageMaps(false)}
+                        userEmail={currentUser.email}
+                        currentMapId={currentMapId}
+                        onMapSwitch={handleMapSwitch}
+                    />
+                )}
+
+                {showShareMap && currentMapId && currentUser && (
+                    <ShareDialog
+                        open={showShareMap}
+                        onClose={() => setShowShareMap(false)}
+                        userEmail={currentUser.email}
+                        mapId={currentMapId}
+                    />
+                )}
             </Box>
         </Auth>
     );
