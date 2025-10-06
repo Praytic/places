@@ -71,6 +71,7 @@ export function createInfoWindow(
                         isReadOnly ? '' : isFavorite ? 'Remove from Favorites' : 'Add to Favorites'
                     }
                     size="small"
+                    color={isFavorite ? 'error' : 'default'}
                 >
                     {isFavorite ? <FavoriteIcon/> : <FavoriteBorderIcon/>}
                 </IconButton>
@@ -89,7 +90,6 @@ export function createInfoWindow(
                     disabled={isReadOnly}
                     title={isReadOnly ? '' : 'Delete Place'}
                     size="small"
-                    color="error"
                 >
                     <DeleteIcon/>
                 </IconButton>

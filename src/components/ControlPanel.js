@@ -5,7 +5,7 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
 import RemoveRedEyeOutlinedIcon from '@mui/icons-material/RemoveRedEyeOutlined';
-import HomeIcon from '@mui/icons-material/Home';
+import LayersIcon from '@mui/icons-material/Layers';
 import ShareIcon from '@mui/icons-material/Share';
 import {ROLES} from '../services/MapsService';
 
@@ -171,7 +171,7 @@ const ControlPanel = ({
                         },
                     }}
                 >
-                    <HomeIcon fontSize="small"/>
+                    <LayersIcon fontSize="small"/>
                 </IconButton>
 
                 <IconButton

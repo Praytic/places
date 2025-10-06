@@ -221,7 +221,6 @@ const ManageMapsDialog = ({
                           size="small"
                           onClick={() => handleDeleteMap(map.id, map.name)}
                           disabled={map.userRole !== ROLES.OWNER || deleting === map.id}
-                          color="error"
                         >
                           {deleting === map.id ? (
                             <CircularProgress size={20} />
