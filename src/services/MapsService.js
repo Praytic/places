@@ -4,11 +4,13 @@ import {
   getDoc,
   getDocs,
   setDoc,
+  updateDoc,
   query,
   where,
   onSnapshot,
   writeBatch,
-  Timestamp
+  Timestamp,
+  deleteField
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
@@ -240,17 +242,20 @@ export const unshareMapWithUser = async (mapId, userId) => {
 
     if (mapDoc.exists()) {
       const mapData = mapDoc.data();
-      const newAccess = { ...mapData.access };
-      delete newAccess[userId];
 
       // Remove user from accessList
       const newAccessList = (mapData.accessList || []).filter(id => id !== userId);
 
-      await setDoc(mapRef, {
+      // Remove user from access object by creating a new object without them
+      const newAccess = { ...mapData.access };
+      delete newAccess[userId];
+
+      // Update the entire access object
+      await updateDoc(mapRef, {
         access: newAccess,
         accessList: newAccessList,
         updatedAt: Timestamp.now()
-      }, { merge: true });
+      });
     }
   } catch (error) {
     console.error('Error unsharing map:', error);
