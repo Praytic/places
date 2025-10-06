@@ -5,16 +5,24 @@ import { onAuthStateChanged, GoogleAuthProvider } from 'firebase/auth';
 import * as firebaseui from 'firebaseui';
 import 'firebaseui/dist/firebaseui.css';
 import AccountMenu from './AccountMenu';
+import LocationPermissionDialog from './LocationPermissionDialog';
+import { getCurrentLocation, setLocationPermission, isFirstTimeUser, setUserAsReturning } from '../services/LocationService';
 
-const Auth = ({ children }) => {
+const Auth = ({ children, onLocationRequest }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showLocationDialog, setShowLocationDialog] = useState(false);
   const uiRef = useRef(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
+
+      // Check if this is a first-time user and show location dialog
+      if (currentUser && isFirstTimeUser(currentUser.email)) {
+        setShowLocationDialog(true);
+      }
     });
 
     return () => unsubscribe();
@@ -49,6 +57,35 @@ const Auth = ({ children }) => {
       }
     };
   }, [user, loading]);
+
+  const handleLocationAllow = async () => {
+    try {
+      const location = await getCurrentLocation();
+      setLocationPermission(true);
+      if (user) {
+        setUserAsReturning(user.email);
+      }
+      if (onLocationRequest) {
+        onLocationRequest(location);
+      }
+      setShowLocationDialog(false);
+    } catch (error) {
+      console.error('Error getting location:', error);
+      // Still mark as returning user even if location fails
+      if (user) {
+        setUserAsReturning(user.email);
+      }
+      setShowLocationDialog(false);
+      alert('Unable to get your location. Please check your browser permissions.');
+    }
+  };
+
+  const handleLocationSkip = () => {
+    if (user) {
+      setUserAsReturning(user.email);
+    }
+    setShowLocationDialog(false);
+  };
 
   if (loading) {
     return (
@@ -100,8 +137,13 @@ const Auth = ({ children }) => {
 
   return (
     <div>
-      <AccountMenu user={user} />
+      <AccountMenu user={user} onLocationRequest={onLocationRequest} />
       {children}
+      <LocationPermissionDialog
+        open={showLocationDialog}
+        onAllow={handleLocationAllow}
+        onSkip={handleLocationSkip}
+      />
     </div>
   );
 };
