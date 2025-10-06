@@ -347,6 +347,7 @@ const App = () => {
                     <PlaceSearch
                         onPlaceSelect={handlePlaceSelect}
                         onClose={() => setShowSearch(false)}
+                        existingPlaces={places}
                     />
                 )}
 
