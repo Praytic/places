@@ -28,7 +28,7 @@ const PlaceSearch = ({ onPlaceSelect, onClose }) => {
 
                 const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({
                     input: value,
-                    includedPrimaryTypes: ['establishment']
+                    includedPrimaryTypes: ['establishment', 'street_address']
                 });
 
                 setSuggestions(suggestions || []);
@@ -101,7 +101,9 @@ const PlaceSearch = ({ onPlaceSelect, onClose }) => {
                 fullWidth
                 PaperProps={{
                     sx: {
-                        mt: 5,
+                        position: 'fixed',
+                        top: '33%',
+                        m: 0,
                         maxHeight: '80vh',
                     }
                 }}
