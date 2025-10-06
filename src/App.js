@@ -20,7 +20,11 @@ const App = () => {
     const [emojiPickerPlace, setEmojiPickerPlace] = useState(null);
     const [showManageMaps, setShowManageMaps] = useState(false);
     const [showShareMap, setShowShareMap] = useState(false);
-    const [activeFilters, setActiveFilters] = useState(new Set(['favorite', 'want to go']));
+    const [activeFilters, setActiveFilters] = useState(() => {
+        // Load saved filters from localStorage or use default
+        const saved = localStorage.getItem('activeFilters');
+        return saved ? new Set(JSON.parse(saved)) : new Set(['favorite', 'want to go']);
+    });
     const [groups] = useState(['want to go', 'favorite']);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -60,9 +64,24 @@ const App = () => {
                 }
 
                 setUserMaps(maps);
-                // Make only owned maps visible by default
-                const ownedMapIds = maps.filter(m => m.userRole === ROLES.OWNER).map(m => m.id);
-                setVisibleMapIds(new Set(ownedMapIds));
+
+                // Load visible map IDs from localStorage or use default
+                const storageKey = `visibleMaps_${currentUser.email}`;
+                const savedVisibleMaps = localStorage.getItem(storageKey);
+
+                let visibleIds;
+                if (savedVisibleMaps) {
+                    // Use saved visibility state
+                    const savedIds = JSON.parse(savedVisibleMaps);
+                    // Filter to only include maps that still exist
+                    const validMapIds = maps.map(m => m.id);
+                    visibleIds = savedIds.filter(id => validMapIds.includes(id));
+                } else {
+                    // Make only owned maps visible by default
+                    visibleIds = maps.filter(m => m.userRole === ROLES.OWNER).map(m => m.id);
+                }
+
+                setVisibleMapIds(new Set(visibleIds));
                 // Set currentMapId to first map for backward compatibility (ShareDialog)
                 setCurrentMapId(maps[0].id);
                 setUserRole(maps[0].userRole);
@@ -74,6 +93,19 @@ const App = () => {
 
         initializeMaps();
     }, [currentUser]);
+
+    // Save visible map IDs to localStorage when they change
+    useEffect(() => {
+        if (currentUser?.email && visibleMapIds.size > 0) {
+            const storageKey = `visibleMaps_${currentUser.email}`;
+            localStorage.setItem(storageKey, JSON.stringify(Array.from(visibleMapIds)));
+        }
+    }, [currentUser, visibleMapIds]);
+
+    // Save active filters to localStorage when they change
+    useEffect(() => {
+        localStorage.setItem('activeFilters', JSON.stringify(Array.from(activeFilters)));
+    }, [activeFilters]);
 
     // Subscribe to places when user or visible maps change
     useEffect(() => {
