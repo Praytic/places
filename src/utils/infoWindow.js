@@ -1,9 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import {Box, IconButton, Link, Typography,} from '@mui/material';
+import {Box, IconButton, Link, Typography} from '@mui/material';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 /**
  * Creates and displays an info window for a place marker
@@ -16,6 +17,7 @@ export function createInfoWindow(
     onClose,
     onEmojiChange,
     onToggleFavorite,
+    onDelete,
     userRole
 ) {
     const isReadOnly = userRole === 'viewer';
@@ -25,7 +27,8 @@ export function createInfoWindow(
     const contentDiv = document.createElement('div');
     const root = ReactDOM.createRoot(contentDiv);
 
-    root.render(
+    // Render function that we can call when props change
+    const render = () => root.render(
         <Box
             sx={{
                 width: 260,
@@ -68,6 +71,7 @@ export function createInfoWindow(
                         isReadOnly ? '' : isFavorite ? 'Remove from Favorites' : 'Add to Favorites'
                     }
                     size="small"
+                    color={isFavorite ? 'error' : 'default'}
                 >
                     {isFavorite ? <FavoriteIcon/> : <FavoriteBorderIcon/>}
                 </IconButton>
@@ -80,9 +84,21 @@ export function createInfoWindow(
                 >
                     <EmojiEmotionsIcon/>
                 </IconButton>
+
+                <IconButton
+                    onClick={() => !isReadOnly && onDelete(place)}
+                    disabled={isReadOnly}
+                    title={isReadOnly ? '' : 'Delete Place'}
+                    size="small"
+                >
+                    <DeleteIcon/>
+                </IconButton>
             </Box>
         </Box>
     );
+
+    // Initial render
+    render();
 
     const infoWindow = new window.google.maps.InfoWindow({
         content: contentDiv,

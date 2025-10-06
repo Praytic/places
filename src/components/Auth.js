@@ -6,7 +6,7 @@ import * as firebaseui from 'firebaseui';
 import 'firebaseui/dist/firebaseui.css';
 import AccountMenu from './AccountMenu';
 
-const Auth = ({ children, currentMapId, onMapSwitch }) => {
+const Auth = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const uiRef = useRef(null);
@@ -100,7 +100,7 @@ const Auth = ({ children, currentMapId, onMapSwitch }) => {
 
   return (
     <div>
-      <AccountMenu user={user} currentMapId={currentMapId} onMapSwitch={onMapSwitch} />
+      <AccountMenu user={user} />
       {children}
     </div>
   );
