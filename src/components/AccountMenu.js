@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Box, Avatar, Menu, MenuItem, ListItemIcon, ListItemText, Divider, Typography } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import MyLocationIcon from '@mui/icons-material/MyLocation';
 import { signOut, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '../config/firebase';
+import { getCurrentLocation, setLocationPermission } from '../services/LocationService';
 
-const AccountMenu = ({ user }) => {
+const AccountMenu = ({ user, onLocationRequest }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
@@ -28,6 +30,20 @@ const AccountMenu = ({ user }) => {
       setAnchorEl(null);
     } catch (error) {
       console.error('Error adding account:', error);
+    }
+  };
+
+  const handleGoToCurrentLocation = async () => {
+    try {
+      const location = await getCurrentLocation();
+      setLocationPermission(true);
+      if (onLocationRequest) {
+        onLocationRequest(location);
+      }
+      setAnchorEl(null);
+    } catch (error) {
+      console.error('Error getting current location:', error);
+      alert('Unable to get your location. Please check your browser permissions.');
     }
   };
 
@@ -85,6 +101,12 @@ const AccountMenu = ({ user }) => {
             </Box>
           </Box>
           <Divider />
+          <MenuItem onClick={handleGoToCurrentLocation}>
+            <ListItemIcon>
+              <MyLocationIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Go to Current Location</ListItemText>
+          </MenuItem>
           <MenuItem onClick={handleAddAccount}>
             <ListItemIcon>
               <PersonAddIcon fontSize="small" />

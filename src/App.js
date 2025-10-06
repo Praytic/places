@@ -11,6 +11,7 @@ import Auth from './components/Auth';
 import PlacesService from './services/PlacesService';
 import {createMap, getUserMaps, ROLES} from './services/MapsService';
 import {auth} from './config/firebase';
+import {getCurrentLocation, hasLocationPermission} from './services/LocationService';
 
 const App = () => {
     const [places, setPlaces] = useState([]);
@@ -20,6 +21,7 @@ const App = () => {
     const [emojiPickerPlace, setEmojiPickerPlace] = useState(null);
     const [showManageMaps, setShowManageMaps] = useState(false);
     const [showShareMap, setShowShareMap] = useState(false);
+    const [mapCenter, setMapCenter] = useState(null);
     const [activeFilters, setActiveFilters] = useState(() => {
         // Load saved filters from localStorage or use default
         const saved = localStorage.getItem('activeFilters');
@@ -41,6 +43,23 @@ const App = () => {
             setCurrentUser(user);
         });
         return () => unsubscribe();
+    }, []);
+
+    // Request current location on page load if permission was granted
+    useEffect(() => {
+        const requestLocationOnLoad = async () => {
+            if (hasLocationPermission()) {
+                try {
+                    const location = await getCurrentLocation();
+                    setMapCenter(location);
+                } catch (error) {
+                    console.error('Error getting location on load:', error);
+                    // Silently fail - user can still use the app
+                }
+            }
+        };
+
+        requestLocationOnLoad();
     }, []);
 
     // Get or create user's maps when user changes
@@ -295,8 +314,12 @@ const App = () => {
         infoWindowRef.current = ref;
     };
 
+    const handleLocationRequest = (location) => {
+        setMapCenter(location);
+    };
+
     return (
-        <Auth>
+        <Auth onLocationRequest={handleLocationRequest}>
             <Box sx={{position: 'relative', height: '100vh', width: '100vw'}}>
                 <Backdrop open={loading} sx={{color: '#fff', zIndex: 3000}}>
                     <CircularProgress color="inherit"/>
@@ -331,6 +354,7 @@ const App = () => {
                         groups={groups}
                         userRole={userRole}
                         onInfoWindowRefUpdate={handleInfoWindowRefUpdate}
+                        center={mapCenter}
                     />
                 </Box>
 
@@ -347,6 +371,7 @@ const App = () => {
                     <PlaceSearch
                         onPlaceSelect={handlePlaceSelect}
                         onClose={() => setShowSearch(false)}
+                        existingPlaces={places}
                     />
                 )}
 

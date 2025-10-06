@@ -3,7 +3,7 @@ import { Box, Dialog, DialogContent, TextField, IconButton, List, ListItem, List
 import CloseIcon from '@mui/icons-material/Close';
 import EmojiPicker, {EmojiStyle} from 'emoji-picker-react';
 
-const PlaceSearch = ({ onPlaceSelect, onClose }) => {
+const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [] }) => {
     const [query, setQuery] = useState('');
     const [suggestions, setSuggestions] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +28,7 @@ const PlaceSearch = ({ onPlaceSelect, onClose }) => {
 
                 const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({
                     input: value,
-                    includedPrimaryTypes: ['establishment']
+                    includedPrimaryTypes: ['establishment', 'street_address']
                 });
 
                 setSuggestions(suggestions || []);
@@ -101,7 +101,9 @@ const PlaceSearch = ({ onPlaceSelect, onClose }) => {
                 fullWidth
                 PaperProps={{
                     sx: {
-                        mt: 5,
+                        position: 'fixed',
+                        top: '33%',
+                        m: 0,
                         maxHeight: '80vh',
                     }
                 }}
@@ -136,11 +138,19 @@ const PlaceSearch = ({ onPlaceSelect, onClose }) => {
                         <List sx={{ maxHeight: 400, overflow: 'auto' }}>
                             {suggestions.map((suggestion) => {
                                 const prediction = suggestion.placePrediction;
+                                const existingPlace = existingPlaces.find(p => p.place_id === prediction.placeId);
                                 return (
                                     <ListItem key={prediction.placeId} disablePadding>
                                         <ListItemButton onClick={() => handleSuggestionClick(suggestion)}>
                                             <ListItemText
-                                                primary={prediction.mainText.text}
+                                                primary={
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                        {existingPlace && (
+                                                            <span style={{ fontSize: '1.2em' }}>{existingPlace.emoji}</span>
+                                                        )}
+                                                        <span>{prediction.mainText.text}</span>
+                                                    </Box>
+                                                }
                                                 secondary={prediction.secondaryText?.text}
                                             />
                                         </ListItemButton>

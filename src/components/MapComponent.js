@@ -31,15 +31,19 @@ function useDeepCompareEffectForMaps(callback, dependencies) {
     useEffect(callback, dependencies.map(useDeepCompareMemoize));
 }
 
-const MapWrapper = ({onClick, onIdle, children, sx, ...options}) => {
+const MapWrapper = ({onClick, onIdle, children, sx, onMapReady, ...options}) => {
     const ref = useRef(null);
     const [map, setMap] = useState();
 
     useEffect(() => {
         if (ref.current && !map) {
-            setMap(new window.google.maps.Map(ref.current, {}));
+            const newMap = new window.google.maps.Map(ref.current, {});
+            setMap(newMap);
+            if (onMapReady) {
+                onMapReady(newMap);
+            }
         }
-    }, [ref, map]);
+    }, [ref, map, onMapReady]);
 
     useDeepCompareEffectForMaps(() => {
         if (map) {
@@ -243,10 +247,23 @@ const MapComponent = ({
                           onRemovePlace,
                           activeFilters,
                           userRole,
-                          onInfoWindowRefUpdate
+                          onInfoWindowRefUpdate,
+                          center: propCenter,
+                          onMapReady
                       }) => {
-    const [center] = useState({lat: 37.7749, lng: -122.4194});
+    const [center, setCenter] = useState(propCenter || {lat: 37.7749, lng: -122.4194});
     const [zoom] = useState(13);
+    const mapRef = useRef(null);
+
+    // Update center when propCenter changes
+    useEffect(() => {
+        if (propCenter) {
+            setCenter(propCenter);
+            if (mapRef.current) {
+                mapRef.current.panTo(propCenter);
+            }
+        }
+    }, [propCenter]);
 
     const onClick = (e) => {
         if (onMapClick) {
@@ -255,6 +272,7 @@ const MapComponent = ({
     };
 
     const onIdle = (map) => {
+        mapRef.current = map;
         console.log('Map idle');
     };
 
