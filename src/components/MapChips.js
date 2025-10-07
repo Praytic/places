@@ -1,10 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Box, Chip, IconButton } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import CreateMapDialog from './CreateMapDialog';
+import ManageMapDialog from './ManageMapDialog';
 
 const MapChips = ({ userMaps = [], selectedMapIds = new Set(), onMapToggle, userEmail, onMapCreated, sx = {} }) => {
     const [showCreateDialog, setShowCreateDialog] = useState(false);
+    const [editingMap, setEditingMap] = useState(null);
+    const longPressTimerRef = useRef(null);
+
+    const handleLongPressStart = (mapId) => {
+        longPressTimerRef.current = setTimeout(() => {
+            const map = userMaps.find(m => m.id === mapId);
+            if (map) {
+                setEditingMap(map);
+            }
+        }, 500);
+    };
+
+    const handleLongPressEnd = () => {
+        if (longPressTimerRef.current) {
+            clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+        }
+    };
+
+    const handleContextMenu = (event, mapId) => {
+        event.preventDefault();
+        const map = userMaps.find(m => m.id === mapId);
+        if (map) {
+            setEditingMap(map);
+        }
+    };
 
     if (userMaps.length === 0) {
         return null;
@@ -27,6 +53,12 @@ const MapChips = ({ userMaps = [], selectedMapIds = new Set(), onMapToggle, user
                         label={map.name}
                         size="medium"
                         onClick={() => onMapToggle && onMapToggle(map.id)}
+                        onContextMenu={(e) => handleContextMenu(e, map.id)}
+                        onMouseDown={() => handleLongPressStart(map.id)}
+                        onMouseUp={handleLongPressEnd}
+                        onMouseLeave={handleLongPressEnd}
+                        onTouchStart={() => handleLongPressStart(map.id)}
+                        onTouchEnd={handleLongPressEnd}
                         sx={{
                             cursor: 'pointer',
                             backgroundColor: selectedMapIds.has(map.id) ? 'primary.main' : 'white',
@@ -58,10 +90,19 @@ const MapChips = ({ userMaps = [], selectedMapIds = new Set(), onMapToggle, user
             </Box>
 
             {showCreateDialog && (
-                <CreateMapDialog
+                <ManageMapDialog
                     userEmail={userEmail}
                     onMapCreated={onMapCreated}
                     onClose={() => setShowCreateDialog(false)}
+                />
+            )}
+
+            {editingMap && (
+                <ManageMapDialog
+                    userEmail={userEmail}
+                    onMapCreated={onMapCreated}
+                    onClose={() => setEditingMap(null)}
+                    existingMap={editingMap}
                 />
             )}
         </>

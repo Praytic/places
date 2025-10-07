@@ -21,7 +21,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { deleteMap, updateMap, ROLES } from '../services/MapsService';
-import CreateMapDialog from './CreateMapDialog';
+import ManageMapDialog from './ManageMapDialog';
 
 const ManageMapsDialog = ({
   userEmail,
@@ -29,11 +29,18 @@ const ManageMapsDialog = ({
   visibleMapIds,
   onMapVisibilityToggle,
   onMapsUpdated,
-  onClose
+  onClose,
+  initialEditingMapId = null
 }) => {
   const [deleting, setDeleting] = useState(null);
-  const [editingMapId, setEditingMapId] = useState(null);
-  const [editingName, setEditingName] = useState('');
+  const [editingMapId, setEditingMapId] = useState(initialEditingMapId);
+  const [editingName, setEditingName] = useState(() => {
+    if (initialEditingMapId) {
+      const map = userMaps.find(m => m.id === initialEditingMapId);
+      return map?.name || '';
+    }
+    return '';
+  });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [error, setError] = useState(null);
 
@@ -255,7 +262,7 @@ const ManageMapsDialog = ({
       </Dialog>
 
       {showCreateDialog && (
-        <CreateMapDialog
+        <ManageMapDialog
           userEmail={userEmail}
           onMapCreated={handleMapCreated}
           onClose={() => setShowCreateDialog(false)}

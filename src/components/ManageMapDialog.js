@@ -17,11 +17,12 @@ import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { createMap, shareMapWithUser, ROLES } from '../services/MapsService';
+import { createMap, shareMapWithUser, updateMap, ROLES } from '../services/MapsService';
 
-const CreateMapDialog = ({ userEmail, onMapCreated, onClose }) => {
-  console.log('[CreateMapDialog] Rendering');
-  const [mapName, setMapName] = useState('');
+const ManageMapDialog = ({ userEmail, onMapCreated, onClose, existingMap = null }) => {
+  console.log('[ManageMapDialog] Rendering', existingMap ? 'in edit mode' : 'in create mode');
+  const isEditMode = !!existingMap;
+  const [mapName, setMapName] = useState(existingMap?.name || '');
   const [creating, setCreating] = useState(false);
   const [email, setEmail] = useState('');
   const [emailList, setEmailList] = useState([]);
@@ -76,24 +77,31 @@ const CreateMapDialog = ({ userEmail, onMapCreated, onClose }) => {
       setCreating(true);
       setError(null);
 
-      // Create the map
-      const newMap = await createMap(userEmail, trimmedName);
+      if (isEditMode) {
+        // Edit mode - just update the map name
+        await updateMap(existingMap.id, { name: trimmedName });
+        onMapCreated(existingMap.id);
+      } else {
+        // Create mode - create new map and share with collaborators
+        const newMap = await createMap(userEmail, trimmedName);
 
-      // Share with all emails in the list
-      for (const { email, role } of emailList) {
-        try {
-          await shareMapWithUser(newMap.id, email, role);
-        } catch (err) {
-          console.error(`Error sharing with ${email}:`, err);
-          // Continue with other emails even if one fails
+        // Share with all emails in the list
+        for (const { email, role } of emailList) {
+          try {
+            await shareMapWithUser(newMap.id, email, role);
+          } catch (err) {
+            console.error(`Error sharing with ${email}:`, err);
+            // Continue with other emails even if one fails
+          }
         }
+
+        onMapCreated(newMap.id, ROLES.OWNER);
       }
 
-      onMapCreated(newMap.id, ROLES.OWNER);
       onClose();
     } catch (err) {
-      console.error('Error creating map:', err);
-      setError('Failed to create map. Please try again.');
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} map:`, err);
+      setError(`Failed to ${isEditMode ? 'update' : 'create'} map. Please try again.`);
       setCreating(false);
     }
   };
@@ -105,7 +113,7 @@ const CreateMapDialog = ({ userEmail, onMapCreated, onClose }) => {
   return (
     <Dialog open={true} onClose={handleCancel} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        Create New Map
+        {isEditMode ? 'Edit Map' : 'Create New Map'}
         <IconButton onClick={handleCancel} size="small">
           <CloseIcon />
         </IconButton>
@@ -128,13 +136,14 @@ const CreateMapDialog = ({ userEmail, onMapCreated, onClose }) => {
           />
         </Box>
 
-        {/* Email Adding Section */}
-        <Box sx={{ mt: 3 }}>
-          <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
-            Add collaborator by email:
-          </Typography>
+        {/* Email Adding Section - only show in create mode */}
+        {!isEditMode && (
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+              Add collaborator by email:
+            </Typography>
 
-          <List disablePadding>
+            <List disablePadding>
             {emailList.map((item, index) => (
               <ListItem
                 key={index}
@@ -203,6 +212,7 @@ const CreateMapDialog = ({ userEmail, onMapCreated, onClose }) => {
             </ListItem>
           </List>
         </Box>
+        )}
 
         {error && (
           <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError(null)}>
@@ -226,11 +236,11 @@ const CreateMapDialog = ({ userEmail, onMapCreated, onClose }) => {
           disabled={creating || !mapName.trim()}
           variant="contained"
         >
-          {creating ? 'Creating...' : 'Create'}
+          {creating ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save' : 'Create')}
         </Button>
       </Box>
     </Dialog>
   );
 };
 
-export default CreateMapDialog;
+export default ManageMapDialog;

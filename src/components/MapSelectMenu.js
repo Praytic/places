@@ -17,7 +17,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import CreateMapDialog from './CreateMapDialog';
+import ManageMapDialog from './ManageMapDialog';
 import { deleteMap, updateMap, ROLES } from '../services/MapsService';
 
 const MapSelectMenu = ({
@@ -284,7 +284,7 @@ const MapSelectMenu = ({
       </FormControl>
 
       {showCreateDialog && (
-        <CreateMapDialog
+        <ManageMapDialog
           userEmail={userEmail}
           onMapCreated={handleMapCreated}
           onClose={() => setShowCreateDialog(false)}
