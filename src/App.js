@@ -179,11 +179,12 @@ const App = () => {
         }
     };
 
-    const handleRemovePlace = async () => {
-        if (selectedPlace) {
+    const handleRemovePlace = async (place) => {
+        const placeToRemove = place || selectedPlace;
+        if (placeToRemove) {
             try {
                 setError(null);
-                await PlacesService.deletePlace(selectedPlace.id);
+                await PlacesService.deletePlace(placeToRemove.id);
                 setSelectedPlace(null);
                 // The real-time listener will update the places state automatically
                 console.log('Place removed successfully');
