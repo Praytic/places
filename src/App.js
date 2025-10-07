@@ -423,6 +423,9 @@ const App = () => {
                             onMapSelect={handleMapSelect}
                             onMapCreated={handleMapsUpdated}
                             anchorEl={mapSelectAnchorEl}
+                            visibleMapIds={visibleMapIds}
+                            onMapVisibilityToggle={handleMapVisibilityToggle}
+                            onMapsUpdated={handleMapsUpdated}
                         />
                     </>
                 )}

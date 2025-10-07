@@ -11,8 +11,7 @@ import {
   Typography,
   Alert,
   List,
-  ListItem,
-  ListItemText
+  ListItem
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -48,6 +47,12 @@ const CreateMapDialog = ({ userEmail, onMapCreated, onClose }) => {
     setEmailList([...emailList, { email, role: ROLES.VIEWER }]);
     setEmail('');
     setError(null);
+  };
+
+  const handleEmailChange = (index, value) => {
+    const newList = [...emailList];
+    newList[index] = { ...newList[index], email: value };
+    setEmailList(newList);
   };
 
   const handleToggleRole = (emailToToggle, currentRole) => {
@@ -125,11 +130,59 @@ const CreateMapDialog = ({ userEmail, onMapCreated, onClose }) => {
 
         {/* Email Adding Section */}
         <Box sx={{ mt: 3 }}>
-          <Box component="form" onSubmit={handleAddEmail} sx={{ mb: 2 }}>
-            <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
-              Add collaborator by email:
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
+          <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+            Add collaborator by email:
+          </Typography>
+
+          <List disablePadding>
+            {emailList.map((item, index) => (
+              <ListItem
+                key={index}
+                sx={{
+                  display: 'flex',
+                  gap: 1,
+                  p: 0,
+                  mb: 1
+                }}
+              >
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="email"
+                  value={item.email}
+                  onChange={(e) => handleEmailChange(index, e.target.value)}
+                  placeholder="email@example.com"
+                  disabled={creating}
+                />
+                <IconButton
+                  size="small"
+                  onClick={() => handleToggleRole(item.email, item.role)}
+                  disabled={creating}
+                  title={item.role === ROLES.EDITOR ? 'Switch to viewer' : 'Switch to editor'}
+                >
+                  {item.role === ROLES.EDITOR ? <EditIcon /> : <VisibilityIcon />}
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={() => handleRemoveEmail(item.email)}
+                  disabled={creating}
+                  title="Remove"
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </ListItem>
+            ))}
+
+            {/* Active input field with ADD button */}
+            <ListItem
+              component="form"
+              onSubmit={handleAddEmail}
+              sx={{
+                display: 'flex',
+                gap: 1,
+                p: 0
+              }}
+            >
               <TextField
                 fullWidth
                 size="small"
@@ -147,58 +200,8 @@ const CreateMapDialog = ({ userEmail, onMapCreated, onClose }) => {
               >
                 Add
               </Button>
-            </Box>
-          </Box>
-
-          {emailList.length > 0 && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
-                Will share with:
-              </Typography>
-              <List disablePadding>
-                {emailList.map((item) => (
-                  <ListItem
-                    key={item.email}
-                    sx={{
-                      bgcolor: 'action.hover',
-                      borderRadius: 1,
-                      mb: 1,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <ListItemText
-                      primary={item.email}
-                      sx={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        mr: 1
-                      }}
-                    />
-                    <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleToggleRole(item.email, item.role)}
-                        disabled={creating}
-                        title={item.role === ROLES.EDITOR ? 'Switch to viewer' : 'Switch to editor'}
-                      >
-                        {item.role === ROLES.EDITOR ? <EditIcon /> : <VisibilityIcon />}
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleRemoveEmail(item.email)}
-                        disabled={creating}
-                        title="Remove"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-                  </ListItem>
-                ))}
-              </List>
-            </Box>
-          )}
+            </ListItem>
+          </List>
         </Box>
 
         {error && (
