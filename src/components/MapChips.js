@@ -3,12 +3,13 @@ import { Box, Chip, IconButton } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ManageMapDialog from './ManageMapDialog';
 
-const MapChips = ({ userMaps = [], selectedMapIds = new Set(), onMapToggle, userEmail, onMapCreated, sx = {} }) => {
+const MapChips = ({ userMaps = [], selectedMapIds = new Set(), onMapToggle, userEmail, onMapCreated, enableManagement = true, sx = {} }) => {
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [editingMap, setEditingMap] = useState(null);
     const longPressTimerRef = useRef(null);
 
     const handleLongPressStart = (mapId) => {
+        if (!enableManagement) return;
         longPressTimerRef.current = setTimeout(() => {
             const map = userMaps.find(m => m.id === mapId);
             if (map) {
@@ -26,6 +27,7 @@ const MapChips = ({ userMaps = [], selectedMapIds = new Set(), onMapToggle, user
 
     const handleContextMenu = (event, mapId) => {
         event.preventDefault();
+        if (!enableManagement) return;
         const map = userMaps.find(m => m.id === mapId);
         if (map) {
             setEditingMap(map);

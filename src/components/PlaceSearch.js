@@ -104,7 +104,7 @@ const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [], userMaps = [
                 <MapChips
                     userMaps={userMaps}
                     selectedMapIds={visibleMapIds}
-                    onMapToggle={onMapVisibilityToggle}
+                    enableManagement={false}
                     sx={{
                         position: 'fixed',
                         top: 'calc(33% - 50px)',
