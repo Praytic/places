@@ -4,21 +4,62 @@ import {
   DialogTitle,
   DialogContent,
   TextField,
+  Button,
   Box,
   IconButton,
   Divider,
-  Typography
+  Typography,
+  Alert,
+  List,
+  ListItem,
+  ListItemText
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import CheckIcon from '@mui/icons-material/Check';
-import { createMap, ROLES } from '../services/MapsService';
-import ShareDialog from './ShareDialog';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import { createMap, shareMapWithUser, ROLES } from '../services/MapsService';
 
 const CreateMapDialog = ({ userEmail, onMapCreated, onClose }) => {
+  console.log('[CreateMapDialog] Rendering');
   const [mapName, setMapName] = useState('');
   const [creating, setCreating] = useState(false);
-  const [createdMapId, setCreatedMapId] = useState(null);
-  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [email, setEmail] = useState('');
+  const [emailList, setEmailList] = useState([]);
+  const [error, setError] = useState(null);
+
+  const handleAddEmail = (e) => {
+    e.preventDefault();
+    if (!email || !email.includes('@')) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    if (email === userEmail) {
+      setError('You cannot share with yourself');
+      return;
+    }
+
+    if (emailList.some(item => item.email === email)) {
+      setError('Email already added');
+      return;
+    }
+
+    setEmailList([...emailList, { email, role: ROLES.VIEWER }]);
+    setEmail('');
+    setError(null);
+  };
+
+  const handleToggleRole = (emailToToggle, currentRole) => {
+    const newRole = currentRole === ROLES.EDITOR ? ROLES.VIEWER : ROLES.EDITOR;
+    setEmailList(emailList.map(item =>
+      item.email === emailToToggle ? { ...item, role: newRole } : item
+    ));
+  };
+
+  const handleRemoveEmail = (emailToRemove) => {
+    setEmailList(emailList.filter(item => item.email !== emailToRemove));
+  };
 
   const handleCreate = async () => {
     const trimmedName = mapName.trim();
@@ -28,37 +69,33 @@ const CreateMapDialog = ({ userEmail, onMapCreated, onClose }) => {
 
     try {
       setCreating(true);
+      setError(null);
+
+      // Create the map
       const newMap = await createMap(userEmail, trimmedName);
-      setCreatedMapId(newMap.id);
-      setShowShareDialog(true);
+
+      // Share with all emails in the list
+      for (const { email, role } of emailList) {
+        try {
+          await shareMapWithUser(newMap.id, email, role);
+        } catch (err) {
+          console.error(`Error sharing with ${email}:`, err);
+          // Continue with other emails even if one fails
+        }
+      }
+
+      onMapCreated(newMap.id, ROLES.OWNER);
+      onClose();
     } catch (err) {
       console.error('Error creating map:', err);
-      alert('Failed to create map. Please try again.');
+      setError('Failed to create map. Please try again.');
       setCreating(false);
     }
-  };
-
-  const handleShareDialogClose = () => {
-    setShowShareDialog(false);
-    if (createdMapId) {
-      onMapCreated(createdMapId, ROLES.OWNER);
-    }
-    onClose();
   };
 
   const handleCancel = () => {
     onClose();
   };
-
-  if (showShareDialog && createdMapId) {
-    return (
-      <ShareDialog
-        userEmail={userEmail}
-        mapId={createdMapId}
-        onClose={handleShareDialogClose}
-      />
-    );
-  }
 
   return (
     <Dialog open={true} onClose={handleCancel} maxWidth="sm" fullWidth>
@@ -70,7 +107,8 @@ const CreateMapDialog = ({ userEmail, onMapCreated, onClose }) => {
       </DialogTitle>
 
       <DialogContent>
-        <Box component="form" onSubmit={(e) => { e.preventDefault(); handleCreate(); }}>
+        {/* Map Creation Section */}
+        <Box>
           <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
             Map name:
           </Typography>
@@ -84,26 +122,109 @@ const CreateMapDialog = ({ userEmail, onMapCreated, onClose }) => {
             autoFocus
           />
         </Box>
+
+        {/* Email Adding Section */}
+        <Box sx={{ mt: 3 }}>
+          <Box component="form" onSubmit={handleAddEmail} sx={{ mb: 2 }}>
+            <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+              Add collaborator by email:
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <TextField
+                fullWidth
+                size="small"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="email@example.com"
+                disabled={creating}
+              />
+              <Button
+                type="submit"
+                variant="outlined"
+                disabled={creating || !email}
+                sx={{ minWidth: 80 }}
+              >
+                Add
+              </Button>
+            </Box>
+          </Box>
+
+          {emailList.length > 0 && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                Will share with:
+              </Typography>
+              <List disablePadding>
+                {emailList.map((item) => (
+                  <ListItem
+                    key={item.email}
+                    sx={{
+                      bgcolor: 'action.hover',
+                      borderRadius: 1,
+                      mb: 1,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <ListItemText
+                      primary={item.email}
+                      sx={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        mr: 1
+                      }}
+                    />
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleToggleRole(item.email, item.role)}
+                        disabled={creating}
+                        title={item.role === ROLES.EDITOR ? 'Switch to viewer' : 'Switch to editor'}
+                      >
+                        {item.role === ROLES.EDITOR ? <EditIcon /> : <VisibilityIcon />}
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleRemoveEmail(item.email)}
+                        disabled={creating}
+                        title="Remove"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+          )}
+        </Box>
+
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
       </DialogContent>
 
       <Divider />
 
-      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, p: 1.5 }}>
-        <IconButton
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, p: 1.5 }}>
+        <Button
           onClick={handleCancel}
           disabled={creating}
-          title="Cancel"
+          variant="outlined"
         >
-          <CloseIcon />
-        </IconButton>
-        <IconButton
+          Cancel
+        </Button>
+        <Button
           onClick={handleCreate}
           disabled={creating || !mapName.trim()}
-          title="Create map"
-          color="primary"
+          variant="contained"
         >
-          <CheckIcon />
-        </IconButton>
+          {creating ? 'Creating...' : 'Create'}
+        </Button>
       </Box>
     </Dialog>
   );

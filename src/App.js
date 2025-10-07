@@ -4,7 +4,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import MapComponent from './components/MapComponent';
 import ControlPanel from './components/ControlPanel';
 import PlaceSearch from './components/PlaceSearch';
-import ManageMapsDialog from './components/ManageMapsDialog';
+import MapSelectMenu from './components/MapSelectMenu';
 import ShareDialog from './components/ShareDialog';
 import EmojiPicker, {EmojiStyle} from 'emoji-picker-react';
 import Auth from './components/Auth';
@@ -20,6 +20,7 @@ const App = () => {
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [emojiPickerPlace, setEmojiPickerPlace] = useState(null);
     const [showManageMaps, setShowManageMaps] = useState(false);
+    const [mapSelectAnchorEl, setMapSelectAnchorEl] = useState(null);
     const [showShareMap, setShowShareMap] = useState(false);
     const [mapCenter, setMapCenter] = useState(null);
     const [activeFilters, setActiveFilters] = useState(() => {
@@ -308,6 +309,13 @@ const App = () => {
         }
     };
 
+    const handleMapSelect = (mapId) => {
+        // Set the selected map as the only visible map
+        setVisibleMapIds(new Set([mapId]));
+        setCurrentMapId(mapId);
+        setShowManageMaps(false);
+    };
+
     const handleInfoWindowRefUpdate = (ref) => {
         infoWindowRef.current = ref;
     };
@@ -359,7 +367,10 @@ const App = () => {
                     onAddPlace={handleAddPlace}
                     onToggleFilter={handleToggleFilter}
                     activeFilters={activeFilters}
-                    onManageMaps={() => setShowManageMaps(true)}
+                    onManageMaps={(event) => {
+                        setMapSelectAnchorEl(event.currentTarget);
+                        setShowManageMaps(true);
+                    }}
                     onShareMap={() => setShowShareMap(true)}
                 />
 
@@ -397,16 +408,23 @@ const App = () => {
                 </Dialog>
 
                 {showManageMaps && currentUser && (
-                    <ManageMapsDialog
-                        open={showManageMaps}
-                        onClose={() => setShowManageMaps(false)}
-                        userEmail={currentUser.email}
-                        userMaps={userMaps}
-                        visibleMapIds={visibleMapIds}
-                        onMapVisibilityToggle={handleMapVisibilityToggle}
-                        onMapsUpdated={handleMapsUpdated}
-                        currentMapId={currentMapId}
-                    />
+                    <>
+                        {console.log('[App] Rendering MapSelectMenu, showManageMaps:', showManageMaps)}
+                        <MapSelectMenu
+                            open={showManageMaps}
+                            onClose={() => {
+                                console.log('[App] MapSelectMenu onClose called');
+                                setShowManageMaps(false);
+                                setMapSelectAnchorEl(null);
+                            }}
+                            userEmail={currentUser.email}
+                            userMaps={userMaps}
+                            currentMapId={currentMapId}
+                            onMapSelect={handleMapSelect}
+                            onMapCreated={handleMapsUpdated}
+                            anchorEl={mapSelectAnchorEl}
+                        />
+                    </>
                 )}
 
                 {showShareMap && currentMapId && currentUser && (
