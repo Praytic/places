@@ -9,7 +9,10 @@ const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [], userMaps = [
     const [isLoading, setIsLoading] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [selectedPlaceData, setSelectedPlaceData] = useState(null);
-    const [targetMapId, setTargetMapId] = useState(initialTargetMapId);
+    const [selectedMapIds, setSelectedMapIds] = useState(() => {
+        // Initialize with first map or initialTargetMapId
+        return initialTargetMapId ? new Set([initialTargetMapId]) : new Set();
+    });
     const inputRef = useRef(null);
 
     useEffect(() => {
@@ -71,13 +74,18 @@ const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [], userMaps = [
         }
     };
 
-    const handleEmojiSelect = (emojiObject) => {
-        if (selectedPlaceData) {
+    const handleEmojiSelect = async (emojiObject) => {
+        if (selectedPlaceData && selectedMapIds.size > 0) {
             const placeWithEmoji = {
                 ...selectedPlaceData,
                 emoji: emojiObject.emoji
             };
-            onPlaceSelect(placeWithEmoji, targetMapId);
+
+            // Create the place on each selected map
+            for (const mapId of selectedMapIds) {
+                await onPlaceSelect(placeWithEmoji, mapId);
+            }
+
             onClose();
         }
     };
@@ -85,6 +93,18 @@ const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [], userMaps = [
     const handleEmojiCancel = () => {
         setShowEmojiPicker(false);
         setSelectedPlaceData(null);
+    };
+
+    const handleMapToggle = (mapId) => {
+        setSelectedMapIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(mapId)) {
+                newSet.delete(mapId);
+            } else {
+                newSet.add(mapId);
+            }
+            return newSet;
+        });
     };
 
     const handleKeyDown = (e) => {
@@ -117,13 +137,14 @@ const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [], userMaps = [
                             key={map.id}
                             label={map.name}
                             size="medium"
-                            onClick={() => setTargetMapId(map.id)}
+                            onClick={() => handleMapToggle(map.id)}
                             sx={{
                                 cursor: 'pointer',
-                                backgroundColor: map.id === targetMapId ? 'primary.main' : 'white',
-                                color: map.id === targetMapId ? 'white' : 'text.primary',
+                                backgroundColor: selectedMapIds.has(map.id) ? 'primary.main' : 'white',
+                                color: selectedMapIds.has(map.id) ? 'white' : 'text.primary',
+                                boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.15)',
                                 '&:hover': {
-                                    backgroundColor: map.id === targetMapId ? 'primary.dark' : 'rgba(220, 220, 220, 1)',
+                                    backgroundColor: selectedMapIds.has(map.id) ? 'primary.dark' : 'rgba(220, 220, 220, 1)',
                                 },
                             }}
                         />

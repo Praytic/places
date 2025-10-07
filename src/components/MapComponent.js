@@ -343,6 +343,7 @@ const MapComponent = ({
                                 cursor: 'pointer',
                                 backgroundColor: visibleMapIds.has(map.id) ? 'primary.main' : 'white',
                                 color: visibleMapIds.has(map.id) ? 'white' : 'text.primary',
+                                boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.15)',
                                 '&:hover': {
                                     backgroundColor: visibleMapIds.has(map.id) ? 'primary.dark' : 'rgba(220, 220, 220, 1)',
                                 },
