@@ -360,6 +360,9 @@ const App = () => {
                         groups={groups}
                         onInfoWindowRefUpdate={handleInfoWindowRefUpdate}
                         center={mapCenter}
+                        userMaps={userMaps}
+                        visibleMapIds={visibleMapIds}
+                        onMapVisibilityToggle={handleMapVisibilityToggle}
                     />
                 </Box>
 
