@@ -363,6 +363,7 @@ const App = () => {
                         userMaps={userMaps}
                         visibleMapIds={visibleMapIds}
                         onMapVisibilityToggle={handleMapVisibilityToggle}
+                        showSearch={showSearch}
                     />
                 </Box>
 

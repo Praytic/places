@@ -257,7 +257,8 @@ const MapComponent = ({
                           onMapReady,
                           userMaps = [],
                           visibleMapIds = new Set(),
-                          onMapVisibilityToggle
+                          onMapVisibilityToggle,
+                          showSearch = false
                       }) => {
     const [center, setCenter] = useState(propCenter || {lat: 37.7749, lng: -122.4194});
     const [zoom] = useState(13);
@@ -315,7 +316,7 @@ const MapComponent = ({
                     onInfoWindowRefUpdate={onInfoWindowRefUpdate}
                 />
             </MapWrapper>
-            {userMaps.length > 0 && (
+            {userMaps.length > 0 && !showSearch && (
                 <Box sx={{
                     position: 'absolute',
                     top: 16,
