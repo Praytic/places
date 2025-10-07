@@ -273,11 +273,6 @@ const App = () => {
         setEmojiPickerPlace(null);
     };
 
-    const handleMapSwitch = (mapId, role) => {
-        setCurrentMapId(mapId);
-        setUserRole(role);
-    };
-
     const handleMapVisibilityToggle = (mapId) => {
         setVisibleMapIds(prev => {
             const newSet = new Set(prev);
@@ -409,7 +404,6 @@ const App = () => {
                         onMapVisibilityToggle={handleMapVisibilityToggle}
                         onMapsUpdated={handleMapsUpdated}
                         currentMapId={currentMapId}
-                        onMapSwitch={handleMapSwitch}
                     />
                 )}
 
