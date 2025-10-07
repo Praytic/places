@@ -258,7 +258,9 @@ const MapComponent = ({
                           userMaps = [],
                           visibleMapIds = new Set(),
                           onMapVisibilityToggle,
-                          showSearch = false
+                          showSearch = false,
+                          userEmail,
+                          onMapCreated
                       }) => {
     const [center, setCenter] = useState(propCenter || {lat: 37.7749, lng: -122.4194});
     const [zoom] = useState(13);
@@ -321,6 +323,8 @@ const MapComponent = ({
                     userMaps={userMaps}
                     selectedMapIds={visibleMapIds}
                     onMapToggle={onMapVisibilityToggle}
+                    userEmail={userEmail}
+                    onMapCreated={onMapCreated}
                     sx={{
                         position: 'absolute',
                         top: 16,
