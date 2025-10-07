@@ -155,12 +155,11 @@ const App = () => {
         setShowSearch(true);
     };
 
-    const handlePlaceSelect = async (place) => {
+    const handlePlaceSelect = async (place, mapId) => {
         if (place) {
-            // Add to the first visible map, or currentMapId as fallback
-            const targetMapId = visibleMapIds.size > 0
-                ? Array.from(visibleMapIds)[0]
-                : currentMapId;
+            // Use provided mapId or fall back to first visible map / currentMapId
+            const targetMapId = mapId ||
+                (visibleMapIds.size > 0 ? Array.from(visibleMapIds)[0] : currentMapId);
 
             if (!targetMapId) {
                 setError('No map available to add place');
@@ -369,6 +368,8 @@ const App = () => {
                         onPlaceSelect={handlePlaceSelect}
                         onClose={() => setShowSearch(false)}
                         existingPlaces={places}
+                        userMaps={userMaps.filter(map => map.userRole === ROLES.OWNER || map.userRole === ROLES.EDITOR)}
+                        initialTargetMapId={visibleMapIds.size > 0 ? Array.from(visibleMapIds)[0] : currentMapId}
                     />
                 )}
 

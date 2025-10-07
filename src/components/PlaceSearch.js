@@ -1,14 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Dialog, DialogContent, TextField, IconButton, List, ListItem, ListItemButton, ListItemText, Typography, CircularProgress } from '@mui/material';
+import { Box, Dialog, DialogContent, TextField, IconButton, List, ListItem, ListItemButton, ListItemText, Typography, CircularProgress, Chip } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import EmojiPicker, {EmojiStyle} from 'emoji-picker-react';
 
-const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [] }) => {
+const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [], userMaps = [], initialTargetMapId = null }) => {
     const [query, setQuery] = useState('');
     const [suggestions, setSuggestions] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [selectedPlaceData, setSelectedPlaceData] = useState(null);
+    const [targetMapId, setTargetMapId] = useState(initialTargetMapId);
     const inputRef = useRef(null);
 
     useEffect(() => {
@@ -76,7 +77,7 @@ const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [] }) => {
                 ...selectedPlaceData,
                 emoji: emojiObject.emoji
             };
-            onPlaceSelect(placeWithEmoji);
+            onPlaceSelect(placeWithEmoji, targetMapId);
             onClose();
         }
     };
@@ -94,8 +95,43 @@ const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [] }) => {
 
     return (
         <>
+            {userMaps.length > 0 && !showEmojiPicker && (
+                <Box sx={{
+                    position: 'fixed',
+                    top: 'calc(33% - 50px)',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    maxWidth: '600px',
+                    width: '100%',
+                    px: 2,
+                    pb: 1,
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 1,
+                    alignItems: 'center',
+                    backgroundColor: 'transparent',
+                    zIndex: 1301,
+                }}>
+                    {userMaps.map((map) => (
+                        <Chip
+                            key={map.id}
+                            label={map.name}
+                            size="medium"
+                            onClick={() => setTargetMapId(map.id)}
+                            sx={{
+                                cursor: 'pointer',
+                                backgroundColor: map.id === targetMapId ? 'primary.main' : 'white',
+                                color: map.id === targetMapId ? 'white' : 'text.primary',
+                                '&:hover': {
+                                    backgroundColor: map.id === targetMapId ? 'primary.dark' : 'rgba(220, 220, 220, 1)',
+                                },
+                            }}
+                        />
+                    ))}
+                </Box>
+            )}
             <Dialog
-                open={true}
+                open={!showEmojiPicker}
                 onClose={onClose}
                 maxWidth="sm"
                 fullWidth
