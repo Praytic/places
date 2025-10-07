@@ -161,12 +161,13 @@ const Markers = ({map, places, selectedPlace, onPlaceSelect, activeFilters, onEm
                                     createInfoWindowWithToggle(updatedPlace);
                                 },
                                 onRemovePlaceRef.current,
-                                place.userRole
+                                currentPlace.userRole
                             );
                         };
 
-                        createInfoWindowWithToggle(place);
-                        onPlaceSelectRef.current(place);
+                        // Use the current place data from marker.placeData instead of stale closure
+                        createInfoWindowWithToggle(marker.placeData);
+                        onPlaceSelectRef.current(marker.placeData);
                     });
 
                     marker.placeData = place;
@@ -178,13 +179,17 @@ const Markers = ({map, places, selectedPlace, onPlaceSelect, activeFilters, onEm
         updateMarkers();
     }, [map, places, activeFilters]);
 
-    // Update marker appearance when emoji changes
+    // Update marker data and appearance when place changes
     useEffect(() => {
         places.forEach(place => {
             const marker = markersRef.current.get(place.id);
-            if (marker && marker.placeData.emoji !== place.emoji) {
-                const emoji = place.emoji || '📍';
-                marker.content = createRegularMarker(emoji);
+            if (marker) {
+                // Update emoji if changed
+                if (marker.placeData.emoji !== place.emoji) {
+                    const emoji = place.emoji || '📍';
+                    marker.content = createRegularMarker(emoji);
+                }
+                // Always update placeData to keep it in sync
                 marker.placeData = place;
             }
         });
@@ -272,7 +277,6 @@ const MapComponent = ({
 
     const onIdle = (map) => {
         mapRef.current = map;
-        console.log('Map idle');
     };
 
     const render = (status) => {
