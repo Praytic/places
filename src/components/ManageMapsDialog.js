@@ -215,12 +215,15 @@ const ManageMapsDialog = ({
                       </span>
                     </Tooltip>
 
-                    <Tooltip title={map.userRole === ROLES.OWNER ? "Delete map" : "Only owners can delete"}>
+                    <Tooltip title={
+                      map.isDefault ? "Default map cannot be deleted" :
+                      map.userRole === ROLES.OWNER ? "Delete map" : "Only owners can delete"
+                    }>
                       <span>
                         <IconButton
                           size="small"
                           onClick={() => handleDeleteMap(map.id, map.name)}
-                          disabled={map.userRole !== ROLES.OWNER || deleting === map.id}
+                          disabled={map.userRole !== ROLES.OWNER || deleting === map.id || map.isDefault}
                         >
                           {deleting === map.id ? (
                             <CircularProgress size={20} />

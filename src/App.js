@@ -34,7 +34,6 @@ const App = () => {
     const [visibleMapIds, setVisibleMapIds] = useState(new Set());
     const [userMaps, setUserMaps] = useState([]);
     const [currentMapId, setCurrentMapId] = useState(null); // Keep for ShareDialog backward compatibility
-    const [userRole, setUserRole] = useState(null); // Keep for backward compatibility
     const infoWindowRef = useRef(null);
 
     // Listen for auth state changes
@@ -69,7 +68,6 @@ const App = () => {
                 setUserMaps([]);
                 setVisibleMapIds(new Set());
                 setCurrentMapId(null);
-                setUserRole(null);
                 return;
             }
 
@@ -77,10 +75,12 @@ const App = () => {
                 // Get user's maps
                 let maps = await getUserMaps(currentUser.email);
 
+                let isNewUser = false;
                 if (maps.length === 0) {
-                    // Create a new map for the user
-                    const newMap = await createMap(currentUser.email, 'My Places');
+                    // Create a new default map for the user
+                    const newMap = await createMap(currentUser.email, 'My Places', true);
                     maps = [{ ...newMap, userRole: ROLES.OWNER }];
+                    isNewUser = true;
                 }
 
                 setUserMaps(maps);
@@ -97,14 +97,18 @@ const App = () => {
                     const validMapIds = maps.map(m => m.id);
                     visibleIds = savedIds.filter(id => validMapIds.includes(id));
                 } else {
-                    // Make only owned maps visible by default
-                    visibleIds = maps.filter(m => m.userRole === ROLES.OWNER).map(m => m.id);
+                    if (isNewUser) {
+                        // Make default map visible for new users
+                        visibleIds = maps.filter(m => m.isDefault).map(m => m.id);
+                    } else {
+                        // Make only owned maps visible by default for existing users
+                        visibleIds = maps.filter(m => m.userRole === ROLES.OWNER).map(m => m.id);
+                    }
                 }
 
                 setVisibleMapIds(new Set(visibleIds));
                 // Set currentMapId to first map for backward compatibility (ShareDialog)
                 setCurrentMapId(maps[0].id);
-                setUserRole(maps[0].userRole);
             } catch (err) {
                 console.error('Error initializing maps:', err);
                 setError('Failed to initialize maps');
@@ -175,11 +179,12 @@ const App = () => {
         }
     };
 
-    const handleRemovePlace = async () => {
-        if (selectedPlace) {
+    const handleRemovePlace = async (place) => {
+        const placeToRemove = place || selectedPlace;
+        if (placeToRemove) {
             try {
                 setError(null);
-                await PlacesService.deletePlace(selectedPlace.id);
+                await PlacesService.deletePlace(placeToRemove.id);
                 setSelectedPlace(null);
                 // The real-time listener will update the places state automatically
                 console.log('Place removed successfully');
@@ -269,11 +274,6 @@ const App = () => {
         setEmojiPickerPlace(null);
     };
 
-    const handleMapSwitch = (mapId, role) => {
-        setCurrentMapId(mapId);
-        setUserRole(role);
-    };
-
     const handleMapVisibilityToggle = (mapId) => {
         setVisibleMapIds(prev => {
             const newSet = new Set(prev);
@@ -302,7 +302,6 @@ const App = () => {
                 // If currentMapId was deleted, switch to first available map
                 if (maps.length > 0 && !maps.find(m => m.id === currentMapId)) {
                     setCurrentMapId(maps[0].id);
-                    setUserRole(maps[0].userRole);
                 }
             } catch (err) {
                 console.error('Error reloading maps:', err);
@@ -352,7 +351,6 @@ const App = () => {
                         onRemovePlace={handleRemovePlace}
                         activeFilters={activeFilters}
                         groups={groups}
-                        userRole={userRole}
                         onInfoWindowRefUpdate={handleInfoWindowRefUpdate}
                         center={mapCenter}
                     />
@@ -362,7 +360,6 @@ const App = () => {
                     onAddPlace={handleAddPlace}
                     onToggleFilter={handleToggleFilter}
                     activeFilters={activeFilters}
-                    userRole={userRole}
                     onManageMaps={() => setShowManageMaps(true)}
                     onShareMap={() => setShowShareMap(true)}
                 />
@@ -408,7 +405,6 @@ const App = () => {
                         onMapVisibilityToggle={handleMapVisibilityToggle}
                         onMapsUpdated={handleMapsUpdated}
                         currentMapId={currentMapId}
-                        onMapSwitch={handleMapSwitch}
                     />
                 )}
 
