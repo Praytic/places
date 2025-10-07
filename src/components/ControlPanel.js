@@ -7,18 +7,14 @@ import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
 import RemoveRedEyeOutlinedIcon from '@mui/icons-material/RemoveRedEyeOutlined';
 import LayersIcon from '@mui/icons-material/Layers';
 import ShareIcon from '@mui/icons-material/Share';
-import {ROLES} from '../services/MapsService';
 
 const ControlPanel = ({
                           onAddPlace,
                           onToggleFilter,
                           activeFilters,
-                          userRole,
                           onManageMaps,
                           onShareMap
                       }) => {
-    const isReadOnly = userRole === ROLES.VIEWER;
-
     return (
         <Box
             sx={{
@@ -47,17 +43,16 @@ const ControlPanel = ({
                     onClick={() => {
                         onAddPlace();
                     }}
-                    disabled={isReadOnly}
-                    title={isReadOnly ? "" : "Add Place"}
+                    title="Add Place"
                     sx={{
                         minWidth: 48,
                         height: 48,
-                        color: isReadOnly ? 'text.disabled' : 'text.secondary',
-                        '&:hover': !isReadOnly && {
+                        color: 'text.secondary',
+                        '&:hover': {
                             bgcolor: 'action.hover',
                             color: 'text.primary',
                         },
-                        '&:active': !isReadOnly && {
+                        '&:active': {
                             transform: 'scale(0.95)',
                         },
                         borderRadius: 0,

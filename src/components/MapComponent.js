@@ -79,7 +79,7 @@ const MapWrapper = ({onClick, onIdle, children, sx, onMapReady, ...options}) => 
     );
 };
 
-const Markers = ({map, places, selectedPlace, onPlaceSelect, activeFilters, onEmojiChangeRequest, onChangeGroup, onRemovePlace, userRole, onInfoWindowRefUpdate}) => {
+const Markers = ({map, places, selectedPlace, onPlaceSelect, activeFilters, onEmojiChangeRequest, onChangeGroup, onRemovePlace, onInfoWindowRefUpdate}) => {
     const markersRef = useRef(new Map()); // Map of placeId -> marker
     const infoWindowRef = useRef(null);
     const onPlaceSelectRef = useRef(onPlaceSelect);
@@ -161,7 +161,7 @@ const Markers = ({map, places, selectedPlace, onPlaceSelect, activeFilters, onEm
                                     createInfoWindowWithToggle(updatedPlace);
                                 },
                                 onRemovePlaceRef.current,
-                                userRole
+                                place.userRole
                             );
                         };
 
@@ -176,7 +176,7 @@ const Markers = ({map, places, selectedPlace, onPlaceSelect, activeFilters, onEm
         };
 
         updateMarkers();
-    }, [map, places, activeFilters, userRole]);
+    }, [map, places, activeFilters]);
 
     // Update marker appearance when emoji changes
     useEffect(() => {
@@ -246,7 +246,6 @@ const MapComponent = ({
                           onChangeGroup,
                           onRemovePlace,
                           activeFilters,
-                          userRole,
                           onInfoWindowRefUpdate,
                           center: propCenter,
                           onMapReady
@@ -305,7 +304,6 @@ const MapComponent = ({
                     onChangeGroup={onChangeGroup}
                     onRemovePlace={onRemovePlace}
                     activeFilters={activeFilters}
-                    userRole={userRole}
                     onInfoWindowRefUpdate={onInfoWindowRefUpdate}
                 />
             </MapWrapper>

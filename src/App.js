@@ -34,7 +34,6 @@ const App = () => {
     const [visibleMapIds, setVisibleMapIds] = useState(new Set());
     const [userMaps, setUserMaps] = useState([]);
     const [currentMapId, setCurrentMapId] = useState(null); // Keep for ShareDialog backward compatibility
-    const [userRole, setUserRole] = useState(null); // Keep for backward compatibility
     const infoWindowRef = useRef(null);
 
     // Listen for auth state changes
@@ -69,7 +68,6 @@ const App = () => {
                 setUserMaps([]);
                 setVisibleMapIds(new Set());
                 setCurrentMapId(null);
-                setUserRole(null);
                 return;
             }
 
@@ -111,7 +109,6 @@ const App = () => {
                 setVisibleMapIds(new Set(visibleIds));
                 // Set currentMapId to first map for backward compatibility (ShareDialog)
                 setCurrentMapId(maps[0].id);
-                setUserRole(maps[0].userRole);
             } catch (err) {
                 console.error('Error initializing maps:', err);
                 setError('Failed to initialize maps');
@@ -309,7 +306,6 @@ const App = () => {
                 // If currentMapId was deleted, switch to first available map
                 if (maps.length > 0 && !maps.find(m => m.id === currentMapId)) {
                     setCurrentMapId(maps[0].id);
-                    setUserRole(maps[0].userRole);
                 }
             } catch (err) {
                 console.error('Error reloading maps:', err);
@@ -359,7 +355,6 @@ const App = () => {
                         onRemovePlace={handleRemovePlace}
                         activeFilters={activeFilters}
                         groups={groups}
-                        userRole={userRole}
                         onInfoWindowRefUpdate={handleInfoWindowRefUpdate}
                         center={mapCenter}
                     />
@@ -369,7 +364,6 @@ const App = () => {
                     onAddPlace={handleAddPlace}
                     onToggleFilter={handleToggleFilter}
                     activeFilters={activeFilters}
-                    userRole={userRole}
                     onManageMaps={() => setShowManageMaps(true)}
                     onShareMap={() => setShowShareMap(true)}
                 />
