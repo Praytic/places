@@ -1,11 +1,11 @@
 /* global google */
 import React, {useRef, useEffect, useState} from 'react';
 import {Wrapper} from '@googlemaps/react-wrapper';
-import {Box, Chip} from '@mui/material';
 import {createRegularMarker, createSelectedMarker} from '../utils/markerTemplates';
 import {createInfoWindow} from '../utils/infoWindow';
 import {createCustomEqual} from 'fast-equals';
 import {isLatLngLiteral} from '@googlemaps/typescript-guards';
+import MapChips from './MapChips';
 
 const deepCompareEqualsForMaps = createCustomEqual((deepEqual) => (a, b) => {
     if (
@@ -317,40 +317,21 @@ const MapComponent = ({
                 />
             </MapWrapper>
             {userMaps.length > 0 && !showSearch && (
-                <Box sx={{
-                    position: 'absolute',
-                    top: 16,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    maxWidth: '600px',
-                    width: 'auto',
-                    px: 2,
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 1,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    backgroundColor: 'transparent',
-                    zIndex: 1000,
-                }}>
-                    {userMaps.map((map) => (
-                        <Chip
-                            key={map.id}
-                            label={map.name}
-                            size="medium"
-                            onClick={() => onMapVisibilityToggle && onMapVisibilityToggle(map.id)}
-                            sx={{
-                                cursor: 'pointer',
-                                backgroundColor: visibleMapIds.has(map.id) ? 'primary.main' : 'white',
-                                color: visibleMapIds.has(map.id) ? 'white' : 'text.primary',
-                                boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.15)',
-                                '&:hover': {
-                                    backgroundColor: visibleMapIds.has(map.id) ? 'primary.dark' : 'rgba(220, 220, 220, 1)',
-                                },
-                            }}
-                        />
-                    ))}
-                </Box>
+                <MapChips
+                    userMaps={userMaps}
+                    selectedMapIds={visibleMapIds}
+                    onMapToggle={onMapVisibilityToggle}
+                    sx={{
+                        position: 'absolute',
+                        top: 16,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        maxWidth: '600px',
+                        width: 'auto',
+                        px: 2,
+                        zIndex: 1000,
+                    }}
+                />
             )}
         </Wrapper>
     );

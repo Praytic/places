@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Box, Card, Typography, CircularProgress } from '@mui/material';
 import { auth } from '../config/firebase';
 import { onAuthStateChanged, GoogleAuthProvider } from 'firebase/auth';
@@ -12,7 +12,7 @@ const Auth = ({ children, onLocationRequest }) => {
   const [loading, setLoading] = useState(true);
   const uiRef = useRef(null);
 
-  const handleLocationAllow = async () => {
+  const handleLocationAllow = useCallback(async () => {
     try {
       const location = await getCurrentLocation();
       setLocationPermission(true);
@@ -30,7 +30,7 @@ const Auth = ({ children, onLocationRequest }) => {
       }
       alert('Unable to get your location. Please check your browser permissions.');
     }
-  };
+  }, [user, onLocationRequest]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -44,7 +44,7 @@ const Auth = ({ children, onLocationRequest }) => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [handleLocationAllow]);
 
   useEffect(() => {
     if (!user && !loading) {

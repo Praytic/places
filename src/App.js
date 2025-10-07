@@ -384,7 +384,8 @@ const App = () => {
                         onClose={() => setShowSearch(false)}
                         existingPlaces={places}
                         userMaps={userMaps.filter(map => map.userRole === ROLES.OWNER || map.userRole === ROLES.EDITOR)}
-                        initialTargetMapId={visibleMapIds.size > 0 ? Array.from(visibleMapIds)[0] : currentMapId}
+                        visibleMapIds={visibleMapIds}
+                        onMapVisibilityToggle={handleMapVisibilityToggle}
                     />
                 )}
 

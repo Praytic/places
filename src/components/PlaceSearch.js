@@ -1,18 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Dialog, DialogContent, TextField, IconButton, List, ListItem, ListItemButton, ListItemText, Typography, CircularProgress, Chip } from '@mui/material';
+import { Box, Dialog, DialogContent, TextField, IconButton, List, ListItem, ListItemButton, ListItemText, Typography, CircularProgress } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import EmojiPicker, {EmojiStyle} from 'emoji-picker-react';
+import MapChips from './MapChips';
 
-const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [], userMaps = [], initialTargetMapId = null }) => {
+const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [], userMaps = [], visibleMapIds = new Set(), onMapVisibilityToggle }) => {
     const [query, setQuery] = useState('');
     const [suggestions, setSuggestions] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [selectedPlaceData, setSelectedPlaceData] = useState(null);
-    const [selectedMapIds, setSelectedMapIds] = useState(() => {
-        // Initialize with first map or initialTargetMapId
-        return initialTargetMapId ? new Set([initialTargetMapId]) : new Set();
-    });
     const inputRef = useRef(null);
 
     useEffect(() => {
@@ -75,14 +72,14 @@ const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [], userMaps = [
     };
 
     const handleEmojiSelect = async (emojiObject) => {
-        if (selectedPlaceData && selectedMapIds.size > 0) {
+        if (selectedPlaceData && visibleMapIds.size > 0) {
             const placeWithEmoji = {
                 ...selectedPlaceData,
                 emoji: emojiObject.emoji
             };
 
-            // Create the place on each selected map
-            for (const mapId of selectedMapIds) {
+            // Create the place on each visible/selected map
+            for (const mapId of visibleMapIds) {
                 await onPlaceSelect(placeWithEmoji, mapId);
             }
 
@@ -95,18 +92,6 @@ const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [], userMaps = [
         setSelectedPlaceData(null);
     };
 
-    const handleMapToggle = (mapId) => {
-        setSelectedMapIds(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(mapId)) {
-                newSet.delete(mapId);
-            } else {
-                newSet.add(mapId);
-            }
-            return newSet;
-        });
-    };
-
     const handleKeyDown = (e) => {
         if (e.key === 'Escape') {
             onClose();
@@ -116,40 +101,22 @@ const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [], userMaps = [
     return (
         <>
             {userMaps.length > 0 && !showEmojiPicker && (
-                <Box sx={{
-                    position: 'fixed',
-                    top: 'calc(33% - 50px)',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    maxWidth: '600px',
-                    width: '100%',
-                    px: 2,
-                    pb: 1,
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 1,
-                    alignItems: 'center',
-                    backgroundColor: 'transparent',
-                    zIndex: 1301,
-                }}>
-                    {userMaps.map((map) => (
-                        <Chip
-                            key={map.id}
-                            label={map.name}
-                            size="medium"
-                            onClick={() => handleMapToggle(map.id)}
-                            sx={{
-                                cursor: 'pointer',
-                                backgroundColor: selectedMapIds.has(map.id) ? 'primary.main' : 'white',
-                                color: selectedMapIds.has(map.id) ? 'white' : 'text.primary',
-                                boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.15)',
-                                '&:hover': {
-                                    backgroundColor: selectedMapIds.has(map.id) ? 'primary.dark' : 'rgba(220, 220, 220, 1)',
-                                },
-                            }}
-                        />
-                    ))}
-                </Box>
+                <MapChips
+                    userMaps={userMaps}
+                    selectedMapIds={visibleMapIds}
+                    onMapToggle={onMapVisibilityToggle}
+                    sx={{
+                        position: 'fixed',
+                        top: 'calc(33% - 50px)',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        maxWidth: '600px',
+                        width: '100%',
+                        px: 2,
+                        pb: 1,
+                        zIndex: 1301,
+                    }}
+                />
             )}
             <Dialog
                 open={!showEmojiPicker}
