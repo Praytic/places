@@ -182,15 +182,6 @@ export const updateMap = async (mapId, updates) => {
       ...updates,
       updatedAt: Timestamp.now()
     }, { merge: true });
-
-    // If name is updated, update all mapViews' displayedName
-    if (updates.name) {
-      const mapViews = await MapViewService.getMapViewsForMap(mapId);
-      const updatePromises = mapViews.map(view =>
-        MapViewService.updateMapViewDisplayedName(view.mapViewId, updates.name)
-      );
-      await Promise.all(updatePromises);
-    }
   } catch (error) {
     console.error('Error updating map:', error);
     throw error;
@@ -290,6 +281,13 @@ export const unshareMapWithUser = async (mapId, userId) => {
  */
 export const getUserMapRole = async (userId, mapId) => {
   try {
+    // First check if user is the owner (owners don't have MapViews)
+    const map = await getMap(mapId);
+    if (map && map.owner === userId) {
+      return ROLES.OWNER;
+    }
+
+    // Then check MapViews for shared access
     return await MapViewService.getUserMapRole(userId, mapId);
   } catch (error) {
     console.error('Error getting user map role:', error);
@@ -305,8 +303,8 @@ export const getUserMapRole = async (userId, mapId) => {
  */
 export const isMapOwner = async (userId, mapId) => {
   try {
-    const role = await getUserMapRole(userId, mapId);
-    return role === ROLES.OWNER;
+    const map = await getMap(mapId);
+    return map ? map.owner === userId : false;
   } catch (error) {
     console.error('Error checking map ownership:', error);
     return false;
