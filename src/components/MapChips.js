@@ -52,7 +52,7 @@ const MapChips = ({ userMaps = [], selectedMapIds = new Set(), onMapToggle, user
                 {userMaps.map((map) => (
                     <Chip
                         key={map.id}
-                        label={map.name}
+                        label={map.displayedName || map.name}
                         size="medium"
                         onClick={() => onMapToggle && onMapToggle(map.id)}
                         onContextMenu={(e) => handleContextMenu(e, map.id)}

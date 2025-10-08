@@ -65,8 +65,8 @@ export const createMap = async (ownerId, name = 'My Places', isDefault = false) 
     // Create map document
     await setDoc(mapRef, mapData);
 
-    // Create mapView for owner
-    await MapViewService.createMapView(mapRef.id, ownerId, ROLES.OWNER, name);
+    // Note: Owners don't get MapViews - they work directly with the Map entity
+    // MapViews are only created when sharing with other users
 
     return mapData;
   } catch (error) {
@@ -100,7 +100,23 @@ export const getMap = async (mapId) => {
  */
 export const getUserMaps = async (userId) => {
   try {
-    return await MapViewService.getUserMapViews(userId);
+    // Fetch owned maps
+    const ownedMapsQuery = query(
+      collection(db, 'maps'),
+      where('owner', '==', userId)
+    );
+    const ownedMapsSnapshot = await getDocs(ownedMapsQuery);
+    const ownedMaps = ownedMapsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      userRole: ROLES.OWNER
+    }));
+
+    // Fetch shared maps (via MapViews)
+    const sharedMaps = await MapViewService.getUserMapViews(userId);
+
+    // Combine and return
+    return [...ownedMaps, ...sharedMaps];
   } catch (error) {
     console.error('Error getting user maps:', error);
     throw error;
@@ -115,7 +131,38 @@ export const getUserMaps = async (userId) => {
  */
 export const subscribeToUserMaps = (userId, callback) => {
   try {
-    return MapViewService.subscribeToUserMapViews(userId, callback);
+    let ownedMaps = [];
+    let sharedMaps = [];
+
+    const updateCallback = () => {
+      callback([...ownedMaps, ...sharedMaps]);
+    };
+
+    // Subscribe to owned maps
+    const ownedMapsQuery = query(
+      collection(db, 'maps'),
+      where('owner', '==', userId)
+    );
+    const unsubscribeOwned = onSnapshot(ownedMapsQuery, (snapshot) => {
+      ownedMaps = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        userRole: ROLES.OWNER
+      }));
+      updateCallback();
+    });
+
+    // Subscribe to shared maps (via MapViews)
+    const unsubscribeShared = MapViewService.subscribeToUserMapViews(userId, (maps) => {
+      sharedMaps = maps;
+      updateCallback();
+    });
+
+    // Return combined unsubscribe function
+    return () => {
+      unsubscribeOwned();
+      unsubscribeShared();
+    };
   } catch (error) {
     console.error('Error subscribing to user maps:', error);
     return () => {};
@@ -193,6 +240,12 @@ export const shareMapWithUser = async (mapId, userId, role = ROLES.VIEWER) => {
     const map = await getMap(mapId);
     if (!map) {
       throw new Error('Map not found');
+    }
+
+    // Don't create MapView for owner - they work directly with the Map entity
+    if (map.owner === userId) {
+      console.log('Skipping MapView creation for owner - they access the map directly');
+      return;
     }
 
     // Check if mapView already exists

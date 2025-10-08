@@ -17,13 +17,16 @@ import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { createMap, shareMapWithUser, unshareMapWithUser, updateMap, getMapCollaborators, ROLES } from '../services/MapsService';
+import { createMap, shareMapWithUser, unshareMapWithUser, updateMap, getMapCollaborators, deleteMap, ROLES } from '../services/MapsService';
+import { updateMapViewDisplayedName } from '../services/MapViewService';
 
 const ManageMapDialog = ({ userEmail, onMapCreated, onClose, existingMap = null }) => {
   console.log('[ManageMapDialog] Rendering', existingMap ? 'in edit mode' : 'in create mode');
   const isEditMode = !!existingMap;
-  const [mapName, setMapName] = useState(existingMap?.name || '');
+  const isOwner = isEditMode && existingMap.userRole === ROLES.OWNER;
+  const [mapName, setMapName] = useState(existingMap?.displayedName || existingMap?.name || '');
   const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [email, setEmail] = useState('');
   const [emailList, setEmailList] = useState([]);
   const [originalEmailList, setOriginalEmailList] = useState([]);
@@ -102,30 +105,42 @@ const ManageMapDialog = ({ userEmail, onMapCreated, onClose, existingMap = null 
       setError(null);
 
       if (isEditMode) {
-        // Edit mode - update the map name and share with collaborators
-        await updateMap(existingMap.id, { name: trimmedName });
-
-        // Find emails that were removed (in original but not in current list)
-        const currentEmails = emailList.map(item => item.email);
-        const originalEmails = originalEmailList.map(item => item.email);
-        const removedEmails = originalEmails.filter(email => !currentEmails.includes(email));
-
-        // Unshare with removed collaborators
-        for (const email of removedEmails) {
-          try {
-            await unshareMapWithUser(existingMap.id, email);
-          } catch (err) {
-            console.error(`Error unsharing with ${email}:`, err);
+        // Edit mode
+        if (isOwner) {
+          // Owner updates the Map entity directly
+          await updateMap(existingMap.id, { name: trimmedName });
+        } else {
+          // Collaborator updates their MapView's displayedName
+          if (!existingMap.mapViewId) {
+            throw new Error('MapView ID is missing for collaborator');
           }
+          await updateMapViewDisplayedName(existingMap.mapViewId, trimmedName);
         }
 
-        // Share with all emails in the current list (will add new ones or update existing roles)
-        for (const { email, role } of emailList) {
-          try {
-            await shareMapWithUser(existingMap.id, email, role);
-          } catch (err) {
-            console.error(`Error sharing with ${email}:`, err);
-            // Continue with other emails even if one fails
+        // Only owners can manage collaborators
+        if (isOwner) {
+          // Find emails that were removed (in original but not in current list)
+          const currentEmails = emailList.map(item => item.email);
+          const originalEmails = originalEmailList.map(item => item.email);
+          const removedEmails = originalEmails.filter(email => !currentEmails.includes(email));
+
+          // Unshare with removed collaborators
+          for (const email of removedEmails) {
+            try {
+              await unshareMapWithUser(existingMap.id, email);
+            } catch (err) {
+              console.error(`Error unsharing with ${email}:`, err);
+            }
+          }
+
+          // Share with all emails in the current list (will add new ones or update existing roles)
+          for (const { email, role } of emailList) {
+            try {
+              await shareMapWithUser(existingMap.id, email, role);
+            } catch (err) {
+              console.error(`Error sharing with ${email}:`, err);
+              // Continue with other emails even if one fails
+            }
           }
         }
 
@@ -159,10 +174,27 @@ const ManageMapDialog = ({ userEmail, onMapCreated, onClose, existingMap = null 
     onClose();
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete "${existingMap.name}"? This will also delete all places in this map.`)) {
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      setError(null);
+      await deleteMap(existingMap.id);
+      onClose();
+    } catch (err) {
+      console.error('Error deleting map:', err);
+      setError('Failed to delete map. Please try again.');
+      setDeleting(false);
+    }
+  };
+
   return (
     <Dialog open={true} onClose={handleCancel} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        {isEditMode ? 'Edit Map' : 'Create New Map'}
+        {isEditMode ? (isOwner ? 'Edit Map' : 'Rename Map') : 'Create New Map'}
         <IconButton onClick={handleCancel} size="small">
           <CloseIcon />
         </IconButton>
@@ -185,7 +217,8 @@ const ManageMapDialog = ({ userEmail, onMapCreated, onClose, existingMap = null 
           />
         </Box>
 
-        {/* Email Adding Section */}
+        {/* Email Adding Section - Only for owners */}
+        {(!isEditMode || isOwner) && (
         <Box sx={{ mt: 3 }}>
           <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
             Add collaborator by email:
@@ -260,6 +293,7 @@ const ManageMapDialog = ({ userEmail, onMapCreated, onClose, existingMap = null 
           </ListItem>
         </List>
       </Box>
+        )}
 
         {error && (
           <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError(null)}>
@@ -270,21 +304,34 @@ const ManageMapDialog = ({ userEmail, onMapCreated, onClose, existingMap = null 
 
       <Divider />
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, p: 1.5 }}>
-        <Button
-          onClick={handleCancel}
-          disabled={creating}
-          variant="outlined"
-        >
-          Cancel
-        </Button>
-        <Button
-          onClick={handleCreate}
-          disabled={creating || !mapName.trim()}
-          variant="contained"
-        >
-          {creating ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save' : 'Create')}
-        </Button>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, p: 1.5 }}>
+        {isEditMode && isOwner && (
+          <Button
+            onClick={handleDelete}
+            disabled={creating || deleting}
+            variant="outlined"
+            color="error"
+            startIcon={<DeleteIcon />}
+          >
+            {deleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        )}
+        <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
+          <Button
+            onClick={handleCancel}
+            disabled={creating || deleting}
+            variant="outlined"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCreate}
+            disabled={creating || deleting || !mapName.trim()}
+            variant="contained"
+          >
+            {creating ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save' : 'Create')}
+          </Button>
+        </Box>
       </Box>
     </Dialog>
   );
