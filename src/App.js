@@ -4,12 +4,12 @@ import CloseIcon from '@mui/icons-material/Close';
 import MapComponent from './components/MapComponent';
 import ControlPanel from './components/ControlPanel';
 import PlaceSearch from './components/PlaceSearch';
-import ManageMapsDialog from './components/ManageMapsDialog';
+import MapSelectMenu from './components/MapSelectMenu';
 import ShareDialog from './components/ShareDialog';
 import EmojiPicker, {EmojiStyle} from 'emoji-picker-react';
 import Auth from './components/Auth';
 import PlacesService from './services/PlacesService';
-import {createMap, getUserMaps, ROLES} from './services/MapsService';
+import {createMap, getUserMaps, subscribeToUserMaps, ROLES} from './services/MapsService';
 import {auth} from './config/firebase';
 import {getCurrentLocation, hasLocationPermission} from './services/LocationService';
 
@@ -20,6 +20,7 @@ const App = () => {
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [emojiPickerPlace, setEmojiPickerPlace] = useState(null);
     const [showManageMaps, setShowManageMaps] = useState(false);
+    const [mapSelectAnchorEl, setMapSelectAnchorEl] = useState(null);
     const [showShareMap, setShowShareMap] = useState(false);
     const [mapCenter, setMapCenter] = useState(null);
     const [activeFilters, setActiveFilters] = useState(() => {
@@ -63,59 +64,74 @@ const App = () => {
 
     // Get or create user's maps when user changes
     useEffect(() => {
-        const initializeMaps = async () => {
-            if (!currentUser?.email) {
-                setUserMaps([]);
-                setVisibleMapIds(new Set());
-                setCurrentMapId(null);
-                return;
-            }
+        if (!currentUser?.email) {
+            setUserMaps([]);
+            setVisibleMapIds(new Set());
+            setCurrentMapId(null);
+            return;
+        }
 
+        let isFirstUpdate = true;
+
+        // Subscribe to real-time updates of user's maps
+        const unsubscribe = subscribeToUserMaps(currentUser.email, async (maps) => {
             try {
-                // Get user's maps
-                let maps = await getUserMaps(currentUser.email);
-
+                let updatedMaps = maps;
                 let isNewUser = false;
-                if (maps.length === 0) {
-                    // Create a new default map for the user
+
+                // On first update, check if user needs a default map
+                if (isFirstUpdate && maps.length === 0) {
                     const newMap = await createMap(currentUser.email, 'My Places', true);
-                    maps = [{ ...newMap, userRole: ROLES.OWNER }];
+                    updatedMaps = [{ ...newMap, userRole: ROLES.OWNER }];
                     isNewUser = true;
                 }
 
-                setUserMaps(maps);
+                setUserMaps(updatedMaps);
 
-                // Load visible map IDs from localStorage or use default
-                const storageKey = `visibleMaps_${currentUser.email}`;
-                const savedVisibleMaps = localStorage.getItem(storageKey);
+                // On first update, load visible map IDs from localStorage
+                if (isFirstUpdate && updatedMaps.length > 0) {
+                    const storageKey = `visibleMaps_${currentUser.email}`;
+                    const savedVisibleMaps = localStorage.getItem(storageKey);
 
-                let visibleIds;
-                if (savedVisibleMaps) {
-                    // Use saved visibility state
-                    const savedIds = JSON.parse(savedVisibleMaps);
-                    // Filter to only include maps that still exist
-                    const validMapIds = maps.map(m => m.id);
-                    visibleIds = savedIds.filter(id => validMapIds.includes(id));
-                } else {
-                    if (isNewUser) {
-                        // Make default map visible for new users
-                        visibleIds = maps.filter(m => m.isDefault).map(m => m.id);
+                    let visibleIds;
+                    if (savedVisibleMaps) {
+                        const savedIds = JSON.parse(savedVisibleMaps);
+                        const validMapIds = updatedMaps.map(m => m.id);
+                        visibleIds = savedIds.filter(id => validMapIds.includes(id));
                     } else {
-                        // Make only owned maps visible by default for existing users
-                        visibleIds = maps.filter(m => m.userRole === ROLES.OWNER).map(m => m.id);
+                        if (isNewUser) {
+                            visibleIds = updatedMaps.filter(m => m.isDefault).map(m => m.id);
+                        } else {
+                            visibleIds = updatedMaps.filter(m => m.userRole === ROLES.OWNER).map(m => m.id);
+                        }
                     }
+
+                    setVisibleMapIds(new Set(visibleIds));
+                    setCurrentMapId(updatedMaps[0].id);
+                } else if (!isFirstUpdate) {
+                    // On subsequent updates, remove deleted maps from visibleMapIds
+                    setVisibleMapIds(prev => {
+                        const mapIds = new Set(updatedMaps.map(m => m.id));
+                        return new Set([...prev].filter(id => mapIds.has(id)));
+                    });
+
+                    // If currentMapId was deleted, switch to first available map
+                    setCurrentMapId(current => {
+                        if (updatedMaps.length > 0 && !updatedMaps.find(m => m.id === current)) {
+                            return updatedMaps[0].id;
+                        }
+                        return current;
+                    });
                 }
 
-                setVisibleMapIds(new Set(visibleIds));
-                // Set currentMapId to first map for backward compatibility (ShareDialog)
-                setCurrentMapId(maps[0].id);
+                isFirstUpdate = false;
             } catch (err) {
-                console.error('Error initializing maps:', err);
-                setError('Failed to initialize maps');
+                console.error('Error handling maps update:', err);
+                setError('Failed to update maps');
             }
-        };
+        });
 
-        initializeMaps();
+        return () => unsubscribe();
     }, [currentUser]);
 
     // Save visible map IDs to localStorage when they change
@@ -131,36 +147,49 @@ const App = () => {
         localStorage.setItem('activeFilters', JSON.stringify(Array.from(activeFilters)));
     }, [activeFilters]);
 
-    // Subscribe to places when user or visible maps change
+    // Subscribe to places from all user maps (subscribe once, don't recreate on visibility changes)
+    const [allPlaces, setAllPlaces] = useState([]);
+
     useEffect(() => {
-        if (!currentUser?.email || visibleMapIds.size === 0) {
-            setPlaces([]);
+        if (!currentUser?.email || userMaps.length === 0) {
+            setAllPlaces([]);
             setLoading(false);
             return;
         }
 
-        const unsubscribe = PlacesService.subscribeToPlaces(
-            currentUser.email,
+        // Build mapIds and mapRoles from userMaps
+        const mapIds = userMaps.map(m => m.id);
+        const mapRoles = {};
+        userMaps.forEach(m => {
+            mapRoles[m.id] = m.userRole;
+        });
+
+        const unsubscribe = PlacesService.subscribeToPlacesForMaps(
+            mapIds,
+            mapRoles,
             (placesData) => {
-                // Filter places to only show those from visible maps
-                const filteredPlaces = placesData.filter(place => visibleMapIds.has(place.mapId));
-                setPlaces(filteredPlaces);
+                setAllPlaces(placesData);
                 setLoading(false);
             }
         );
         return () => unsubscribe();
-    }, [currentUser, visibleMapIds]);
+    }, [currentUser, userMaps]); // Only recreate when user or maps change, not visibility
+
+    // Filter places based on visibility (no subscription, just filtering)
+    useEffect(() => {
+        const filteredPlaces = allPlaces.filter(place => visibleMapIds.has(place.mapId));
+        setPlaces(filteredPlaces);
+    }, [allPlaces, visibleMapIds]);
 
     const handleAddPlace = () => {
         setShowSearch(true);
     };
 
-    const handlePlaceSelect = async (place) => {
+    const handlePlaceSelect = async (place, mapId) => {
         if (place) {
-            // Add to the first visible map, or currentMapId as fallback
-            const targetMapId = visibleMapIds.size > 0
-                ? Array.from(visibleMapIds)[0]
-                : currentMapId;
+            // Use provided mapId or fall back to first visible map / currentMapId
+            const targetMapId = mapId ||
+                (visibleMapIds.size > 0 ? Array.from(visibleMapIds)[0] : currentMapId);
 
             if (!targetMapId) {
                 setError('No map available to add place');
@@ -309,6 +338,13 @@ const App = () => {
         }
     };
 
+    const handleMapSelect = (mapId) => {
+        // Set the selected map as the only visible map
+        setVisibleMapIds(new Set([mapId]));
+        setCurrentMapId(mapId);
+        setShowManageMaps(false);
+    };
+
     const handleInfoWindowRefUpdate = (ref) => {
         infoWindowRef.current = ref;
     };
@@ -353,6 +389,12 @@ const App = () => {
                         groups={groups}
                         onInfoWindowRefUpdate={handleInfoWindowRefUpdate}
                         center={mapCenter}
+                        userMaps={userMaps}
+                        visibleMapIds={visibleMapIds}
+                        onMapVisibilityToggle={handleMapVisibilityToggle}
+                        showSearch={showSearch}
+                        userEmail={currentUser?.email}
+                        onMapCreated={handleMapsUpdated}
                     />
                 </Box>
 
@@ -360,7 +402,10 @@ const App = () => {
                     onAddPlace={handleAddPlace}
                     onToggleFilter={handleToggleFilter}
                     activeFilters={activeFilters}
-                    onManageMaps={() => setShowManageMaps(true)}
+                    onManageMaps={(event) => {
+                        setMapSelectAnchorEl(event.currentTarget);
+                        setShowManageMaps(true);
+                    }}
                     onShareMap={() => setShowShareMap(true)}
                 />
 
@@ -369,6 +414,9 @@ const App = () => {
                         onPlaceSelect={handlePlaceSelect}
                         onClose={() => setShowSearch(false)}
                         existingPlaces={places}
+                        userMaps={userMaps.filter(map => map.userRole === ROLES.OWNER || map.userRole === ROLES.EDITOR)}
+                        visibleMapIds={visibleMapIds}
+                        onMapVisibilityToggle={handleMapVisibilityToggle}
                     />
                 )}
 
@@ -396,16 +444,26 @@ const App = () => {
                 </Dialog>
 
                 {showManageMaps && currentUser && (
-                    <ManageMapsDialog
-                        open={showManageMaps}
-                        onClose={() => setShowManageMaps(false)}
-                        userEmail={currentUser.email}
-                        userMaps={userMaps}
-                        visibleMapIds={visibleMapIds}
-                        onMapVisibilityToggle={handleMapVisibilityToggle}
-                        onMapsUpdated={handleMapsUpdated}
-                        currentMapId={currentMapId}
-                    />
+                    <>
+                        {console.log('[App] Rendering MapSelectMenu, showManageMaps:', showManageMaps)}
+                        <MapSelectMenu
+                            open={showManageMaps}
+                            onClose={() => {
+                                console.log('[App] MapSelectMenu onClose called');
+                                setShowManageMaps(false);
+                                setMapSelectAnchorEl(null);
+                            }}
+                            userEmail={currentUser.email}
+                            userMaps={userMaps}
+                            currentMapId={currentMapId}
+                            onMapSelect={handleMapSelect}
+                            onMapCreated={handleMapsUpdated}
+                            anchorEl={mapSelectAnchorEl}
+                            visibleMapIds={visibleMapIds}
+                            onMapVisibilityToggle={handleMapVisibilityToggle}
+                            onMapsUpdated={handleMapsUpdated}
+                        />
+                    </>
                 )}
 
                 {showShareMap && currentMapId && currentUser && (

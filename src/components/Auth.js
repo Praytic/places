@@ -1,32 +1,50 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Box, Card, Typography, CircularProgress } from '@mui/material';
 import { auth } from '../config/firebase';
 import { onAuthStateChanged, GoogleAuthProvider } from 'firebase/auth';
 import * as firebaseui from 'firebaseui';
 import 'firebaseui/dist/firebaseui.css';
 import AccountMenu from './AccountMenu';
-import LocationPermissionDialog from './LocationPermissionDialog';
 import { getCurrentLocation, setLocationPermission, isFirstTimeUser, setUserAsReturning } from '../services/LocationService';
 
 const Auth = ({ children, onLocationRequest }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showLocationDialog, setShowLocationDialog] = useState(false);
   const uiRef = useRef(null);
+
+  const handleLocationAllow = useCallback(async () => {
+    try {
+      const location = await getCurrentLocation();
+      setLocationPermission(true);
+      if (user) {
+        setUserAsReturning(user.email);
+      }
+      if (onLocationRequest) {
+        onLocationRequest(location);
+      }
+    } catch (error) {
+      console.error('Error getting location:', error);
+      // Still mark as returning user even if location fails
+      if (user) {
+        setUserAsReturning(user.email);
+      }
+      alert('Unable to get your location. Please check your browser permissions.');
+    }
+  }, [user, onLocationRequest]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
 
-      // Check if this is a first-time user and show location dialog
+      // Call location allow directly for first-time users
       if (currentUser && isFirstTimeUser(currentUser.email)) {
-        setShowLocationDialog(true);
+        handleLocationAllow();
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [handleLocationAllow]);
 
   useEffect(() => {
     if (!user && !loading) {
@@ -58,34 +76,6 @@ const Auth = ({ children, onLocationRequest }) => {
     };
   }, [user, loading]);
 
-  const handleLocationAllow = async () => {
-    try {
-      const location = await getCurrentLocation();
-      setLocationPermission(true);
-      if (user) {
-        setUserAsReturning(user.email);
-      }
-      if (onLocationRequest) {
-        onLocationRequest(location);
-      }
-      setShowLocationDialog(false);
-    } catch (error) {
-      console.error('Error getting location:', error);
-      // Still mark as returning user even if location fails
-      if (user) {
-        setUserAsReturning(user.email);
-      }
-      setShowLocationDialog(false);
-      alert('Unable to get your location. Please check your browser permissions.');
-    }
-  };
-
-  const handleLocationSkip = () => {
-    if (user) {
-      setUserAsReturning(user.email);
-    }
-    setShowLocationDialog(false);
-  };
 
   if (loading) {
     return (
@@ -139,11 +129,6 @@ const Auth = ({ children, onLocationRequest }) => {
     <div>
       <AccountMenu user={user} onLocationRequest={onLocationRequest} />
       {children}
-      <LocationPermissionDialog
-        open={showLocationDialog}
-        onAllow={handleLocationAllow}
-        onSkip={handleLocationSkip}
-      />
     </div>
   );
 };

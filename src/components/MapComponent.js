@@ -5,6 +5,7 @@ import {createRegularMarker, createSelectedMarker} from '../utils/markerTemplate
 import {createInfoWindow} from '../utils/infoWindow';
 import {createCustomEqual} from 'fast-equals';
 import {isLatLngLiteral} from '@googlemaps/typescript-guards';
+import MapChips from './MapChips';
 
 const deepCompareEqualsForMaps = createCustomEqual((deepEqual) => (a, b) => {
     if (
@@ -253,7 +254,13 @@ const MapComponent = ({
                           activeFilters,
                           onInfoWindowRefUpdate,
                           center: propCenter,
-                          onMapReady
+                          onMapReady,
+                          userMaps = [],
+                          visibleMapIds = new Set(),
+                          onMapVisibilityToggle,
+                          showSearch = false,
+                          userEmail,
+                          onMapCreated
                       }) => {
     const [center, setCenter] = useState(propCenter || {lat: 37.7749, lng: -122.4194});
     const [zoom] = useState(13);
@@ -311,6 +318,25 @@ const MapComponent = ({
                     onInfoWindowRefUpdate={onInfoWindowRefUpdate}
                 />
             </MapWrapper>
+            {userMaps.length > 0 && !showSearch && (
+                <MapChips
+                    userMaps={userMaps}
+                    selectedMapIds={visibleMapIds}
+                    onMapToggle={onMapVisibilityToggle}
+                    userEmail={userEmail}
+                    onMapCreated={onMapCreated}
+                    sx={{
+                        position: 'absolute',
+                        top: 16,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        maxWidth: '600px',
+                        width: 'auto',
+                        px: 2,
+                        zIndex: 1000,
+                    }}
+                />
+            )}
         </Wrapper>
     );
 };

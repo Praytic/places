@@ -2,8 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Box, Dialog, DialogContent, TextField, IconButton, List, ListItem, ListItemButton, ListItemText, Typography, CircularProgress } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import EmojiPicker, {EmojiStyle} from 'emoji-picker-react';
+import MapChips from './MapChips';
 
-const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [] }) => {
+const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [], userMaps = [], visibleMapIds = new Set(), onMapVisibilityToggle }) => {
     const [query, setQuery] = useState('');
     const [suggestions, setSuggestions] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -70,13 +71,18 @@ const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [] }) => {
         }
     };
 
-    const handleEmojiSelect = (emojiObject) => {
-        if (selectedPlaceData) {
+    const handleEmojiSelect = async (emojiObject) => {
+        if (selectedPlaceData && visibleMapIds.size > 0) {
             const placeWithEmoji = {
                 ...selectedPlaceData,
                 emoji: emojiObject.emoji
             };
-            onPlaceSelect(placeWithEmoji);
+
+            // Create the place on each visible/selected map
+            for (const mapId of visibleMapIds) {
+                await onPlaceSelect(placeWithEmoji, mapId);
+            }
+
             onClose();
         }
     };
@@ -94,8 +100,27 @@ const PlaceSearch = ({ onPlaceSelect, onClose, existingPlaces = [] }) => {
 
     return (
         <>
+            {userMaps.length > 0 && !showEmojiPicker && (
+                <MapChips
+                    userMaps={userMaps}
+                    selectedMapIds={visibleMapIds}
+                    onMapToggle={onMapVisibilityToggle}
+                    enableManagement={false}
+                    sx={{
+                        position: 'fixed',
+                        top: 'calc(33% - 50px)',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        maxWidth: '600px',
+                        width: '100%',
+                        px: 2,
+                        pb: 1,
+                        zIndex: 1301,
+                    }}
+                />
+            )}
             <Dialog
-                open={true}
+                open={!showEmojiPicker}
                 onClose={onClose}
                 maxWidth="sm"
                 fullWidth

@@ -140,7 +140,7 @@ const ControlPanel = ({
                 </IconButton>
 
                 <IconButton
-                    onClick={onManageMaps}
+                    onClick={(e) => onManageMaps(e)}
                     title="Manage Maps"
                     sx={{
                         minWidth: 48,
