@@ -1,149 +1,73 @@
 /**
- * Unit test documenting the camera positioning bug in MapComponent
+ * Unit test documenting the camera positioning behavior in MapComponent
  *
- * This test verifies the expected behavior when a marker is clicked and the camera positioning.
- * It documents the current bug where the camera moves to user location instead of staying on the selected marker.
+ * This test verifies that the camera NEVER auto-pans to user location.
+ * Camera control is entirely manual - it only moves when the user interacts with the map.
  */
 
-describe('MapComponent - Camera Positioning Bug Documentation', () => {
-  /**
-   * This test documents the expected flow and current bug
-   */
-  it('should document the camera positioning bug', () => {
-    // SCENARIO: User clicks on a marker on the map
+describe('MapComponent - Camera Positioning (No Auto-Pan)', () => {
+  it('should document that camera never auto-pans to user location', () => {
+    // SCENARIO: User location updates
 
-    const markerLocation = { lat: 37.7749, lng: -122.4194 }; // San Francisco
     const userLocation = { lat: 40.7128, lng: -74.0060 }; // New York
 
-    // STEP 1: Marker is clicked
-    // Expected: onPlaceSelect is called with the place
-    const mockOnPlaceSelect = jest.fn();
+    const mockMap = { panTo: jest.fn() };
+
+    // CURRENT BEHAVIOR: No auto-panning
+    // Camera does not automatically follow user location updates
+
+    // User location updates, but camera doesn't move
+    const centerProp = userLocation;
+
+    // Camera only moves on manual user interaction (clicking, dragging)
+    // No automatic panTo() is called
+
+    expect(mockMap.panTo).not.toHaveBeenCalled();
+  });
+
+  it('should open InfoWindow when marker is clicked without camera movement', () => {
     const mockPlace = {
       id: 'place-1',
       name: 'Test Restaurant',
-      geometry: { location: markerLocation },
+      geometry: { location: { lat: 37.7749, lng: -122.4194 } },
     };
+
+    const mockOnPlaceSelect = jest.fn();
+    const mockInfoWindow = { open: jest.fn(), close: jest.fn() };
 
     // Simulate marker click
     mockOnPlaceSelect(mockPlace);
     expect(mockOnPlaceSelect).toHaveBeenCalledWith(mockPlace);
 
-    // STEP 2: InfoWindow should open
-    // Expected: InfoWindow is created and opened at marker location
-    const mockInfoWindow = { open: jest.fn(), close: jest.fn() };
+    // InfoWindow opens (with disableAutoPan: false, Google Maps handles the pan)
     mockInfoWindow.open();
     expect(mockInfoWindow.open).toHaveBeenCalled();
 
-    // STEP 3: Camera should center on marker
-    // Expected: map.panTo(markerLocation)
-    const mockMap = { panTo: jest.fn() };
-
-    // CURRENT BEHAVIOR (BUG):
-    // If user location changes after marker selection, the map pans to user location
-    // instead of staying on the marker
-
-    // Simulate the bug: center prop changes due to user location update
-    const centerProp = userLocation; // This comes from useCurrentLocation in App.tsx
-
-    // This is what currently happens in MapComponent.tsx:332-340
-    if (centerProp) {
-      mockMap.panTo(centerProp); // BUG: Pans to user location instead of marker
-    }
-
-    // ACTUAL RESULT:
-    expect(mockMap.panTo).toHaveBeenCalledWith(userLocation);
-
-    // EXPECTED RESULT (not current):
-    // expect(mockMap.panTo).toHaveBeenCalledWith(markerLocation);
-    // or expect(mockMap.panTo).not.toHaveBeenCalled(); // if marker is selected
+    // Our code does NOT call panTo - Google Maps InfoWindow handles it
   });
 
-  it('should allow camera to follow user location only on initial load', () => {
-    const userLocation1 = { lat: 37.7749, lng: -122.4194 };
-    const userLocation2 = { lat: 40.7128, lng: -74.0060 };
-
-    const mockMap = { panTo: jest.fn() };
-    const hasUserInteracted = false; // No interaction yet
-
-    // CURRENT BEHAVIOR:
-    // Camera follows user location only before user has interacted with the map
-    const centerProp = userLocation2;
-
-    if (centerProp && !hasUserInteracted) {
-      mockMap.panTo(centerProp);
-    }
-
-    expect(mockMap.panTo).toHaveBeenCalledWith(userLocation2);
-  });
-
-  it('should stay on marker when marker is selected (proposed fix)', () => {
-    const markerLocation = { lat: 37.7749, lng: -122.4194 };
+  it('should NOT pan when InfoWindow is closed', () => {
     const userLocation = { lat: 40.7128, lng: -74.0060 };
 
     const mockMap = { panTo: jest.fn() };
-    const selectedPlace = { id: 'place-1', geometry: { location: markerLocation } };
-    const hasUserInteracted = true; // User has clicked a marker
 
-    // PROPOSED FIX:
-    // Don't pan to user location after user has interacted
+    // InfoWindow closed, user location updates
     const centerProp = userLocation;
 
-    if (centerProp && !hasUserInteracted) {
-      mockMap.panTo(centerProp);
-    }
-
-    // With this fix, camera doesn't pan when user has interacted
-    expect(mockMap.panTo).not.toHaveBeenCalled();
-  });
-
-  it('should NOT pan to user location when InfoWindow is closed', () => {
-    const markerLocation = { lat: 37.7749, lng: -122.4194 };
-    const userLocation = { lat: 40.7128, lng: -74.0060 };
-
-    const mockMap = { panTo: jest.fn() };
-    const selectedPlace = null; // InfoWindow closed, marker deselected
-    const hasUserInteracted = true; // User previously interacted
-
-    // IMPORTANT: Camera should NOT pan back to user location after closing InfoWindow
-    const centerProp = userLocation;
-
-    if (centerProp && !hasUserInteracted) {
-      mockMap.panTo(centerProp);
-    }
-
-    // Camera stays where it is (doesn't pan to user location)
+    // No auto-panning ever
     expect(mockMap.panTo).not.toHaveBeenCalled();
   });
 });
 
 /**
- * Fix Implementation:
+ * Implementation:
  *
- * In MapComponent.tsx, use a ref to track if user has interacted:
+ * Auto-panning has been completely removed from MapComponent.tsx.
  *
- * ```typescript
- * const hasUserInteractedRef = useRef(false);
+ * The camera is controlled by:
+ * 1. Initial center prop (static, no panning on updates)
+ * 2. Google Maps InfoWindow's built-in auto-pan (when opening InfoWindow)
+ * 3. Manual user interaction (clicking, dragging the map)
  *
- * // Only follow user location on initial load, not after user has interacted
- * useEffect(() => {
- *   if (propCenter && !hasUserInteractedRef.current) {
- *     setCenter(propCenter);
- *     if (mapRef.current) {
- *       mapRef.current.panTo(propCenter);
- *     }
- *   }
- * }, [propCenter]);
- *
- * // Mark as interacted when a place is selected
- * useEffect(() => {
- *   if (selectedPlace) {
- *     hasUserInteractedRef.current = true;
- *   }
- * }, [selectedPlace]);
- * ```
- *
- * This ensures:
- * 1. Camera follows user location only on initial map load
- * 2. Once user clicks a marker, camera stops auto-following
- * 3. When InfoWindow closes, camera stays where it is (doesn't pan back)
+ * No code actively calls map.panTo() for user location tracking.
  */

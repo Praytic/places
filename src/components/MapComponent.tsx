@@ -52,20 +52,24 @@ interface MapWrapperProps {
   mapId?: string;
 }
 
-const MapWrapper: React.FC<MapWrapperProps> = ({ onClick, onIdle, children, sx, onMapReady, ...options }) => {
+const MapWrapper: React.FC<MapWrapperProps> = ({ onClick, onIdle, children, sx, onMapReady, center, zoom, ...options }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>();
 
   useEffect(() => {
     if (ref.current && !map) {
-      const newMap = new (window as any).google.maps.Map(ref.current, {});
+      const newMap = new (window as any).google.maps.Map(ref.current, {
+        center,
+        zoom,
+      });
       setMap(newMap);
       if (onMapReady) {
         onMapReady(newMap);
       }
     }
-  }, [ref, map, onMapReady]);
+  }, [ref, map, onMapReady, center, zoom]);
 
+  // Update only non-camera options (exclude center and zoom to prevent auto-panning)
   useDeepCompareEffectForMaps(() => {
     if (map) {
       map.setOptions(options);
@@ -325,27 +329,9 @@ const MapComponent: React.FC<MapComponentProps> = ({
   userEmail,
   onMapCreated
 }) => {
-  const [center, setCenter] = useState<Location>(propCenter || { lat: 37.7749, lng: -122.4194 });
+  const center = propCenter || { lat: 37.7749, lng: -122.4194 };
   const [zoom] = useState(13);
   const mapRef = useRef<any | null>(null);
-  const hasUserInteractedRef = useRef(false);
-
-  // Only follow user location on initial load, not after user has interacted
-  useEffect(() => {
-    if (propCenter && !hasUserInteractedRef.current) {
-      setCenter(propCenter);
-      if (mapRef.current) {
-        mapRef.current.panTo(propCenter);
-      }
-    }
-  }, [propCenter]);
-
-  // Mark as interacted when a place is selected
-  useEffect(() => {
-    if (selectedPlace) {
-      hasUserInteractedRef.current = true;
-    }
-  }, [selectedPlace]);
 
   const onClick = (e: any) => {
     if (onMapClick && e.latLng) {
