@@ -1,4 +1,3 @@
-/* global google */
 import React, { useRef, useEffect, useState } from 'react';
 import { Wrapper } from '@googlemaps/react-wrapper';
 import { createRegularMarker, createSelectedMarker } from '../shared/utils/markerTemplates';
@@ -7,9 +6,6 @@ import { createCustomEqual } from 'fast-equals';
 import { isLatLngLiteral } from '@googlemaps/typescript-guards';
 import MapChips from './MapChips';
 import { Place, PlaceGroup, FilterSet, Location, PlaceMapWithRole, VisibleMapIds, UserRole } from '../shared/types/domain';
-
-// Declare google as any to avoid TypeScript errors with dynamically loaded Google Maps
-declare const google: any;
 
 const deepCompareEqualsForMaps = createCustomEqual({
   createCustomConfig: () => ({
@@ -79,7 +75,7 @@ const MapWrapper: React.FC<MapWrapperProps> = ({ onClick, onIdle, children, sx, 
   useEffect(() => {
     if (map) {
       ['click', 'idle'].forEach((eventName) =>
-        google.maps.event.clearListeners(map, eventName)
+        (window as any).google.maps.event.clearListeners(map, eventName)
       );
 
       if (onClick) {

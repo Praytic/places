@@ -257,7 +257,6 @@ export const shareMapWithUser = async (
 
     // Don't create MapView for owner - they work directly with the Map entity
     if (map.owner === userId) {
-      console.log('Skipping MapView creation for owner - they access the map directly');
       return;
     }
 

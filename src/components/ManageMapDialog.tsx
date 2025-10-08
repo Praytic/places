@@ -34,7 +34,6 @@ interface ManageMapDialogProps {
 }
 
 const ManageMapDialog: React.FC<ManageMapDialogProps> = ({ userEmail, onMapCreated, onClose, existingMap = null }) => {
-  console.log('[ManageMapDialog] Rendering', existingMap ? 'in edit mode' : 'in create mode');
   const isEditMode = !!existingMap;
   const isOwner = isEditMode && existingMap.userRole === ROLES.OWNER;
   const [mapName, setMapName] = useState(existingMap?.displayedName || existingMap?.name || '');

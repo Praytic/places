@@ -57,32 +57,24 @@ const MapSelectMenu: React.FC<MapSelectMenuProps> = ({
 
   const handleChange = (event: SelectChangeEvent) => {
     const value = event.target.value;
-    console.log('[MapSelectMenu] handleChange called with value:', value);
 
     if (value === 'create-new') {
-      console.log('[MapSelectMenu] Setting pendingCreateRef=true and showCreateDialog=true');
       pendingCreateRef.current = true;
       setShowCreateDialog(true);
     } else {
-      console.log('[MapSelectMenu] Selecting map:', value);
       onMapSelect(value);
     }
   };
 
   const handleSelectClose = () => {
-    console.log('[MapSelectMenu] handleSelectClose called, pendingCreateRef.current:', pendingCreateRef.current);
     // Don't close the parent if we're opening the create dialog
     if (!pendingCreateRef.current) {
-      console.log('[MapSelectMenu] Calling onClose()');
       onClose();
-    } else {
-      console.log('[MapSelectMenu] Skipping onClose() because pendingCreateRef=true');
     }
     pendingCreateRef.current = false;
   };
 
   const handleMapCreated = async (mapId?: string) => {
-    console.log('[MapSelectMenu] handleMapCreated called with mapId:', mapId);
     setShowCreateDialog(false);
     onClose();
     if (onMapCreated) {
@@ -170,8 +162,6 @@ const MapSelectMenu: React.FC<MapSelectMenuProps> = ({
       onMapVisibilityToggle(mapId);
     }
   };
-
-  console.log('[MapSelectMenu] Rendering, showCreateDialog:', showCreateDialog, 'open:', open);
 
   return (
     <>
