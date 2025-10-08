@@ -180,24 +180,25 @@ export class PlacesService {
    */
   static subscribeToPlaces(userId, callback) {
     try {
-      // Query maps where user is in accessList array
-      const mapsQuery = query(
-        collection(db, 'maps'),
-        where('accessList', 'array-contains', userId)
+      // Query mapViews where user is the collaborator
+      const mapViewsQuery = query(
+        collection(db, 'mapViews'),
+        where('collaborator', '==', userId)
       );
 
-      return onSnapshot(mapsQuery, async (mapsSnapshot) => {
+      return onSnapshot(mapViewsQuery, async (mapViewsSnapshot) => {
         try {
-          if (mapsSnapshot.empty) {
+          if (mapViewsSnapshot.empty) {
             callback([]);
             return;
           }
 
-          // Get map IDs and roles
-          const mapIds = mapsSnapshot.docs.map(doc => doc.id);
+          // Get map IDs and roles from mapViews
+          const mapIds = mapViewsSnapshot.docs.map(doc => doc.data().mapId);
           const mapRoles = {};
-          mapsSnapshot.docs.forEach(doc => {
-            mapRoles[doc.id] = doc.data().access[userId];
+          mapViewsSnapshot.docs.forEach(doc => {
+            const mapViewData = doc.data();
+            mapRoles[mapViewData.mapId] = mapViewData.role;
           });
 
           // Subscribe to places from all maps

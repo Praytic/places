@@ -12,12 +12,29 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import * as MapViewService from './MapViewService';
 
 // Role constants
 export const ROLES = {
   OWNER: 'owner',
   EDITOR: 'editor',
   VIEWER: 'viewer'
+};
+
+/**
+ * Get count of maps owned by user
+ * @param {string} userId - User email
+ * @returns {Promise<number>} Number of maps owned by user
+ */
+export const getUserMapCount = async (userId) => {
+  try {
+    const q = query(collection(db, 'maps'), where('owner', '==', userId));
+    const snapshot = await getDocs(q);
+    return snapshot.size;
+  } catch (error) {
+    console.error('Error getting user map count:', error);
+    return 0;
+  }
 };
 
 /**
@@ -29,15 +46,17 @@ export const ROLES = {
  */
 export const createMap = async (ownerId, name = 'My Places', isDefault = false) => {
   try {
+    // Check if user can create more maps (client-side validation)
+    const mapCount = await getUserMapCount(ownerId);
+    if (mapCount >= 5) {
+      throw new Error('Maximum of 5 maps allowed per user');
+    }
+
     const mapRef = doc(collection(db, 'maps'));
     const mapData = {
       id: mapRef.id,
       name,
       owner: ownerId,
-      accessList: [ownerId],
-      access: {
-        [ownerId]: ROLES.OWNER
-      },
       isDefault,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now()
@@ -45,6 +64,9 @@ export const createMap = async (ownerId, name = 'My Places', isDefault = false) 
 
     // Create map document
     await setDoc(mapRef, mapData);
+
+    // Create mapView for owner
+    await MapViewService.createMapView(mapRef.id, ownerId, ROLES.OWNER, name);
 
     return mapData;
   } catch (error) {
@@ -78,26 +100,7 @@ export const getMap = async (mapId) => {
  */
 export const getUserMaps = async (userId) => {
   try {
-    // Query maps where user is in accessList array
-    const q = query(collection(db, 'maps'), where('accessList', 'array-contains', userId));
-    const mapsSnapshot = await getDocs(q);
-
-    if (mapsSnapshot.empty) {
-      return [];
-    }
-
-    // Map to include user's role
-    const maps = mapsSnapshot.docs
-      .map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
-      .map(map => ({
-        ...map,
-        userRole: map.access[userId]
-      }));
-
-    return maps;
+    return await MapViewService.getUserMapViews(userId);
   } catch (error) {
     console.error('Error getting user maps:', error);
     throw error;
@@ -112,32 +115,7 @@ export const getUserMaps = async (userId) => {
  */
 export const subscribeToUserMaps = (userId, callback) => {
   try {
-    // Subscribe to maps where user is in accessList array
-    const q = query(collection(db, 'maps'), where('accessList', 'array-contains', userId));
-    return onSnapshot(q, (snapshot) => {
-      try {
-        if (snapshot.empty) {
-          callback([]);
-          return;
-        }
-
-        // Map to include user's role
-        const maps = snapshot.docs
-          .map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }))
-          .map(map => ({
-            ...map,
-            userRole: map.access[userId]
-          }));
-
-        callback(maps);
-      } catch (error) {
-        console.error('Error in maps subscription:', error);
-        callback([]);
-      }
-    });
+    return MapViewService.subscribeToUserMapViews(userId, callback);
   } catch (error) {
     console.error('Error subscribing to user maps:', error);
     return () => {};
@@ -157,6 +135,15 @@ export const updateMap = async (mapId, updates) => {
       ...updates,
       updatedAt: Timestamp.now()
     }, { merge: true });
+
+    // If name is updated, update all mapViews' displayedName
+    if (updates.name) {
+      const mapViews = await MapViewService.getMapViewsForMap(mapId);
+      const updatePromises = mapViews.map(view =>
+        MapViewService.updateMapViewDisplayedName(view.mapViewId, updates.name)
+      );
+      await Promise.all(updatePromises);
+    }
   } catch (error) {
     console.error('Error updating map:', error);
     throw error;
@@ -184,6 +171,9 @@ export const deleteMap = async (mapId) => {
     });
 
     await batch.commit();
+
+    // Delete all mapViews for this map
+    await MapViewService.deleteMapViewsForMap(mapId);
   } catch (error) {
     console.error('Error deleting map:', error);
     throw error;
@@ -199,31 +189,22 @@ export const deleteMap = async (mapId) => {
  */
 export const shareMapWithUser = async (mapId, userId, role = ROLES.VIEWER) => {
   try {
-    const mapRef = doc(db, 'maps', mapId);
-    const mapDoc = await getDoc(mapRef);
-
-    if (!mapDoc.exists()) {
+    // Get the map to get its name
+    const map = await getMap(mapId);
+    if (!map) {
       throw new Error('Map not found');
     }
 
-    const mapData = mapDoc.data();
-    const newAccessList = mapData.accessList || [];
-    const newAccess = { ...(mapData.access || {}) };
+    // Check if mapView already exists
+    const existingMapView = await MapViewService.getMapView(mapId, userId);
 
-    // Add user to accessList if not already present
-    if (!newAccessList.includes(userId)) {
-      newAccessList.push(userId);
+    if (existingMapView) {
+      // Update existing mapView role
+      await MapViewService.updateMapViewRole(existingMapView.id, role);
+    } else {
+      // Create new mapView
+      await MapViewService.createMapView(mapId, userId, role, map.name);
     }
-
-    // Update the role in access object
-    newAccess[userId] = role;
-
-    // Update both accessList and access role
-    await setDoc(mapRef, {
-      accessList: newAccessList,
-      access: newAccess,
-      updatedAt: Timestamp.now()
-    }, { merge: true });
   } catch (error) {
     console.error('Error sharing map:', error);
     throw error;
@@ -238,25 +219,9 @@ export const shareMapWithUser = async (mapId, userId, role = ROLES.VIEWER) => {
  */
 export const unshareMapWithUser = async (mapId, userId) => {
   try {
-    const mapRef = doc(db, 'maps', mapId);
-    const mapDoc = await getDoc(mapRef);
-
-    if (mapDoc.exists()) {
-      const mapData = mapDoc.data();
-
-      // Remove user from accessList
-      const newAccessList = (mapData.accessList || []).filter(id => id !== userId);
-
-      // Remove user from access object by creating a new object without them
-      const newAccess = { ...mapData.access };
-      delete newAccess[userId];
-
-      // Update the entire access object
-      await updateDoc(mapRef, {
-        access: newAccess,
-        accessList: newAccessList,
-        updatedAt: Timestamp.now()
-      });
+    const mapView = await MapViewService.getMapView(mapId, userId);
+    if (mapView) {
+      await MapViewService.deleteMapView(mapView.id);
     }
   } catch (error) {
     console.error('Error unsharing map:', error);
@@ -272,12 +237,7 @@ export const unshareMapWithUser = async (mapId, userId) => {
  */
 export const getUserMapRole = async (userId, mapId) => {
   try {
-    const mapDoc = await getDoc(doc(db, 'maps', mapId));
-    if (mapDoc.exists()) {
-      const mapData = mapDoc.data();
-      return mapData.access?.[userId] || null;
-    }
-    return null;
+    return await MapViewService.getUserMapRole(userId, mapId);
   } catch (error) {
     console.error('Error getting user map role:', error);
     throw error;
@@ -307,18 +267,7 @@ export const isMapOwner = async (userId, mapId) => {
  */
 export const getMapCollaborators = async (mapId) => {
   try {
-    const mapDoc = await getDoc(doc(db, 'maps', mapId));
-    if (!mapDoc.exists()) {
-      return [];
-    }
-
-    const mapData = mapDoc.data();
-    const access = mapData.access || {};
-
-    return Object.entries(access).map(([userId, userRole]) => ({
-      userId,
-      userRole
-    }));
+    return await MapViewService.getMapViewsForMap(mapId);
   } catch (error) {
     console.error('Error getting map collaborators:', error);
     return [];
@@ -375,3 +324,4 @@ export const getSharedWithUsers = async (userId) => {
     return [];
   }
 };
+
