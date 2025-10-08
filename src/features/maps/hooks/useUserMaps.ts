@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { PlaceMap } from '../../../shared/types';
+import { PlaceMapWithRole } from '../../../shared/types';
 import { subscribeToUserMaps, createMap, ROLES } from '../../../services/MapsService';
 
 /**
@@ -11,7 +11,7 @@ import { subscribeToUserMaps, createMap, ROLES } from '../../../services/MapsSer
  *
  * @param {string | null} userId - The user's email address (used as user ID)
  * @returns {Object} Maps state and controls
- * @returns {PlaceMap[]} maps - Array of maps accessible to the user
+ * @returns {PlaceMapWithRole[]} maps - Array of maps accessible to the user
  * @returns {boolean} loading - True while maps are being fetched
  * @returns {string | null} error - Error message if map operations fail
  * @returns {string | null} currentMapId - ID of the currently selected map
@@ -32,13 +32,13 @@ import { subscribeToUserMaps, createMap, ROLES } from '../../../services/MapsSer
 export const useUserMaps = (
   userId: string | null
 ): {
-  maps: PlaceMap[];
+  maps: PlaceMapWithRole[];
   loading: boolean;
   error: string | null;
   currentMapId: string | null;
   setCurrentMapId: React.Dispatch<React.SetStateAction<string | null>>;
 } => {
-  const [maps, setMaps] = useState<PlaceMap[]>([]);
+  const [maps, setMaps] = useState<PlaceMapWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentMapId, setCurrentMapId] = useState<string | null>(null);
@@ -53,14 +53,14 @@ export const useUserMaps = (
 
     let isFirstUpdate = true;
 
-    const unsubscribe = subscribeToUserMaps(userId, async (userMaps: PlaceMap[]) => {
+    const unsubscribe = subscribeToUserMaps(userId, async (userMaps: PlaceMapWithRole[]) => {
       try {
         let updatedMaps = userMaps;
 
         // On first update, check if user needs a default map
         if (isFirstUpdate && userMaps.length === 0) {
           const newMap = await createMap(userId, 'My Places', true);
-          updatedMaps = [{ ...newMap, userRole: ROLES.OWNER } as PlaceMap];
+          updatedMaps = [{ ...newMap, userRole: ROLES.OWNER } as PlaceMapWithRole];
         }
 
         setMaps(updatedMaps);

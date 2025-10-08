@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode, useCallback, useMemo } from 'react';
-import { PlaceMap, VisibleMapIds } from '../shared/types';
+import { PlaceMapWithRole, VisibleMapIds } from '../shared/types';
 import { useUserMaps, useVisibleMaps } from '../features/maps/hooks';
 import { useAuthContext } from './AuthProvider';
 
@@ -7,7 +7,7 @@ import { useAuthContext } from './AuthProvider';
  * Context value provided by MapsProvider
  */
 interface MapsContextValue {
-  maps: PlaceMap[];
+  maps: PlaceMapWithRole[];
   loading: boolean;
   error: string | null;
   currentMapId: string | null;
@@ -81,6 +81,8 @@ export const MapsProvider: React.FC<MapsProviderProps> = ({ children }) => {
 
   const { maps, loading, error, currentMapId, setCurrentMapId } = useUserMaps(userId);
 
+  const availableMapIds = useMemo(() => maps.map((m) => m.id), [maps]);
+
   const defaultMapIds = useMemo(
     () => (maps.length > 0 ? [maps[0]?.id ?? ''].filter(Boolean) : []),
     [maps]
@@ -88,7 +90,7 @@ export const MapsProvider: React.FC<MapsProviderProps> = ({ children }) => {
 
   const { visibleMapIds, toggleMapVisibility } = useVisibleMaps(
     userId,
-    maps.map((m) => m.id),
+    availableMapIds,
     defaultMapIds
   );
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Place, PlaceMap, UserRole } from '../../../shared/types';
+import { Place, PlaceMapWithRole, UserRole } from '../../../shared/types';
 import PlacesService from '../../../services/PlacesService';
 
 /**
@@ -9,7 +9,7 @@ import PlacesService from '../../../services/PlacesService';
  * both unfiltered and filtered views based on visible map IDs.
  * Manages selected place state for map interactions.
  *
- * @param {PlaceMap[]} maps - Array of maps accessible to the user
+ * @param {PlaceMapWithRole[]} maps - Array of maps accessible to the user
  * @param {Set<string>} visibleMapIds - Set of map IDs to show places from
  * @returns {Object} Places state and controls
  * @returns {Place[]} allPlaces - All places from accessible maps
@@ -32,7 +32,7 @@ import PlacesService from '../../../services/PlacesService';
  * ```
  */
 export const usePlaces = (
-  maps: PlaceMap[],
+  maps: PlaceMapWithRole[],
   visibleMapIds: Set<string>
 ): {
   allPlaces: Place[];
