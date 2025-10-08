@@ -173,7 +173,56 @@ export class PlacesService {
   }
 
   /**
+   * Set up real-time listener for places from specific maps
+   * @param {Array<string>} mapIds - Array of map IDs to subscribe to
+   * @param {Object} mapRoles - Map of mapId -> role
+   * @param {Function} callback - Callback function to handle data updates
+   * @returns {Function} Unsubscribe function
+   */
+  static subscribeToPlacesForMaps(mapIds, mapRoles, callback) {
+    try {
+      if (!mapIds || mapIds.length === 0) {
+        callback([]);
+        return () => {};
+      }
+
+      const placesQuery = query(
+        collection(db, PLACES_COLLECTION),
+        where('mapId', 'in', mapIds)
+      );
+
+      return onSnapshot(
+        placesQuery,
+        (placesSnapshot) => {
+          const places = placesSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            userRole: mapRoles[doc.data().mapId]
+          }));
+
+          // Sort by createdAt in descending order
+          places.sort((a, b) => {
+            const aTime = a.createdAt?.toDate?.() || new Date(0);
+            const bTime = b.createdAt?.toDate?.() || new Date(0);
+            return bTime - aTime;
+          });
+
+          callback(places);
+        },
+        (error) => {
+          console.error('Error in places subscription:', error);
+          callback([]);
+        }
+      );
+    } catch (error) {
+      console.error('Error setting up places subscription:', error);
+      return () => {};
+    }
+  }
+
+  /**
    * Set up real-time listener for places accessible to the user (from all their maps)
+   * @deprecated Use subscribeToPlacesForMaps instead to avoid nested subscriptions
    * @param {string} userId - Current user's ID (email)
    * @param {Function} callback - Callback function to handle data updates
    * @returns {Function} Unsubscribe function
@@ -201,28 +250,27 @@ export class PlacesService {
             mapRoles[mapViewData.mapId] = mapViewData.role;
           });
 
-          // Subscribe to places from all maps
+          // Fetch places directly (not nested subscription)
           const placesQuery = query(
             collection(db, PLACES_COLLECTION),
             where('mapId', 'in', mapIds)
           );
 
-          return onSnapshot(placesQuery, (placesSnapshot) => {
-            const places = placesSnapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data(),
-              userRole: mapRoles[doc.data().mapId]
-            }));
+          const placesSnapshot = await getDocs(placesQuery);
+          const places = placesSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            userRole: mapRoles[doc.data().mapId]
+          }));
 
-            // Sort by createdAt in descending order
-            places.sort((a, b) => {
-              const aTime = a.createdAt?.toDate?.() || new Date(0);
-              const bTime = b.createdAt?.toDate?.() || new Date(0);
-              return bTime - aTime;
-            });
-
-            callback(places);
+          // Sort by createdAt in descending order
+          places.sort((a, b) => {
+            const aTime = a.createdAt?.toDate?.() || new Date(0);
+            const bTime = b.createdAt?.toDate?.() || new Date(0);
+            return bTime - aTime;
           });
+
+          callback(places);
         } catch (error) {
           console.error('Error processing places snapshot:', error);
           callback([]);

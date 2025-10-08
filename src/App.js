@@ -132,25 +132,39 @@ const App = () => {
         localStorage.setItem('activeFilters', JSON.stringify(Array.from(activeFilters)));
     }, [activeFilters]);
 
-    // Subscribe to places when user or visible maps change
+    // Subscribe to places from all user maps (subscribe once, don't recreate on visibility changes)
+    const [allPlaces, setAllPlaces] = useState([]);
+
     useEffect(() => {
-        if (!currentUser?.email || visibleMapIds.size === 0) {
-            setPlaces([]);
+        if (!currentUser?.email || userMaps.length === 0) {
+            setAllPlaces([]);
             setLoading(false);
             return;
         }
 
-        const unsubscribe = PlacesService.subscribeToPlaces(
-            currentUser.email,
+        // Build mapIds and mapRoles from userMaps
+        const mapIds = userMaps.map(m => m.id);
+        const mapRoles = {};
+        userMaps.forEach(m => {
+            mapRoles[m.id] = m.userRole;
+        });
+
+        const unsubscribe = PlacesService.subscribeToPlacesForMaps(
+            mapIds,
+            mapRoles,
             (placesData) => {
-                // Filter places to only show those from visible maps
-                const filteredPlaces = placesData.filter(place => visibleMapIds.has(place.mapId));
-                setPlaces(filteredPlaces);
+                setAllPlaces(placesData);
                 setLoading(false);
             }
         );
         return () => unsubscribe();
-    }, [currentUser, visibleMapIds]);
+    }, [currentUser, userMaps]); // Only recreate when user or maps change, not visibility
+
+    // Filter places based on visibility (no subscription, just filtering)
+    useEffect(() => {
+        const filteredPlaces = allPlaces.filter(place => visibleMapIds.has(place.mapId));
+        setPlaces(filteredPlaces);
+    }, [allPlaces, visibleMapIds]);
 
     const handleAddPlace = () => {
         setShowSearch(true);
