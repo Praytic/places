@@ -15,6 +15,7 @@ interface ControlPanelProps {
   activeFilters: FilterSet;
   onManageMaps: (event: React.MouseEvent) => void;
   onShareMap: () => void;
+  isAddPlaceDisabled?: boolean;
 }
 
 const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -22,7 +23,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   onToggleFilter,
   activeFilters,
   onManageMaps,
-  onShareMap
+  onShareMap,
+  isAddPlaceDisabled = false,
 }) => {
   return (
     <Box
@@ -52,6 +54,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           onClick={() => {
             onAddPlace();
           }}
+          disabled={isAddPlaceDisabled}
           title="Add Place"
           sx={{
             minWidth: 48,
@@ -63,6 +66,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             },
             '&:active': {
               transform: 'scale(0.95)',
+            },
+            '&.Mui-disabled': {
+              color: 'action.disabled',
             },
             borderRadius: 0,
             position: 'relative',

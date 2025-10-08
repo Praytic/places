@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Alert, Backdrop, Box, CircularProgress, Dialog, DialogContent, DialogTitle, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import MapComponent from './components/MapComponent';
@@ -13,6 +13,7 @@ import { useEmojiPicker } from './shared/hooks';
 import { useCurrentLocation } from './shared/hooks/useCurrentLocation';
 import { ErrorBoundary } from './shared/components';
 import { ROLES } from './services/MapsService';
+import { UserRole } from './shared/types/domain';
 
 const AppContent: React.FC = () => {
   const { user } = useAuthContext();
@@ -39,6 +40,16 @@ const AppContent: React.FC = () => {
 
   const { showEmojiPicker, emojiPickerPlace, openEmojiPicker, closeEmojiPicker } = useEmojiPicker();
   const { location: mapCenter } = useCurrentLocation(true);
+
+  // Calculate if Add Place button should be disabled
+  // Button is disabled when no visible maps are editable (OWNER or EDITOR)
+  const isAddPlaceDisabled = useMemo(() => {
+    const visibleMaps = maps.filter((map) => visibleMapIds.has(map.id));
+    const hasEditableVisibleMap = visibleMaps.some(
+      (map) => map.userRole === UserRole.OWNER || map.userRole === UserRole.EDITOR
+    );
+    return !hasEditableVisibleMap;
+  }, [maps, visibleMapIds]);
 
   const handleAddPlace = useCallback((): void => {
     setShowSearch(true);
@@ -227,6 +238,7 @@ const AppContent: React.FC = () => {
               setShowManageMaps(true);
             }}
             onShareMap={() => setShowShareMap(true)}
+            isAddPlaceDisabled={isAddPlaceDisabled}
           />
         </ErrorBoundary>
 
