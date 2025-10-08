@@ -328,16 +328,24 @@ const MapComponent: React.FC<MapComponentProps> = ({
   const [center, setCenter] = useState<Location>(propCenter || { lat: 37.7749, lng: -122.4194 });
   const [zoom] = useState(13);
   const mapRef = useRef<any | null>(null);
+  const hasUserInteractedRef = useRef(false);
 
-  // Update center when propCenter changes
+  // Only follow user location on initial load, not after user has interacted
   useEffect(() => {
-    if (propCenter) {
+    if (propCenter && !hasUserInteractedRef.current) {
       setCenter(propCenter);
       if (mapRef.current) {
         mapRef.current.panTo(propCenter);
       }
     }
   }, [propCenter]);
+
+  // Mark as interacted when a place is selected
+  useEffect(() => {
+    if (selectedPlace) {
+      hasUserInteractedRef.current = true;
+    }
+  }, [selectedPlace]);
 
   const onClick = (e: any) => {
     if (onMapClick && e.latLng) {
