@@ -195,6 +195,10 @@ export const updateMap = async (mapId, updates) => {
  */
 export const deleteMap = async (mapId) => {
   try {
+    // Delete all mapViews for this map FIRST (before deleting the map)
+    // This is necessary because the Firestore rules check map ownership by fetching the map document
+    await MapViewService.deleteMapViewsForMap(mapId);
+
     const batch = writeBatch(db);
 
     // Delete map document
@@ -209,9 +213,6 @@ export const deleteMap = async (mapId) => {
     });
 
     await batch.commit();
-
-    // Delete all mapViews for this map
-    await MapViewService.deleteMapViewsForMap(mapId);
   } catch (error) {
     console.error('Error deleting map:', error);
     throw error;

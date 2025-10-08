@@ -9,7 +9,7 @@ import ShareDialog from './components/ShareDialog';
 import EmojiPicker, {EmojiStyle} from 'emoji-picker-react';
 import Auth from './components/Auth';
 import PlacesService from './services/PlacesService';
-import {createMap, getUserMaps, ROLES} from './services/MapsService';
+import {createMap, getUserMaps, subscribeToUserMaps, ROLES} from './services/MapsService';
 import {auth} from './config/firebase';
 import {getCurrentLocation, hasLocationPermission} from './services/LocationService';
 
@@ -64,59 +64,74 @@ const App = () => {
 
     // Get or create user's maps when user changes
     useEffect(() => {
-        const initializeMaps = async () => {
-            if (!currentUser?.email) {
-                setUserMaps([]);
-                setVisibleMapIds(new Set());
-                setCurrentMapId(null);
-                return;
-            }
+        if (!currentUser?.email) {
+            setUserMaps([]);
+            setVisibleMapIds(new Set());
+            setCurrentMapId(null);
+            return;
+        }
 
+        let isFirstUpdate = true;
+
+        // Subscribe to real-time updates of user's maps
+        const unsubscribe = subscribeToUserMaps(currentUser.email, async (maps) => {
             try {
-                // Get user's maps
-                let maps = await getUserMaps(currentUser.email);
-
+                let updatedMaps = maps;
                 let isNewUser = false;
-                if (maps.length === 0) {
-                    // Create a new default map for the user
+
+                // On first update, check if user needs a default map
+                if (isFirstUpdate && maps.length === 0) {
                     const newMap = await createMap(currentUser.email, 'My Places', true);
-                    maps = [{ ...newMap, userRole: ROLES.OWNER }];
+                    updatedMaps = [{ ...newMap, userRole: ROLES.OWNER }];
                     isNewUser = true;
                 }
 
-                setUserMaps(maps);
+                setUserMaps(updatedMaps);
 
-                // Load visible map IDs from localStorage or use default
-                const storageKey = `visibleMaps_${currentUser.email}`;
-                const savedVisibleMaps = localStorage.getItem(storageKey);
+                // On first update, load visible map IDs from localStorage
+                if (isFirstUpdate && updatedMaps.length > 0) {
+                    const storageKey = `visibleMaps_${currentUser.email}`;
+                    const savedVisibleMaps = localStorage.getItem(storageKey);
 
-                let visibleIds;
-                if (savedVisibleMaps) {
-                    // Use saved visibility state
-                    const savedIds = JSON.parse(savedVisibleMaps);
-                    // Filter to only include maps that still exist
-                    const validMapIds = maps.map(m => m.id);
-                    visibleIds = savedIds.filter(id => validMapIds.includes(id));
-                } else {
-                    if (isNewUser) {
-                        // Make default map visible for new users
-                        visibleIds = maps.filter(m => m.isDefault).map(m => m.id);
+                    let visibleIds;
+                    if (savedVisibleMaps) {
+                        const savedIds = JSON.parse(savedVisibleMaps);
+                        const validMapIds = updatedMaps.map(m => m.id);
+                        visibleIds = savedIds.filter(id => validMapIds.includes(id));
                     } else {
-                        // Make only owned maps visible by default for existing users
-                        visibleIds = maps.filter(m => m.userRole === ROLES.OWNER).map(m => m.id);
+                        if (isNewUser) {
+                            visibleIds = updatedMaps.filter(m => m.isDefault).map(m => m.id);
+                        } else {
+                            visibleIds = updatedMaps.filter(m => m.userRole === ROLES.OWNER).map(m => m.id);
+                        }
                     }
+
+                    setVisibleMapIds(new Set(visibleIds));
+                    setCurrentMapId(updatedMaps[0].id);
+                } else if (!isFirstUpdate) {
+                    // On subsequent updates, remove deleted maps from visibleMapIds
+                    setVisibleMapIds(prev => {
+                        const mapIds = new Set(updatedMaps.map(m => m.id));
+                        return new Set([...prev].filter(id => mapIds.has(id)));
+                    });
+
+                    // If currentMapId was deleted, switch to first available map
+                    setCurrentMapId(current => {
+                        if (updatedMaps.length > 0 && !updatedMaps.find(m => m.id === current)) {
+                            return updatedMaps[0].id;
+                        }
+                        return current;
+                    });
                 }
 
-                setVisibleMapIds(new Set(visibleIds));
-                // Set currentMapId to first map for backward compatibility (ShareDialog)
-                setCurrentMapId(maps[0].id);
+                isFirstUpdate = false;
             } catch (err) {
-                console.error('Error initializing maps:', err);
-                setError('Failed to initialize maps');
+                console.error('Error handling maps update:', err);
+                setError('Failed to update maps');
             }
-        };
+        });
 
-        initializeMaps();
+        return () => unsubscribe();
     }, [currentUser]);
 
     // Save visible map IDs to localStorage when they change

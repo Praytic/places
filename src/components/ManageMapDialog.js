@@ -182,12 +182,18 @@ const ManageMapDialog = ({ userEmail, onMapCreated, onClose, existingMap = null 
     try {
       setDeleting(true);
       setError(null);
-      await deleteMap(existingMap.id);
+
+      // Close dialog immediately after user confirms
       onClose();
+
+      await deleteMap(existingMap.id);
+
+      // Trigger refresh of map list after deletion completes
+      if (onMapCreated) {
+        onMapCreated();
+      }
     } catch (err) {
       console.error('Error deleting map:', err);
-      setError('Failed to delete map. Please try again.');
-      setDeleting(false);
     }
   };
 
