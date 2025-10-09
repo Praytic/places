@@ -13,12 +13,12 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase/config';
 import * as MapViewService from './MapViewService';
-import { PlaceMap, UserRole } from '../shared/types/domain';
+import { UserMap, UserRole } from '../shared/types/domain';
 
 /**
  * Extended PlaceMap with userRole
  */
-export interface PlaceMapWithRole extends PlaceMap {
+export interface PlaceMapWithRole extends UserMap {
   userRole: UserRole;
   mapViewId?: string;
   displayedName?: string;
@@ -44,14 +44,12 @@ export const getUserMapCount = async (userId: string): Promise<number> => {
  * Create a new map (container for places)
  * @param ownerId - Owner's user ID (email)
  * @param name - Optional map name
- * @param isDefault - Whether this is the user's default map
  * @returns The created map
  */
 export const createMap = async (
   ownerId: string,
   name: string = 'My Places',
-  isDefault: boolean = false
-): Promise<PlaceMap> => {
+): Promise<UserMap> => {
   try {
     // Check if user can create more maps (client-side validation)
     const mapCount = await getUserMapCount(ownerId);
@@ -60,11 +58,10 @@ export const createMap = async (
     }
 
     const mapRef = doc(collection(db, 'maps'));
-    const mapData: PlaceMap = {
+    const mapData: UserMap = {
       id: mapRef.id,
       name,
       owner: ownerId,
-      isDefault,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now()
     };
@@ -87,11 +84,11 @@ export const createMap = async (
  * @param mapId - Map ID
  * @returns Map data or null
  */
-export const getMap = async (mapId: string): Promise<PlaceMap | null> => {
+export const getMap = async (mapId: string): Promise<UserMap | null> => {
   try {
     const mapDoc = await getDoc(doc(db, 'maps', mapId));
     if (mapDoc.exists()) {
-      return { id: mapDoc.id, ...mapDoc.data() } as PlaceMap;
+      return { id: mapDoc.id, ...mapDoc.data() } as UserMap;
     }
     return null;
   } catch (error) {
@@ -186,7 +183,7 @@ export const subscribeToUserMaps = (
  */
 export const updateMap = async (
   mapId: string,
-  updates: Partial<Omit<PlaceMap, 'id' | 'owner' | 'createdAt'>>
+  updates: Partial<Omit<UserMap, 'id' | 'owner' | 'createdAt'>>
 ): Promise<void> => {
   try {
     const mapRef = doc(db, 'maps', mapId);

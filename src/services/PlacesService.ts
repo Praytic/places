@@ -5,8 +5,6 @@ import {
   updateDoc,
   deleteDoc,
   setDoc,
-  query,
-  where,
   collectionGroup,
   onSnapshot,
   Timestamp,
@@ -220,10 +218,10 @@ export class PlacesService {
           placesSnapshot.docs.forEach(doc => {
             // Extract mapId from document path: maps/{mapId}/places/{placeId}
             const pathParts = doc.ref.path.split('/');
-            const mapId = pathParts[1]; // maps/[mapId]/places/placeId
+            const mapId = pathParts.length >= 2 ? pathParts[1] : undefined;
 
             // Only include places from visible maps
-            if (mapIds.includes(mapId)) {
+            if (mapId && mapIds.includes(mapId)) {
               places.push({
                 id: doc.id,
                 mapId, // Add mapId from path
@@ -254,68 +252,6 @@ export class PlacesService {
   }
 
   /**
-   * Set up real-time listener for places accessible to the user (from all their maps)
-   * @deprecated Use subscribeToPlacesForMaps instead to avoid nested subscriptions
-   * @param userId - Current user's ID (email)
-   * @param callback - Callback function to handle data updates
-   * @returns Unsubscribe function
-   */
-  static subscribeToPlaces(userId: string, callback: (places: PlaceWithRole[]) => void): Unsubscribe {
-    try {
-      // Query mapViews where user is the collaborator
-      const mapViewsQuery = query(
-        collection(db, 'mapViews'),
-        where('collaborator', '==', userId)
-      );
-
-      return onSnapshot(mapViewsQuery, async (mapViewsSnapshot) => {
-        try {
-          if (mapViewsSnapshot.empty) {
-            callback([]);
-            return;
-          }
-
-          // Get map IDs and roles from mapViews
-          const mapIds = mapViewsSnapshot.docs.map(doc => doc.data()['mapId']);
-          const mapRoles: Record<string, UserRole> = {};
-          mapViewsSnapshot.docs.forEach(doc => {
-            const mapViewData = doc.data();
-            mapRoles[mapViewData['mapId']] = mapViewData['role'];
-          });
-
-          // Fetch places directly (not nested subscription)
-          const placesQuery = query(
-            collection(db, PLACES_COLLECTION),
-            where('mapId', 'in', mapIds)
-          );
-
-          const placesSnapshot = await getDocs(placesQuery);
-          const places: PlaceWithRole[] = placesSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            userRole: mapRoles[doc.data()['mapId']]
-          } as PlaceWithRole));
-
-          // Sort by createdAt in descending order
-          places.sort((a, b) => {
-            const aTime = a.createdAt?.toDate?.() || new Date(0);
-            const bTime = b.createdAt?.toDate?.() || new Date(0);
-            return bTime.getTime() - aTime.getTime();
-          });
-
-          callback(places);
-        } catch (error) {
-          console.error('Error processing places snapshot:', error);
-          callback([]);
-        }
-      });
-    } catch (error) {
-      console.error('Error setting up places subscription:', error);
-      return () => {};
-    }
-  }
-
-  /**
    * Update a place's group (like/dislike functionality)
    * @param mapId - The map ID containing the place
    * @param placeId - The Firestore document ID
@@ -335,3 +271,5 @@ export class PlacesService {
     return this.updatePlace(mapId, placeId, { emoji });
   }
 }
+
+export default PlacesService;

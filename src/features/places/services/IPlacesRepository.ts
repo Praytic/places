@@ -1,6 +1,6 @@
 import {
   Place,
-  PlaceInput,
+  PlaceCreate,
   PlaceUpdate,
   UnsubscribeFn,
   SubscriptionCallback,
@@ -23,7 +23,7 @@ export interface IPlacesRepository {
   /**
    * Add a new place
    */
-  addPlace(place: PlaceInput, mapId: string): Promise<Place>;
+  addPlace(place: PlaceCreate, mapId: string): Promise<Place>;
 
   /**
    * Update an existing place

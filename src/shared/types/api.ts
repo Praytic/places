@@ -2,7 +2,7 @@
  * API request and response types
  */
 
-import { Place, PlaceMap, MapView, UserRole } from './domain';
+import { Place, UserMap, MapView, UserRole } from './domain';
 
 /**
  * Firebase document data (without id)
@@ -17,7 +17,7 @@ export type PlaceDocument = FirebaseDocument<Place>;
 /**
  * Map document in Firestore
  */
-export type MapDocument = FirebaseDocument<PlaceMap>;
+export type MapDocument = FirebaseDocument<UserMap>;
 
 /**
  * MapView document in Firestore

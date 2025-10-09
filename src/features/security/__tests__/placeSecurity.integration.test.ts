@@ -1,5 +1,5 @@
 import { Timestamp } from 'firebase/firestore';
-import { UserRole, Place, PlaceMap } from '../../../shared/types/domain';
+import { UserRole, Place, UserMap } from '../../../shared/types/domain';
 
 /**
  * Integration test for Place Security with Role-Based Access Control
@@ -19,7 +19,7 @@ describe('Place Security Integration Test', () => {
   const mapId = 'map-123';
   const placeId = 'place-456';
 
-  const map: PlaceMap = {
+  const map: UserMap = {
     id: mapId,
     name: 'Test Map',
     owner: ownerEmail,

@@ -4,7 +4,6 @@ import { Timestamp } from 'firebase/firestore';
  * User role types for map access control
  */
 export enum UserRole {
-  OWNER = 'owner',
   EDIT = 'edit',
   VIEW = 'view',
 }
@@ -34,20 +33,21 @@ export type PlaceGroup = 'want to go' | 'favorite';
  */
 export interface Place {
   id: string;
-  mapId: string;
   name: string;
   emoji: string;
   group: PlaceGroup;
   geometry: Geometry;
+  formattedAddress: string;
+  placeId: string;
+  types: string[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
-  userRole?: UserRole;
 }
 
 /**
  * Input type for creating a new place
  */
-export interface PlaceInput {
+export interface PlaceCreate {
   name: string;
   emoji?: string;
   group: PlaceGroup;
@@ -65,28 +65,21 @@ export interface PlaceUpdate {
 }
 
 /**
- * Core PlaceMap entity (container for places)
- * Named PlaceMap to avoid conflict with JavaScript's built-in Map
+ * Core entity that represents owner's view of a Map
  */
-export interface PlaceMap {
+export interface UserMap {
   id: string;
   name: string;
   owner: string;
-  isDefault?: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
-  userRole?: UserRole;
 }
-
-// Alias for backward compatibility
-export type Map = PlaceMap;
 
 /**
  * Input type for creating a new map
  */
-export interface MapInput {
+export interface MapCreate {
   name: string;
-  isDefault?: boolean;
 }
 
 /**
@@ -94,7 +87,6 @@ export interface MapInput {
  */
 export interface MapUpdate {
   name?: string;
-  isDefault?: boolean;
 }
 
 /**
@@ -105,7 +97,7 @@ export interface MapView {
   mapId: string;
   collaborator: string;
   role: UserRole;
-  displayName?: string;
+  displayName: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -115,9 +107,9 @@ export interface MapView {
  */
 export interface User {
   uid: string;
-  email: string | null;
-  displayName: string | null;
-  photoURL: string | null;
+  email?: string;
+  displayName?: string;
+  photoURL?: string;
 }
 
 /**
@@ -127,40 +119,4 @@ export interface Collaborator {
   userId: string;
   role: UserRole;
   displayName?: string;
-}
-
-/**
- * Filter state for places
- */
-export type FilterSet = Set<PlaceGroup>;
-
-/**
- * Map visibility state
- */
-export type VisibleMapIds = Set<string>;
-
-/**
- * Extended PlaceMap with userRole and optional mapView fields
- */
-export interface PlaceMapWithRole extends PlaceMap {
-  userRole: UserRole;
-  mapViewId?: string;
-  displayedName?: string;
-}
-
-/**
- * Error types for the application
- */
-export interface AppError {
-  code: string;
-  message: string;
-  details?: unknown;
-}
-
-/**
- * Loading state
- */
-export interface LoadingState {
-  isLoading: boolean;
-  message?: string;
 }
