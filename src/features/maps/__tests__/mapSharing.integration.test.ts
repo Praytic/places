@@ -70,8 +70,8 @@ describe('Map Sharing and DisplayedName Integration Test', () => {
       },
     ];
 
-    expect(user2InitialMaps[0].displayedName).toBe('Map');
-    expect(user2InitialMaps[0].name).toBe('Map');
+    expect(user2InitialMaps[0]?.displayedName).toBe('Map');
+    expect(user2InitialMaps[0]?.name).toBe('Map');
 
     // Step 4: User2 renames his MapView to "My Map"
     const updatedMapView = {
@@ -97,8 +97,8 @@ describe('Map Sharing and DisplayedName Integration Test', () => {
       },
     ];
 
-    expect(user2MapsAfterRename[0].displayedName).toBe('My Map');
-    expect(user2MapsAfterRename[0].name).toBe('Map'); // Original name unchanged
+    expect(user2MapsAfterRename[0]?.displayedName).toBe('My Map');
+    expect(user2MapsAfterRename[0]?.name).toBe('Map'); // Original name unchanged
 
     // Step 5: User1 renames the Map to "Map1"
     const renamedMap = {
@@ -125,8 +125,8 @@ describe('Map Sharing and DisplayedName Integration Test', () => {
       },
     ];
 
-    expect(user2MapsFinal[0].displayedName).toBe('My Map'); // User2 still sees "My Map"
-    expect(user2MapsFinal[0].name).toBe('Map1'); // Underlying map name is "Map1"
+    expect(user2MapsFinal[0]?.displayedName).toBe('My Map'); // User2 still sees "My Map"
+    expect(user2MapsFinal[0]?.name).toBe('Map1'); // Underlying map name is "Map1"
 
     // Step 7: User1 should see "Map1" in MapChips (as owner)
     // Owners don't have MapViews, so no displayedName
@@ -143,8 +143,8 @@ describe('Map Sharing and DisplayedName Integration Test', () => {
       },
     ];
 
-    expect(user1MapsFinal[0].name).toBe('Map1'); // Owner sees actual map name
-    expect(user1MapsFinal[0].displayedName).toBeUndefined(); // No custom name for owners
+    expect(user1MapsFinal[0]?.name).toBe('Map1'); // Owner sees actual map name
+    expect(user1MapsFinal[0]?.displayedName).toBeUndefined(); // No custom name for owners
   });
 
   it('should verify MapChips displays correct name based on displayedName field', () => {
@@ -165,7 +165,7 @@ describe('Map Sharing and DisplayedName Integration Test', () => {
     expect(user2DisplayName).toBe('My Map');
 
     // For User1 (owner, no displayedName)
-    const user1Map = {
+    const user1Map: PlaceMapWithRole = {
       id: 'map-123',
       name: 'Map1',
       owner: user1Email,

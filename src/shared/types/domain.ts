@@ -5,7 +5,7 @@ import { Timestamp } from 'firebase/firestore';
  */
 export enum UserRole {
   OWNER = 'owner',
-  EDITOR = 'editor',
+  EDITOR = 'edit',
   VIEWER = 'viewer',
 }
 

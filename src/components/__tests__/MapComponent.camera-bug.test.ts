@@ -9,16 +9,12 @@ describe('MapComponent - Camera Positioning (No Auto-Pan)', () => {
   it('should document that camera never auto-pans to user location', () => {
     // SCENARIO: User location updates
 
-    const userLocation = { lat: 40.7128, lng: -74.0060 }; // New York
-
     const mockMap = { panTo: jest.fn() };
 
     // CURRENT BEHAVIOR: No auto-panning
     // Camera does not automatically follow user location updates
 
     // User location updates, but camera doesn't move
-    const centerProp = userLocation;
-
     // Camera only moves on manual user interaction (clicking, dragging)
     // No automatic panTo() is called
 
@@ -47,13 +43,9 @@ describe('MapComponent - Camera Positioning (No Auto-Pan)', () => {
   });
 
   it('should NOT pan when InfoWindow is closed', () => {
-    const userLocation = { lat: 40.7128, lng: -74.0060 };
-
     const mockMap = { panTo: jest.fn() };
 
     // InfoWindow closed, user location updates
-    const centerProp = userLocation;
-
     // No auto-panning ever
     expect(mockMap.panTo).not.toHaveBeenCalled();
   });

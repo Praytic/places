@@ -98,16 +98,28 @@ export const PlacesProvider: React.FC<PlacesProviderProps> = ({ children }) => {
   }, []);
 
   const updatePlaceGroup = useCallback(async (placeId: string, group: PlaceGroup): Promise<void> => {
-    await PlacesService.updatePlaceGroup(placeId, group);
-  }, []);
+    const place = allPlaces.find(p => p.id === placeId);
+    if (!place) {
+      throw new Error(`Place ${placeId} not found`);
+    }
+    await PlacesService.updatePlaceGroup(place.mapId, placeId, group);
+  }, [allPlaces]);
 
   const updatePlaceEmoji = useCallback(async (placeId: string, emoji: string): Promise<void> => {
-    await PlacesService.updatePlaceEmoji(placeId, emoji);
-  }, []);
+    const place = allPlaces.find(p => p.id === placeId);
+    if (!place) {
+      throw new Error(`Place ${placeId} not found`);
+    }
+    await PlacesService.updatePlaceEmoji(place.mapId, placeId, emoji);
+  }, [allPlaces]);
 
   const deletePlace = useCallback(async (placeId: string): Promise<void> => {
-    await PlacesService.deletePlace(placeId);
-  }, []);
+    const place = allPlaces.find(p => p.id === placeId);
+    if (!place) {
+      throw new Error(`Place ${placeId} not found`);
+    }
+    await PlacesService.deletePlace(place.mapId, placeId);
+  }, [allPlaces]);
 
   const value: PlacesContextValue = useMemo(
     () => ({

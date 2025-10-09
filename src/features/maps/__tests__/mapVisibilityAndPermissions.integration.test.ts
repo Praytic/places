@@ -80,8 +80,8 @@ describe('Map Visibility and Permissions Integration Test', () => {
     ];
 
     expect(user2Maps).toHaveLength(2);
-    expect(user2Maps[0].userRole).toBe(UserRole.OWNER);
-    expect(user2Maps[1].userRole).toBe(UserRole.VIEWER);
+    expect(user2Maps[0]?.userRole).toBe(UserRole.OWNER);
+    expect(user2Maps[1]?.userRole).toBe(UserRole.VIEWER);
 
     // Step 3: User2 selects Chip with User1's map view (only User1's map is visible)
     // visibleMapIds is a Set of map IDs that are currently toggled on
@@ -98,8 +98,8 @@ describe('Map Visibility and Permissions Integration Test', () => {
     );
 
     expect(visibleMaps).toHaveLength(1);
-    expect(visibleMaps[0].id).toBe(user1Map.id);
-    expect(visibleMaps[0].userRole).toBe(UserRole.VIEWER);
+    expect(visibleMaps[0]?.id).toBe(user1Map.id);
+    expect(visibleMaps[0]?.userRole).toBe(UserRole.VIEWER);
     expect(hasEditableVisibleMap).toBe(false);
 
     // The "Add Place" button should be disabled
@@ -108,7 +108,6 @@ describe('Map Visibility and Permissions Integration Test', () => {
   });
 
   it('should enable "Add Place" button when at least one editable map is visible', () => {
-    const user1Email = 'user1@example.com';
     const user2Email = 'user2@example.com';
 
     // User2 has an OWNER map
@@ -211,7 +210,6 @@ describe('Map Visibility and Permissions Integration Test', () => {
 
   it('should handle EDITOR role as editable permission', () => {
     const user1Email = 'user1@example.com';
-    const user2Email = 'user2@example.com';
 
     // User1 shares a map with User2 as EDITOR
     const user1Map = {
