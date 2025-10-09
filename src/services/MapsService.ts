@@ -15,13 +15,6 @@ import { db } from '../lib/firebase/config';
 import * as MapViewService from './MapViewService';
 import { PlaceMap, UserRole } from '../shared/types/domain';
 
-// Role constants
-export const ROLES = {
-  OWNER: 'owner' as UserRole,
-  EDITOR: 'editor' as UserRole,
-  VIEWER: 'viewer' as UserRole
-};
-
 /**
  * Extended PlaceMap with userRole
  */
@@ -123,7 +116,7 @@ export const getUserMaps = async (userId: string): Promise<PlaceMapWithRole[]> =
     const ownedMaps: PlaceMapWithRole[] = ownedMapsSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-      userRole: ROLES.OWNER
+      userRole: UserRole.OWNER
     } as PlaceMapWithRole));
 
     // Fetch shared maps (via MapViews)
@@ -164,7 +157,7 @@ export const subscribeToUserMaps = (
       ownedMaps = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        userRole: ROLES.OWNER
+        userRole: UserRole.OWNER
       } as PlaceMapWithRole));
       updateCallback();
     });
@@ -246,7 +239,7 @@ export const deleteMap = async (mapId: string): Promise<void> => {
 export const shareMapWithUser = async (
   mapId: string,
   userId: string,
-  role: UserRole = ROLES.VIEWER
+  role: UserRole = UserRole.VIEW
 ): Promise<void> => {
   try {
     // Get the map to get its name
@@ -310,7 +303,7 @@ export const getUserMapRole = async (userId: string, mapId: string): Promise<Use
     // First check if user is the owner (owners don't have MapViews)
     const map = await getMap(mapId);
     if (map && map.owner === userId) {
-      return ROLES.OWNER;
+      return UserRole.OWNER;
     }
 
     // Then check MapViews for shared access

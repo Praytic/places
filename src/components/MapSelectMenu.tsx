@@ -19,8 +19,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import ManageMapDialog from './ManageMapDialog';
-import { deleteMap, updateMap, ROLES } from '../services/MapsService';
-import { PlaceMapWithRole, VisibleMapIds } from '../shared/types/domain';
+import { deleteMap, updateMap } from '../services/MapsService';
+import { PlaceMapWithRole, VisibleMapIds, UserRole } from '../shared/types/domain';
 
 interface MapSelectMenuProps {
   userEmail: string;
@@ -139,7 +139,7 @@ const MapSelectMenu: React.FC<MapSelectMenuProps> = ({
   const handleDeleteMap = async (e: React.MouseEvent, mapId: string, mapName: string) => {
     e.stopPropagation();
     const map = userMaps.find(m => m.id === mapId);
-    if (!map || map.userRole !== ROLES.OWNER) return;
+    if (!map || map.userRole !== UserRole.OWNER) return;
 
     if (!window.confirm(`Are you sure you want to delete "${mapName}"? All places will be deleted.`)) {
       return;
@@ -245,12 +245,12 @@ const MapSelectMenu: React.FC<MapSelectMenuProps> = ({
                   </Tooltip>
                 )}
 
-                <Tooltip title={map.userRole === ROLES.OWNER ? "Edit name" : "Only owners can edit"}>
+                <Tooltip title={map.userRole === UserRole.OWNER ? "Edit name" : "Only owners can edit"}>
                   <span>
                     <IconButton
                       size="small"
                       onClick={(e) => handleStartEditing(e, map)}
-                      disabled={map.userRole !== ROLES.OWNER || editingMapId === map.id}
+                      disabled={map.userRole !== UserRole.OWNER || editingMapId === map.id}
                       sx={{ p: { xs: 0.5, md: 1 } }}
                     >
                       <EditIcon sx={{ fontSize: { xs: 18, md: 20 } }} />
@@ -260,13 +260,13 @@ const MapSelectMenu: React.FC<MapSelectMenuProps> = ({
 
                 <Tooltip title={
                   map.isDefault ? "Default map cannot be deleted" :
-                  map.userRole === ROLES.OWNER ? "Delete map" : "Only owners can delete"
+                  map.userRole === UserRole.OWNER ? "Delete map" : "Only owners can delete"
                 }>
                   <span>
                     <IconButton
                       size="small"
                       onClick={(e) => handleDeleteMap(e, map.id, map.name)}
-                      disabled={map.userRole !== ROLES.OWNER || deleting === map.id || map.isDefault}
+                      disabled={map.userRole !== UserRole.OWNER || deleting === map.id || map.isDefault}
                       sx={{ p: { xs: 0.5, md: 1 } }}
                     >
                       {deleting === map.id ? (

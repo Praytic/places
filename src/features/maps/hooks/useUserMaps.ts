@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { PlaceMapWithRole } from '../../../shared/types';
-import { subscribeToUserMaps, createMap, ROLES } from '../../../services/MapsService';
+import { PlaceMapWithRole, UserRole } from '../../../shared/types';
+import { subscribeToUserMaps, createMap } from '../../../services/MapsService';
 
 /**
  * Custom hook for managing user's maps with real-time Firestore subscription
@@ -60,7 +60,7 @@ export const useUserMaps = (
         // On first update, check if user needs a default map
         if (isFirstUpdate && userMaps.length === 0) {
           const newMap = await createMap(userId, 'My Places', true);
-          updatedMaps = [{ ...newMap, userRole: ROLES.OWNER } as PlaceMapWithRole];
+          updatedMaps = [{ ...newMap, userRole: UserRole.OWNER } as PlaceMapWithRole];
         }
 
         setMaps(updatedMaps);

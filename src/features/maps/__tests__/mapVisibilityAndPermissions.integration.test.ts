@@ -8,8 +8,8 @@ import { UserRole, PlaceMapWithRole } from '../../../shared/types/domain';
  * and how it affects their ability to add places based on map permissions.
  *
  * Test Scenario:
- * 1. User1 creates a map and shares it with User2 as VIEWER
- * 2. User2 has two maps - his own (OWNER) and User1's shared map (VIEWER)
+ * 1. User1 creates a map and shares it with User2 as VIEW
+ * 2. User2 has two maps - his own (OWNER) and User1's shared map (VIEW)
  * 3. User2 selects Chip with User1's map view (only User1's map is visible)
  * 4. User2's "Add new place" button should be disabled because no editable maps are visible
  */
@@ -32,21 +32,21 @@ describe('Map Visibility and Permissions Integration Test', () => {
 
     expect(user1Map.owner).toBe(user1Email);
 
-    // User1 shares the map with User2 as VIEWER
+    // User1 shares the map with User2 as VIEW
     const sharedMapView = {
       id: 'mapview-456',
       mapId: user1Map.id,
       collaborator: user2Email,
-      role: UserRole.VIEWER,
+      role: UserRole.VIEW,
       displayName: 'User1 Map', // User2's view of the map
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     };
 
-    expect(sharedMapView.role).toBe(UserRole.VIEWER);
+    expect(sharedMapView.role).toBe(UserRole.VIEW);
     expect(sharedMapView.collaborator).toBe(user2Email);
 
-    // Step 2: User2 has two maps - his own (OWNER) and User1's shared map (VIEWER)
+    // Step 2: User2 has two maps - his own (OWNER) and User1's shared map (VIEW)
     const user2OwnMap = {
       id: 'user2-map-789',
       name: 'User2 Own Map',
@@ -73,7 +73,7 @@ describe('Map Visibility and Permissions Integration Test', () => {
         isDefault: false,
         createdAt: user1Map.createdAt,
         updatedAt: user1Map.updatedAt,
-        userRole: UserRole.VIEWER,
+        userRole: UserRole.VIEW,
         mapViewId: sharedMapView.id,
         displayedName: sharedMapView.displayName,
       },
@@ -81,7 +81,7 @@ describe('Map Visibility and Permissions Integration Test', () => {
 
     expect(user2Maps).toHaveLength(2);
     expect(user2Maps[0].userRole).toBe(UserRole.OWNER);
-    expect(user2Maps[1].userRole).toBe(UserRole.VIEWER);
+    expect(user2Maps[1].userRole).toBe(UserRole.VIEW);
 
     // Step 3: User2 selects Chip with User1's map view (only User1's map is visible)
     // visibleMapIds is a Set of map IDs that are currently toggled on
@@ -91,15 +91,15 @@ describe('Map Visibility and Permissions Integration Test', () => {
     expect(visibleMapIds.has(user2OwnMap.id)).toBe(false);
 
     // Step 4: Check if "Add new place" button should be disabled
-    // Button should be disabled when NO visible maps are editable (OWNER or EDITOR)
+    // Button should be disabled when NO visible maps are editable (OWNER or EDIT)
     const visibleMaps = user2Maps.filter((map) => visibleMapIds.has(map.id));
     const hasEditableVisibleMap = visibleMaps.some(
-      (map) => map.userRole === UserRole.OWNER || map.userRole === UserRole.EDITOR
+      (map) => map.userRole === UserRole.OWNER || map.userRole === UserRole.EDIT
     );
 
     expect(visibleMaps).toHaveLength(1);
     expect(visibleMaps[0].id).toBe(user1Map.id);
-    expect(visibleMaps[0].userRole).toBe(UserRole.VIEWER);
+    expect(visibleMaps[0].userRole).toBe(UserRole.VIEW);
     expect(hasEditableVisibleMap).toBe(false);
 
     // The "Add Place" button should be disabled
@@ -138,7 +138,7 @@ describe('Map Visibility and Permissions Integration Test', () => {
 
     const visibleMaps = user2Maps.filter((map) => visibleMapIds.has(map.id));
     const hasEditableVisibleMap = visibleMaps.some(
-      (map) => map.userRole === UserRole.OWNER || map.userRole === UserRole.EDITOR
+      (map) => map.userRole === UserRole.OWNER || map.userRole === UserRole.EDIT
     );
 
     expect(hasEditableVisibleMap).toBe(true);
@@ -187,7 +187,7 @@ describe('Map Visibility and Permissions Integration Test', () => {
         isDefault: false,
         createdAt: user1Map.createdAt,
         updatedAt: user1Map.updatedAt,
-        userRole: UserRole.VIEWER,
+        userRole: UserRole.VIEW,
         mapViewId: 'mapview-456',
         displayedName: 'User1 Map',
       },
@@ -198,7 +198,7 @@ describe('Map Visibility and Permissions Integration Test', () => {
 
     const visibleMaps = user2Maps.filter((map) => visibleMapIds.has(map.id));
     const hasEditableVisibleMap = visibleMaps.some(
-      (map) => map.userRole === UserRole.OWNER || map.userRole === UserRole.EDITOR
+      (map) => map.userRole === UserRole.OWNER || map.userRole === UserRole.EDIT
     );
 
     expect(visibleMaps).toHaveLength(2);
@@ -209,11 +209,11 @@ describe('Map Visibility and Permissions Integration Test', () => {
     expect(isAddPlaceButtonDisabled).toBe(false);
   });
 
-  it('should handle EDITOR role as editable permission', () => {
+  it('should handle EDIT role as editable permission', () => {
     const user1Email = 'user1@example.com';
     const user2Email = 'user2@example.com';
 
-    // User1 shares a map with User2 as EDITOR
+    // User1 shares a map with User2 as EDIT
     const user1Map = {
       id: 'user1-map-123',
       name: 'User1 Map',
@@ -231,23 +231,23 @@ describe('Map Visibility and Permissions Integration Test', () => {
         isDefault: false,
         createdAt: user1Map.createdAt,
         updatedAt: user1Map.updatedAt,
-        userRole: UserRole.EDITOR,
+        userRole: UserRole.EDIT,
         mapViewId: 'mapview-456',
         displayedName: 'User1 Map',
       },
     ];
 
-    // Only User1's map (with EDITOR role) is visible
+    // Only User1's map (with EDIT role) is visible
     const visibleMapIds = new Set<string>([user1Map.id]);
 
     const visibleMaps = user2Maps.filter((map) => visibleMapIds.has(map.id));
     const hasEditableVisibleMap = visibleMaps.some(
-      (map) => map.userRole === UserRole.OWNER || map.userRole === UserRole.EDITOR
+      (map) => map.userRole === UserRole.OWNER || map.userRole === UserRole.EDIT
     );
 
     expect(hasEditableVisibleMap).toBe(true);
 
-    // The "Add Place" button should be enabled because EDITOR has edit permissions
+    // The "Add Place" button should be enabled because EDIT has edit permissions
     const isAddPlaceButtonDisabled = !hasEditableVisibleMap;
     expect(isAddPlaceButtonDisabled).toBe(false);
   });

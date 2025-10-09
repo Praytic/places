@@ -22,7 +22,7 @@ export function createInfoWindow(
   onDelete: (place: Place) => void,
   userRole?: UserRole
 ): google.maps.InfoWindow {
-  const isReadOnly = userRole === UserRole.VIEWER;
+  const isReadOnly = userRole === UserRole.VIEW;
   const isFavorite = place.group === 'favorite';
 
   // Create React root

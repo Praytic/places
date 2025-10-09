@@ -19,13 +19,6 @@ import { PlaceMapWithRole, MapCollaborator } from './MapsService';
 
 const MAP_VIEWS_COLLECTION = 'mapViews';
 
-// Role constants (re-exported from MapsService for consistency)
-export const ROLES = {
-  OWNER: 'owner' as UserRole,
-  EDITOR: 'editor' as UserRole,
-  VIEWER: 'viewer' as UserRole
-};
-
 /**
  * Generate composite ID for mapView
  * Format: {mapId}_{collaborator}

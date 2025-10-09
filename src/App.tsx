@@ -12,7 +12,6 @@ import { AuthProvider, MapsProvider, PlacesProvider, useAuthContext, useMapsCont
 import { useEmojiPicker } from './shared/hooks';
 import { useCurrentLocation } from './shared/hooks/useCurrentLocation';
 import { ErrorBoundary } from './shared/components';
-import { ROLES } from './services/MapsService';
 import { UserRole } from './shared/types/domain';
 
 const AppContent: React.FC = () => {
@@ -42,11 +41,11 @@ const AppContent: React.FC = () => {
   const { location: mapCenter } = useCurrentLocation(true);
 
   // Calculate if Add Place button should be disabled
-  // Button is disabled when no visible maps are editable (OWNER or EDITOR)
+  // Button is disabled when no visible maps are editable (OWNER or EDIT)
   const isAddPlaceDisabled = useMemo(() => {
     const visibleMaps = maps.filter((map) => visibleMapIds.has(map.id));
     const hasEditableVisibleMap = visibleMaps.some(
-      (map) => map.userRole === UserRole.OWNER || map.userRole === UserRole.EDITOR
+      (map) => map.userRole === UserRole.OWNER || map.userRole === UserRole.EDIT
     );
     return !hasEditableVisibleMap;
   }, [maps, visibleMapIds]);
@@ -248,7 +247,7 @@ const AppContent: React.FC = () => {
               onPlaceSelect={handlePlaceSelect}
               onClose={() => setShowSearch(false)}
               existingPlaces={filteredPlaces as any}
-              userMaps={maps.filter((map) => map.userRole === ROLES.OWNER || map.userRole === ROLES.EDITOR) as any}
+              userMaps={maps.filter((map) => map.userRole === UserRole.OWNER || map.userRole === UserRole.EDIT) as any}
               visibleMapIds={visibleMapIds as any}
               onMapVisibilityToggle={handleMapVisibilityToggle}
             />

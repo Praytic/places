@@ -17,7 +17,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { getUserMaps, shareMapWithUser, unshareMapWithUser, getMapCollaborators, ROLES } from '../services/MapsService';
+import { getUserMaps, shareMapWithUser, unshareMapWithUser, getMapCollaborators } from '../services/MapsService';
 import { UserRole } from '../shared/types/domain';
 
 interface Collaborator {
@@ -48,7 +48,7 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ userEmail, mapId = null, onCl
         if (!targetMapId) {
           const maps = await getUserMaps(userEmail);
           const firstMap = maps[0];
-          if (maps.length > 0 && firstMap && firstMap.userRole === ROLES.OWNER) {
+          if (maps.length > 0 && firstMap && firstMap.userRole === UserRole.OWNER) {
             targetMapId = firstMap.id;
           }
         }
@@ -98,7 +98,7 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ userEmail, mapId = null, onCl
     setSuccess(null);
 
     try {
-      await shareMapWithUser(currentMapId, email, ROLES.VIEWER);
+      await shareMapWithUser(currentMapId, email, UserRole.VIEW);
       setSuccess(`Successfully shared map with ${email}`);
       setEmail('');
 
@@ -125,7 +125,7 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ userEmail, mapId = null, onCl
     setError(null);
     setSuccess(null);
 
-    const newRole = currentRole === ROLES.EDITOR ? ROLES.VIEWER : ROLES.EDITOR;
+    const newRole = currentRole === UserRole.EDIT ? UserRole.VIEW : UserRole.EDIT;
 
     try {
       await shareMapWithUser(currentMapId, collaboratorEmail, newRole);
@@ -250,9 +250,9 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ userEmail, mapId = null, onCl
                       size="small"
                       onClick={() => handleToggleRole(collaborator.email, collaborator.role)}
                       disabled={loading}
-                      title={collaborator.role === ROLES.EDITOR ? 'Switch to viewer' : 'Switch to editor'}
+                      title={collaborator.role === UserRole.EDIT ? 'Switch to viewer' : 'Switch to editor'}
                     >
-                      {collaborator.role === ROLES.EDITOR ? <EditIcon /> : <VisibilityIcon />}
+                      {collaborator.role === UserRole.EDIT ? <EditIcon /> : <VisibilityIcon />}
                     </IconButton>
                     <IconButton
                       size="small"

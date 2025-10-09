@@ -17,7 +17,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { createMap, shareMapWithUser, unshareMapWithUser, updateMap, getMapCollaborators, deleteMap, ROLES } from '../services/MapsService';
+import { createMap, shareMapWithUser, unshareMapWithUser, updateMap, getMapCollaborators, deleteMap } from '../services/MapsService';
 import { updateMapViewDisplayedName } from '../services/MapViewService';
 import { PlaceMapWithRole, UserRole } from '../shared/types/domain';
 
@@ -35,7 +35,7 @@ interface ManageMapDialogProps {
 
 const ManageMapDialog: React.FC<ManageMapDialogProps> = ({ userEmail, onMapCreated, onClose, existingMap = null }) => {
   const isEditMode = !!existingMap;
-  const isOwner = isEditMode && existingMap.userRole === ROLES.OWNER;
+  const isOwner = isEditMode && existingMap.userRole === UserRole.OWNER;
   const [mapName, setMapName] = useState(existingMap?.displayedName || existingMap?.name || '');
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -84,7 +84,7 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({ userEmail, onMapCreat
       return;
     }
 
-    setEmailList([...emailList, { email, role: ROLES.VIEWER }]);
+    setEmailList([...emailList, { email, role: UserRole.VIEW }]);
     setEmail('');
     setError(null);
   };
@@ -99,7 +99,7 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({ userEmail, onMapCreat
   };
 
   const handleToggleRole = (emailToToggle: string, currentRole: UserRole) => {
-    const newRole = currentRole === ROLES.EDITOR ? ROLES.VIEWER : ROLES.EDITOR;
+    const newRole = currentRole === UserRole.EDIT ? UserRole.VIEW : UserRole.EDIT;
     setEmailList(emailList.map(item =>
       item.email === emailToToggle ? { ...item, role: newRole } : item
     ));
@@ -174,7 +174,7 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({ userEmail, onMapCreat
           }
         }
 
-        onMapCreated(newMap.id, ROLES.OWNER);
+        onMapCreated(newMap.id, UserRole.OWNER);
       }
 
       onClose();
@@ -269,9 +269,9 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({ userEmail, onMapCreat
                     size="small"
                     onClick={() => handleToggleRole(item.email, item.role)}
                     disabled={creating}
-                    title={item.role === ROLES.EDITOR ? 'Switch to viewer' : 'Switch to editor'}
+                    title={item.role === UserRole.EDIT ? 'Switch to viewer' : 'Switch to editor'}
                   >
-                    {item.role === ROLES.EDITOR ? <EditIcon /> : <VisibilityIcon />}
+                    {item.role === UserRole.EDIT ? <EditIcon /> : <VisibilityIcon />}
                   </IconButton>
                   <IconButton
                     size="small"

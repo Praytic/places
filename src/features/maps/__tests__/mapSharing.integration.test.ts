@@ -44,7 +44,7 @@ describe('Map Sharing and DisplayedName Integration Test', () => {
       id: 'mapview-456',
       mapId: createdMap.id,
       collaborator: user2Email,
-      role: UserRole.VIEWER,
+      role: UserRole.VIEW,
       displayName: 'Map', // Initially uses the original map name
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
@@ -64,7 +64,7 @@ describe('Map Sharing and DisplayedName Integration Test', () => {
         isDefault: false,
         createdAt: createdMap.createdAt,
         updatedAt: createdMap.updatedAt,
-        userRole: UserRole.VIEWER,
+        userRole: UserRole.VIEW,
         mapViewId: createdMapView.id,
         displayedName: 'Map', // Shows original map name initially
       },
@@ -91,7 +91,7 @@ describe('Map Sharing and DisplayedName Integration Test', () => {
         isDefault: false,
         createdAt: createdMap.createdAt,
         updatedAt: createdMap.updatedAt,
-        userRole: UserRole.VIEWER,
+        userRole: UserRole.VIEW,
         mapViewId: createdMapView.id,
         displayedName: 'My Map', // User2's custom name
       },
@@ -119,7 +119,7 @@ describe('Map Sharing and DisplayedName Integration Test', () => {
         isDefault: false,
         createdAt: renamedMap.createdAt,
         updatedAt: renamedMap.updatedAt,
-        userRole: UserRole.VIEWER,
+        userRole: UserRole.VIEW,
         mapViewId: createdMapView.id,
         displayedName: 'My Map', // User2's custom name preserved
       },
@@ -156,7 +156,7 @@ describe('Map Sharing and DisplayedName Integration Test', () => {
       name: 'Map1',
       displayedName: 'My Map',
       owner: user1Email,
-      userRole: UserRole.VIEWER,
+      userRole: UserRole.VIEW,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     };
