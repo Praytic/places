@@ -265,7 +265,9 @@ export const shareMapWithUser = async (
 
     if (existingMapView) {
       // Update existing mapView role
-      await MapViewService.updateMapViewRole(existingMapView.id, role);
+      // MapView ID is now composite: {mapId}_{userId}
+      const compositeId = `${mapId}_${userId}`;
+      await MapViewService.updateMapViewRole(compositeId, role);
     } else {
       // Create new mapView
       await MapViewService.createMapView(mapId, userId, role, map.name);
@@ -283,13 +285,17 @@ export const shareMapWithUser = async (
  */
 export const unshareMapWithUser = async (mapId: string, userId: string): Promise<void> => {
   try {
-    const mapView = await MapViewService.getMapView(mapId, userId);
-    if (mapView) {
-      await MapViewService.deleteMapView(mapView.id);
-    }
+    // MapView ID is composite: {mapId}_{userId}
+    const compositeId = `${mapId}_${userId}`;
+
+    // Direct delete using composite ID (no need to check existence first)
+    await MapViewService.deleteMapView(compositeId);
   } catch (error) {
-    console.error('Error unsharing map:', error);
-    throw error;
+    // Silently ignore if mapView doesn't exist
+    if ((error as any).code !== 'not-found') {
+      console.error('Error unsharing map:', error);
+      throw error;
+    }
   }
 };
 

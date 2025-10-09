@@ -27,6 +27,17 @@ export const ROLES = {
 };
 
 /**
+ * Generate composite ID for mapView
+ * Format: {mapId}_{collaborator}
+ * @param mapId - Map ID
+ * @param collaborator - User email
+ * @returns Composite ID
+ */
+const getCompositeId = (mapId: string, collaborator: string): string => {
+  return `${mapId}_${collaborator}`;
+};
+
+/**
  * Create a new mapView (access record for a user to a map)
  * @param mapId - Map ID
  * @param collaborator - User email
@@ -41,10 +52,11 @@ export const createMapView = async (
   displayedName: string
 ): Promise<MapView> => {
   try {
-    // Use auto-generated ID from Firestore
-    const mapViewRef = doc(collection(db, MAP_VIEWS_COLLECTION));
+    // Use composite ID for security: {mapId}_{collaborator}
+    const compositeId = getCompositeId(mapId, collaborator);
+    const mapViewRef = doc(db, MAP_VIEWS_COLLECTION, compositeId);
     const mapViewData: MapView = {
-      id: mapViewRef.id,
+      id: compositeId,
       mapId,
       collaborator,
       role,
@@ -121,21 +133,14 @@ export const deleteMapView = async (mapViewId: string): Promise<void> => {
  */
 export const getMapView = async (mapId: string, collaborator: string): Promise<MapView | null> => {
   try {
-    const q = query(
-      collection(db, MAP_VIEWS_COLLECTION),
-      where('mapId', '==', mapId),
-      where('collaborator', '==', collaborator)
-    );
-    const snapshot = await getDocs(q);
+    // Use composite ID for direct document access (faster than query)
+    const compositeId = getCompositeId(mapId, collaborator);
+    const mapViewDoc = await getDoc(doc(db, MAP_VIEWS_COLLECTION, compositeId));
 
-    if (snapshot.empty) {
+    if (!mapViewDoc.exists()) {
       return null;
     }
 
-    const mapViewDoc = snapshot.docs[0];
-    if (!mapViewDoc) {
-      return null;
-    }
     return { id: mapViewDoc.id, ...mapViewDoc.data() } as MapView;
   } catch (error) {
     console.error('Error getting mapView:', error);
