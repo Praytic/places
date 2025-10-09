@@ -81,7 +81,7 @@ const AppContent: React.FC = () => {
       if (placeToRemove) {
         try {
           setError(null);
-          await deletePlace(placeToRemove.id);
+          await deletePlace(placeToRemove.mapId, placeToRemove.id);
           setSelectedPlace(null);
         } catch (err) {
           setError('Failed to remove place. Please try again.');
@@ -95,7 +95,7 @@ const AppContent: React.FC = () => {
     async (place: any, newGroup: string): Promise<void> => {
       try {
         setError(null);
-        await updatePlaceGroup(place.id, newGroup as any);
+        await updatePlaceGroup(place.mapId, place.id, newGroup as any);
         if (selectedPlace && selectedPlace.id === place.id) {
           setSelectedPlace({ ...selectedPlace, group: newGroup as any });
         }
@@ -141,7 +141,7 @@ const AppContent: React.FC = () => {
 
         try {
           setError(null);
-          await updatePlaceEmoji(placeToUpdate.id, emojiObject.emoji);
+          await updatePlaceEmoji(placeToUpdate.mapId, placeToUpdate.id, emojiObject.emoji);
           if (selectedPlace && selectedPlace.id === placeToUpdate.id) {
             setSelectedPlace({ ...selectedPlace, emoji: emojiObject.emoji });
           }

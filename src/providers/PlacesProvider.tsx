@@ -16,9 +16,9 @@ interface PlacesContextValue {
   setSelectedPlace: (place: Place | null) => void;
   toggleFilter: (filter: PlaceGroup) => void;
   addPlace: (place: any, mapId: string) => Promise<void>;
-  updatePlaceGroup: (placeId: string, group: PlaceGroup) => Promise<void>;
-  updatePlaceEmoji: (placeId: string, emoji: string) => Promise<void>;
-  deletePlace: (placeId: string) => Promise<void>;
+  updatePlaceGroup: (mapId: string, placeId: string, group: PlaceGroup) => Promise<void>;
+  updatePlaceEmoji: (mapId: string, placeId: string, emoji: string) => Promise<void>;
+  deletePlace: (mapId: string, placeId: string) => Promise<void>;
 }
 
 const PlacesContext = createContext<PlacesContextValue | undefined>(undefined);
@@ -97,16 +97,16 @@ export const PlacesProvider: React.FC<PlacesProviderProps> = ({ children }) => {
     await PlacesService.addPlace(place, mapId);
   }, []);
 
-  const updatePlaceGroup = useCallback(async (placeId: string, group: PlaceGroup): Promise<void> => {
-    await PlacesService.updatePlaceGroup(placeId, group);
+  const updatePlaceGroup = useCallback(async (mapId: string, placeId: string, group: PlaceGroup): Promise<void> => {
+    await PlacesService.updatePlaceGroup(mapId, placeId, group);
   }, []);
 
-  const updatePlaceEmoji = useCallback(async (placeId: string, emoji: string): Promise<void> => {
-    await PlacesService.updatePlaceEmoji(placeId, emoji);
+  const updatePlaceEmoji = useCallback(async (mapId: string, placeId: string, emoji: string): Promise<void> => {
+    await PlacesService.updatePlaceEmoji(mapId, placeId, emoji);
   }, []);
 
-  const deletePlace = useCallback(async (placeId: string): Promise<void> => {
-    await PlacesService.deletePlace(placeId);
+  const deletePlace = useCallback(async (mapId: string, placeId: string): Promise<void> => {
+    await PlacesService.deletePlace(mapId, placeId);
   }, []);
 
   const value: PlacesContextValue = useMemo(
