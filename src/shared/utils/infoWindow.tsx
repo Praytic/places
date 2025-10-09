@@ -22,6 +22,7 @@ export function createInfoWindow(
   onDelete: (place: Place) => void,
   userRole?: UserRole
 ): google.maps.InfoWindow {
+  // Only VIEWER role is read-only; OWNER and EDITOR (role='edit') can edit
   const isReadOnly = userRole === UserRole.VIEWER;
   const isFavorite = place.group === 'favorite';
 

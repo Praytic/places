@@ -18,7 +18,7 @@ import { PlaceMap, UserRole } from '../shared/types/domain';
 // Role constants
 export const ROLES = {
   OWNER: 'owner' as UserRole,
-  EDITOR: 'editor' as UserRole,
+  EDITOR: 'edit' as UserRole,
   VIEWER: 'viewer' as UserRole
 };
 
@@ -219,16 +219,16 @@ export const deleteMap = async (mapId: string): Promise<void> => {
 
     const batch = writeBatch(db);
 
-    // Delete map document
-    batch.delete(doc(db, 'maps', mapId));
-
-    // Delete all places in this map
-    const placesQuery = query(collection(db, 'places'), where('mapId', '==', mapId));
-    const placesSnapshot = await getDocs(placesQuery);
+    // Delete all places in this map (nested collection)
+    const placesRef = collection(db, 'maps', mapId, 'places');
+    const placesSnapshot = await getDocs(placesRef);
 
     placesSnapshot.docs.forEach((placeDoc) => {
       batch.delete(placeDoc.ref);
     });
+
+    // Delete map document
+    batch.delete(doc(db, 'maps', mapId));
 
     await batch.commit();
   } catch (error) {
@@ -265,7 +265,7 @@ export const shareMapWithUser = async (
 
     if (existingMapView) {
       // Update existing mapView role
-      await MapViewService.updateMapViewRole(existingMapView.id, role);
+      await MapViewService.updateMapViewRole(mapId, userId, role);
     } else {
       // Create new mapView
       await MapViewService.createMapView(mapId, userId, role, map.name);
@@ -285,7 +285,7 @@ export const unshareMapWithUser = async (mapId: string, userId: string): Promise
   try {
     const mapView = await MapViewService.getMapView(mapId, userId);
     if (mapView) {
-      await MapViewService.deleteMapView(mapView.id);
+      await MapViewService.deleteMapView(mapId, userId);
     }
   } catch (error) {
     console.error('Error unsharing map:', error);

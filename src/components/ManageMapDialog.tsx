@@ -126,10 +126,7 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({ userEmail, onMapCreat
           await updateMap(existingMap!.id, { name: trimmedName });
         } else {
           // Collaborator updates their MapView's displayedName
-          if (!existingMap!.mapViewId) {
-            throw new Error('MapView ID is missing for collaborator');
-          }
-          await updateMapViewDisplayedName(existingMap!.mapViewId, trimmedName);
+          await updateMapViewDisplayedName(existingMap!.id, userEmail, trimmedName);
         }
 
         // Only owners can manage collaborators

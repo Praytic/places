@@ -11,18 +11,17 @@ import {
   onSnapshot,
   writeBatch,
   Timestamp,
-  Unsubscribe
+  Unsubscribe,
+  collectionGroup
 } from 'firebase/firestore';
 import { db } from '../lib/firebase/config';
 import { MapView, UserRole } from '../shared/types/domain';
 import { PlaceMapWithRole, MapCollaborator } from './MapsService';
 
-const MAP_VIEWS_COLLECTION = 'mapViews';
-
 // Role constants (re-exported from MapsService for consistency)
 export const ROLES = {
   OWNER: 'owner' as UserRole,
-  EDITOR: 'editor' as UserRole,
+  EDITOR: 'edit' as UserRole,
   VIEWER: 'viewer' as UserRole
 };
 
@@ -30,7 +29,7 @@ export const ROLES = {
  * Create a new mapView (access record for a user to a map)
  * @param mapId - Map ID
  * @param collaborator - User email
- * @param role - User's role (owner/editor/viewer)
+ * @param role - User's role (owner/edit/viewer)
  * @param displayedName - Map name to display for this user
  * @returns The created mapView
  */
@@ -41,10 +40,10 @@ export const createMapView = async (
   displayedName: string
 ): Promise<MapView> => {
   try {
-    // Use auto-generated ID from Firestore
-    const mapViewRef = doc(collection(db, MAP_VIEWS_COLLECTION));
+    // Use collaborator email as the view document ID
+    const mapViewRef = doc(db, 'maps', mapId, 'views', collaborator);
     const mapViewData: MapView = {
-      id: mapViewRef.id,
+      id: collaborator,
       mapId,
       collaborator,
       role,
@@ -63,12 +62,13 @@ export const createMapView = async (
 
 /**
  * Update a mapView's role
- * @param mapViewId - MapView ID
+ * @param mapId - Map ID
+ * @param collaborator - User email
  * @param newRole - New role
  */
-export const updateMapViewRole = async (mapViewId: string, newRole: UserRole): Promise<void> => {
+export const updateMapViewRole = async (mapId: string, collaborator: string, newRole: UserRole): Promise<void> => {
   try {
-    const mapViewRef = doc(db, MAP_VIEWS_COLLECTION, mapViewId);
+    const mapViewRef = doc(db, 'maps', mapId, 'views', collaborator);
     await updateDoc(mapViewRef, {
       role: newRole,
       updatedAt: Timestamp.now()
@@ -81,15 +81,17 @@ export const updateMapViewRole = async (mapViewId: string, newRole: UserRole): P
 
 /**
  * Update a mapView's displayed name
- * @param mapViewId - MapView ID
+ * @param mapId - Map ID
+ * @param collaborator - User email
  * @param newDisplayedName - New displayed name
  */
 export const updateMapViewDisplayedName = async (
-  mapViewId: string,
+  mapId: string,
+  collaborator: string,
   newDisplayedName: string
 ): Promise<void> => {
   try {
-    const mapViewRef = doc(db, MAP_VIEWS_COLLECTION, mapViewId);
+    const mapViewRef = doc(db, 'maps', mapId, 'views', collaborator);
     await updateDoc(mapViewRef, {
       displayName: newDisplayedName,
       updatedAt: Timestamp.now()
@@ -102,11 +104,12 @@ export const updateMapViewDisplayedName = async (
 
 /**
  * Delete a mapView
- * @param mapViewId - MapView ID
+ * @param mapId - Map ID
+ * @param collaborator - User email
  */
-export const deleteMapView = async (mapViewId: string): Promise<void> => {
+export const deleteMapView = async (mapId: string, collaborator: string): Promise<void> => {
   try {
-    await deleteDoc(doc(db, MAP_VIEWS_COLLECTION, mapViewId));
+    await deleteDoc(doc(db, 'maps', mapId, 'views', collaborator));
   } catch (error) {
     console.error('Error deleting mapView:', error);
     throw error;
@@ -121,21 +124,13 @@ export const deleteMapView = async (mapViewId: string): Promise<void> => {
  */
 export const getMapView = async (mapId: string, collaborator: string): Promise<MapView | null> => {
   try {
-    const q = query(
-      collection(db, MAP_VIEWS_COLLECTION),
-      where('mapId', '==', mapId),
-      where('collaborator', '==', collaborator)
-    );
-    const snapshot = await getDocs(q);
+    const mapViewRef = doc(db, 'maps', mapId, 'views', collaborator);
+    const mapViewDoc = await getDoc(mapViewRef);
 
-    if (snapshot.empty) {
+    if (!mapViewDoc.exists()) {
       return null;
     }
 
-    const mapViewDoc = snapshot.docs[0];
-    if (!mapViewDoc) {
-      return null;
-    }
     return { id: mapViewDoc.id, ...mapViewDoc.data() } as MapView;
   } catch (error) {
     console.error('Error getting mapView:', error);
@@ -150,18 +145,19 @@ export const getMapView = async (mapId: string, collaborator: string): Promise<M
  */
 export const getUserMapViews = async (userId: string): Promise<PlaceMapWithRole[]> => {
   try {
-    const q = query(
-      collection(db, MAP_VIEWS_COLLECTION),
+    // Query only views for this specific user using where clause
+    const viewsQuery = query(
+      collectionGroup(db, 'views'),
       where('collaborator', '==', userId)
     );
-    const mapViewsSnapshot = await getDocs(q);
+    const viewsSnapshot = await getDocs(viewsQuery);
 
-    if (mapViewsSnapshot.empty) {
+    if (viewsSnapshot.empty) {
       return [];
     }
 
     // Get all unique map IDs
-    const mapIds = [...new Set(mapViewsSnapshot.docs.map(doc => doc.data()['mapId']))];
+    const mapIds = [...new Set(viewsSnapshot.docs.map(doc => doc.data()['mapId']))];
 
     // Fetch all maps in parallel
     const mapPromises = mapIds.map(mapId => getDoc(doc(db, 'maps', mapId)));
@@ -176,7 +172,7 @@ export const getUserMapViews = async (userId: string): Promise<PlaceMapWithRole[
     });
 
     // Join mapViews with maps
-    const result = mapViewsSnapshot.docs
+    const result = viewsSnapshot.docs
       .map(mapViewDoc => {
         const mapViewData = mapViewDoc.data();
         const mapData = mapsById[mapViewData['mapId']];
@@ -212,20 +208,21 @@ export const subscribeToUserMapViews = (
   callback: (maps: PlaceMapWithRole[]) => void
 ): Unsubscribe => {
   try {
-    const q = query(
-      collection(db, MAP_VIEWS_COLLECTION),
+    // Query only views for this specific user using where clause
+    const viewsQuery = query(
+      collectionGroup(db, 'views'),
       where('collaborator', '==', userId)
     );
 
-    return onSnapshot(q, async (mapViewsSnapshot) => {
+    return onSnapshot(viewsQuery, async (viewsSnapshot) => {
       try {
-        if (mapViewsSnapshot.empty) {
+        if (viewsSnapshot.empty) {
           callback([]);
           return;
         }
 
         // Get all unique map IDs
-        const mapIds = [...new Set(mapViewsSnapshot.docs.map(doc => doc.data()['mapId']))];
+        const mapIds = [...new Set(viewsSnapshot.docs.map(doc => doc.data()['mapId']))];
 
         // Fetch all maps in parallel
         const mapPromises = mapIds.map(mapId => getDoc(doc(db, 'maps', mapId)));
@@ -240,7 +237,7 @@ export const subscribeToUserMapViews = (
         });
 
         // Join mapViews with maps
-        const result = mapViewsSnapshot.docs
+        const result = viewsSnapshot.docs
           .map(mapViewDoc => {
             const mapViewData = mapViewDoc.data();
             const mapData = mapsById[mapViewData['mapId']];
@@ -277,11 +274,8 @@ export const subscribeToUserMapViews = (
  */
 export const getMapViewsForMap = async (mapId: string): Promise<MapCollaborator[]> => {
   try {
-    const q = query(
-      collection(db, MAP_VIEWS_COLLECTION),
-      where('mapId', '==', mapId)
-    );
-    const snapshot = await getDocs(q);
+    const viewsRef = collection(db, 'maps', mapId, 'views');
+    const snapshot = await getDocs(viewsRef);
 
     return snapshot.docs.map(doc => ({
       userId: doc.data()['collaborator'],
@@ -301,11 +295,8 @@ export const getMapViewsForMap = async (mapId: string): Promise<MapCollaborator[
  */
 export const deleteMapViewsForMap = async (mapId: string): Promise<void> => {
   try {
-    const q = query(
-      collection(db, MAP_VIEWS_COLLECTION),
-      where('mapId', '==', mapId)
-    );
-    const snapshot = await getDocs(q);
+    const viewsRef = collection(db, 'maps', mapId, 'views');
+    const snapshot = await getDocs(viewsRef);
 
     if (snapshot.empty) {
       return;
