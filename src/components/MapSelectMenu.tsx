@@ -185,7 +185,7 @@ const MapSelectMenu: React.FC<MapSelectMenuProps> = ({
             PaperProps: {
               sx: {
                 maxHeight: 400,
-                width: 250,
+                width: { xs: 250, md: 320 },
               }
             }
           }}
@@ -199,7 +199,7 @@ const MapSelectMenu: React.FC<MapSelectMenuProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1,
-                py: 1.5,
+                py: { xs: 1.5, md: 2 },
               }}
             >
               {editingMapId === map.id ? (
@@ -234,11 +234,12 @@ const MapSelectMenu: React.FC<MapSelectMenuProps> = ({
                       size="small"
                       onClick={(e) => handleToggleVisibility(e, map.id)}
                       color={visibleMapIds.has(map.id) ? "primary" : "default"}
+                      sx={{ p: { xs: 0.5, md: 1 } }}
                     >
                       {visibleMapIds.has(map.id) ? (
-                        <VisibilityIcon fontSize="small" />
+                        <VisibilityIcon sx={{ fontSize: { xs: 18, md: 20 } }} />
                       ) : (
-                        <VisibilityOffIcon fontSize="small" />
+                        <VisibilityOffIcon sx={{ fontSize: { xs: 18, md: 20 } }} />
                       )}
                     </IconButton>
                   </Tooltip>
@@ -250,8 +251,9 @@ const MapSelectMenu: React.FC<MapSelectMenuProps> = ({
                       size="small"
                       onClick={(e) => handleStartEditing(e, map)}
                       disabled={map.userRole !== ROLES.OWNER || editingMapId === map.id}
+                      sx={{ p: { xs: 0.5, md: 1 } }}
                     >
-                      <EditIcon fontSize="small" />
+                      <EditIcon sx={{ fontSize: { xs: 18, md: 20 } }} />
                     </IconButton>
                   </span>
                 </Tooltip>
@@ -265,11 +267,12 @@ const MapSelectMenu: React.FC<MapSelectMenuProps> = ({
                       size="small"
                       onClick={(e) => handleDeleteMap(e, map.id, map.name)}
                       disabled={map.userRole !== ROLES.OWNER || deleting === map.id || map.isDefault}
+                      sx={{ p: { xs: 0.5, md: 1 } }}
                     >
                       {deleting === map.id ? (
                         <CircularProgress size={20} />
                       ) : (
-                        <DeleteIcon fontSize="small" />
+                        <DeleteIcon sx={{ fontSize: { xs: 18, md: 20 } }} />
                       )}
                     </IconButton>
                   </span>
