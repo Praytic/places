@@ -1,37 +1,23 @@
 import { Timestamp } from 'firebase/firestore';
 
-/**
- * User role types for map access control
- */
 export enum UserRole {
+  OWNER = 'owner',
   EDIT = 'edit',
   VIEW = 'view',
 }
 
-/**
- * Geographic location coordinates
- */
 export interface Location {
   lat: number;
   lng: number;
 }
 
-/**
- * Place geometry containing location data
- */
 export interface Geometry {
   location: Location;
 }
 
-/**
- * Place group types
- */
 export type PlaceGroup = 'want to go' | 'favorite';
 
-/**
- * Core Place entity
- */
-export interface Place {
+export class Place {
   id: string;
   name: string;
   emoji: string;
@@ -42,11 +28,36 @@ export interface Place {
   types: string[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
+
+  constructor(
+    id: string,
+    name: string,
+    emoji: string,
+    group: PlaceGroup,
+    geometry: Geometry,
+    formattedAddress: string,
+    placeId: string,
+    types: string[],
+    createdAt: Timestamp,
+    updatedAt: Timestamp
+  ) {
+    this.id = id;
+    this.name = name;
+    this.emoji = emoji;
+    this.group = group;
+    this.geometry = geometry;
+    this.formattedAddress = formattedAddress;
+    this.placeId = placeId;
+    this.types = types;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+  }
+
+  toString(): string {
+    return `${this.emoji} ${this.name} (${this.group})`;
+  }
 }
 
-/**
- * Input type for creating a new place
- */
 export interface PlaceCreate {
   name: string;
   emoji?: string;
@@ -54,9 +65,6 @@ export interface PlaceCreate {
   geometry: Geometry;
 }
 
-/**
- * Input type for updating a place
- */
 export interface PlaceUpdate {
   name?: string;
   emoji?: string;
@@ -64,35 +72,41 @@ export interface PlaceUpdate {
   geometry?: Geometry;
 }
 
-/**
- * Core entity that represents owner's view of a Map
- */
-export interface UserMap {
+export class UserMap {
   id: string;
   name: string;
   owner: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+
+  constructor(
+    id: string,
+    name: string,
+    owner: string,
+    createdAt: Timestamp,
+    updatedAt: Timestamp
+  ) {
+    this.id = id;
+    this.name = name;
+    this.owner = owner;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+  }
+
+  toString(): string {
+    return `${this.name} (${this.owner})`;
+  }
 }
 
-/**
- * Input type for creating a new map
- */
 export interface MapCreate {
   name: string;
 }
 
-/**
- * Input type for updating a map
- */
 export interface MapUpdate {
   name?: string;
 }
 
-/**
- * MapView entity (represents shared access to a map)
- */
-export interface MapView {
+export class MapView {
   id: string;
   mapId: string;
   collaborator: string;
@@ -100,23 +114,33 @@ export interface MapView {
   displayName: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+
+  constructor(
+    id: string,
+    mapId: string,
+    collaborator: string,
+    role: UserRole,
+    displayName: string,
+    createdAt: Timestamp,
+    updatedAt: Timestamp
+  ) {
+    this.id = id;
+    this.mapId = mapId;
+    this.collaborator = collaborator;
+    this.role = role;
+    this.displayName = displayName;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+  }
+
+  toString(): string {
+    return `${this.displayName} (${this.role} access)`;
+  }
 }
 
-/**
- * User entity
- */
 export interface User {
   uid: string;
   email?: string;
   displayName?: string;
   photoURL?: string;
-}
-
-/**
- * Map collaborator information
- */
-export interface Collaborator {
-  userId: string;
-  role: UserRole;
-  displayName?: string;
 }

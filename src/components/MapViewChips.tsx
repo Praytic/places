@@ -2,11 +2,11 @@ import React, { useState, useRef } from 'react';
 import { Box, Chip, IconButton, SxProps, Theme } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ManageMapDialog from './ManageMapDialog';
-import { PlaceMapWithRole, VisibleMapIds } from '../shared/types/domain';
+import { PlaceMapWithRole, Set<string> } from '../shared/types/domain';
 
 interface MapViewChipsProps {
   userMapViews?: PlaceMapWithRole[];
-  selectedMapIds?: VisibleMapIds;
+  selectedMapIds?: Set<string>;
   onMapViewToggle?: (mapId: string) => void;
   userEmail?: string;
   onMapCreated?: () => void;

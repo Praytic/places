@@ -20,7 +20,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import ManageMapDialog from './ManageMapDialog';
 import { deleteMap, updateMap } from '../services/MapsService';
-import { PlaceMapWithRole, VisibleMapIds, UserRole } from '../shared/types/domain';
+import { PlaceMapWithRole, Set<string>, UserRole } from '../shared/types/domain';
 
 interface MapSelectMenuProps {
   userEmail: string;
@@ -31,7 +31,7 @@ interface MapSelectMenuProps {
   anchorEl: HTMLElement | null;
   open: boolean;
   onClose: () => void;
-  visibleMapIds?: VisibleMapIds;
+  visibleMapIds?: Set<string>;
   onMapVisibilityToggle?: (mapId: string) => void;
   onMapsUpdated?: () => Promise<void>;
 }

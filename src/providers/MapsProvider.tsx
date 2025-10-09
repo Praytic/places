@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode, useCallback, useMemo } from 'react';
-import { PlaceMapWithRole, VisibleMapIds } from '../shared/types';
+import { PlaceMapWithRole, Set<string> } from '../shared/types';
 import { useUserMaps, useVisibleMaps } from '../features/maps/hooks';
 import { useAuthContext } from './AuthProvider';
 
@@ -11,7 +11,7 @@ interface MapsContextValue {
   loading: boolean;
   error: string | null;
   currentMapId: string | null;
-  visibleMapIds: VisibleMapIds;
+  visibleMapIds: Set<string>;
   setCurrentMapId: (mapId: string | null) => void;
   toggleMapVisibility: (mapId: string) => void;
 }

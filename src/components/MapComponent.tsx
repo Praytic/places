@@ -5,7 +5,7 @@ import { createInfoWindow } from '../shared/utils/infoWindow';
 import { createCustomEqual } from 'fast-equals';
 import { isLatLngLiteral } from '@googlemaps/typescript-guards';
 import MapChips from './MapChips';
-import { Place, PlaceGroup, FilterSet, Location, PlaceMapWithRole, VisibleMapIds, UserRole } from '../shared/types/domain';
+import { Place, PlaceGroup, Set<PlaceGroup>, Location, PlaceMapWithRole, Set<string>, UserRole } from '../shared/types/domain';
 
 const deepCompareEqualsForMaps = createCustomEqual({
   createCustomConfig: () => ({
@@ -110,7 +110,7 @@ interface MarkersProps {
   places: Place[];
   selectedPlace: Place | null;
   onPlaceSelect: (place: Place | null) => void;
-  activeFilters: FilterSet;
+  activeFilters: Set<PlaceGroup>;
   onEmojiChangeRequest: (place: Place) => void;
   onChangeGroup: (place: Place, newGroup: PlaceGroup) => Promise<void>;
   onRemovePlace: (place: Place) => Promise<void>;
@@ -298,12 +298,12 @@ interface MapComponentProps {
   onEmojiChangeRequest: (place: Place) => void;
   onChangeGroup: (place: Place, newGroup: PlaceGroup) => Promise<void>;
   onRemovePlace: (place: Place) => Promise<void>;
-  activeFilters: FilterSet;
+  activeFilters: Set<PlaceGroup>;
   onInfoWindowRefUpdate?: (ref: React.MutableRefObject<any | null>) => void;
   center?: Location;
   onMapReady?: (map: any) => void;
   userMaps?: PlaceMapWithRole[];
-  visibleMapIds?: VisibleMapIds;
+  visibleMapIds?: Set<string>;
   onMapVisibilityToggle?: (mapId: string) => void;
   showSearch?: boolean;
   userEmail?: string;

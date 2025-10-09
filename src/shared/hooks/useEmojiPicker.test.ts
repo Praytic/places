@@ -1,20 +1,23 @@
 import { renderHook, act } from '@testing-library/react';
+import { Timestamp } from 'firebase/firestore';
 import { useEmojiPicker } from './useEmojiPicker';
 import { Place } from '../types';
 
 describe('useEmojiPicker', () => {
-  const mockPlace: Place = {
-    id: '1',
-    mapId: 'map1',
-    name: 'Test Place',
-    emoji: '📍',
-    group: 'favorite',
-    geometry: {
+  const mockPlace: Place = new Place(
+    '1',
+    'Test Place',
+    '📍',
+    'favorite',
+    {
       location: { lat: 0, lng: 0 },
     },
-    createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-    updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as any,
-  };
+    '123 Main St, City, Country',
+    'ChIJplace123',
+    ['restaurant', 'food'],
+    Timestamp.now(),
+    Timestamp.now()
+  );
 
   it('should initialize with emoji picker closed', () => {
     const { result } = renderHook(() => useEmojiPicker());
@@ -57,8 +60,30 @@ describe('useEmojiPicker', () => {
   it('should allow opening emoji picker with different places', () => {
     const { result } = renderHook(() => useEmojiPicker());
 
-    const place1 = { ...mockPlace, id: '1', name: 'Place 1' };
-    const place2 = { ...mockPlace, id: '2', name: 'Place 2' };
+    const place1 = new Place(
+      '1',
+      'Place 1',
+      '📍',
+      'favorite',
+      { location: { lat: 0, lng: 0 } },
+      '123 Main St',
+      'ChIJplace1',
+      ['point_of_interest'],
+      Timestamp.now(),
+      Timestamp.now()
+    );
+    const place2 = new Place(
+      '2',
+      'Place 2',
+      '📍',
+      'favorite',
+      { location: { lat: 0, lng: 0 } },
+      '456 Oak Ave',
+      'ChIJplace2',
+      ['point_of_interest'],
+      Timestamp.now(),
+      Timestamp.now()
+    );
 
     act(() => {
       result.current.openEmojiPicker(place1);

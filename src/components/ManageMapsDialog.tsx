@@ -22,12 +22,12 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { deleteMap, updateMap } from '../services/MapsService';
 import ManageMapDialog from './ManageMapDialog';
-import { PlaceMapWithRole, VisibleMapIds, UserRole } from '../shared/types/domain';
+import { PlaceMapWithRole, Set<string>, UserRole } from '../shared/types/domain';
 
 interface ManageMapsDialogProps {
   userEmail: string;
   userMaps: PlaceMapWithRole[];
-  visibleMapIds: VisibleMapIds;
+  visibleMapIds: Set<string>;
   onMapVisibilityToggle: (mapId: string) => void;
   onMapsUpdated: () => void;
   onClose: () => void;

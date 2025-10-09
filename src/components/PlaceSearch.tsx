@@ -3,7 +3,7 @@ import { Box, Dialog, DialogContent, TextField, IconButton, List, ListItem, List
 import CloseIcon from '@mui/icons-material/Close';
 import EmojiPicker, { EmojiStyle, EmojiClickData } from 'emoji-picker-react';
 import MapChips from './MapChips';
-import { Place, PlaceGroup, VisibleMapIds } from '../shared/types/domain';
+import { Place, PlaceGroup, Set<string> } from '../shared/types/domain';
 import { PlaceMapWithRole } from '../shared/types/domain';
 
 interface PlaceSearchProps {
@@ -11,7 +11,7 @@ interface PlaceSearchProps {
   onClose: () => void;
   existingPlaces?: Place[];
   userMaps?: PlaceMapWithRole[];
-  visibleMapIds?: VisibleMapIds;
+  visibleMapIds?: Set<string>;
   onMapVisibilityToggle?: (mapId: string) => void;
 }
 

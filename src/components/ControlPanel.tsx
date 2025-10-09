@@ -7,12 +7,12 @@ import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
 import RemoveRedEyeOutlinedIcon from '@mui/icons-material/RemoveRedEyeOutlined';
 import LayersIcon from '@mui/icons-material/Layers';
 import ShareIcon from '@mui/icons-material/Share';
-import { PlaceGroup, FilterSet } from '../shared/types/domain';
+import { PlaceGroup, Set<PlaceGroup> } from '../shared/types/domain';
 
 interface ControlPanelProps {
   onAddPlace: () => void;
   onToggleFilter: (group: PlaceGroup) => void;
-  activeFilters: FilterSet;
+  activeFilters: Set<PlaceGroup>;
   onManageMaps: (event: React.MouseEvent) => void;
   onShareMap: () => void;
   isAddPlaceDisabled?: boolean;

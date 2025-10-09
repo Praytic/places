@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode, useCallback, useMemo } from 'react';
-import { Place, PlaceGroup, FilterSet } from '../shared/types';
+import { Place, PlaceGroup, Set<PlaceGroup> } from '../shared/types';
 import { usePlaces, useActiveFilters } from '../features/places/hooks';
 import { useMapsContext } from './MapsProvider';
 import PlacesService from '../services/PlacesService';
@@ -12,7 +12,7 @@ interface PlacesContextValue {
   filteredPlaces: Place[];
   loading: boolean;
   selectedPlace: Place | null;
-  activeFilters: FilterSet;
+  activeFilters: Set<PlaceGroup>;
   setSelectedPlace: (place: Place | null) => void;
   toggleFilter: (filter: PlaceGroup) => void;
   addPlace: (place: any, mapId: string) => Promise<void>;
