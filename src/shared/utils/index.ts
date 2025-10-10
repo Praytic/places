@@ -1,9 +1,3 @@
-export { createRegularMarker, createSelectedMarker } from './markerTemplates';
-export { createInfoWindow } from './infoWindow';
-export {
-  getCurrentLocation,
-  hasLocationPermission,
-  setLocationPermission,
-  isFirstTimeUser,
-  setUserAsReturning,
-} from './locationService';
+export {createRegularMarker, createSelectedMarker} from './markerTemplates';
+export {createInfoWindow} from './infoWindow';
+export {getCurrentLocation} from './locationService';

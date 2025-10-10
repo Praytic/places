@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Alert, Backdrop, Box, CircularProgress, Dialog, DialogContent, DialogTitle, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import MapComponent from './components/MapComponent';
@@ -10,9 +10,9 @@ import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import Auth from './components/Auth';
 import { AuthProvider, MapsProvider, PlacesProvider, useAuthContext, useMapsContext, usePlacesContext } from './providers';
 import { useEmojiPicker } from './shared/hooks';
-import { useCurrentLocation } from './shared/hooks/useCurrentLocation';
+import { getCurrentLocation } from './shared/utils/locationService';
 import { ErrorBoundary } from './shared/components';
-import { UserRole } from './shared/types/domain';
+import { UserRole, Location } from './shared/types/domain';
 
 const AppContent: React.FC = () => {
   const { user } = useAuthContext();
@@ -35,10 +35,18 @@ const AppContent: React.FC = () => {
   const [mapSelectAnchorEl, setMapSelectAnchorEl] = useState<HTMLElement | null>(null);
   const [showShareMap, setShowShareMap] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mapCenter, setMapCenter] = useState<Location | null>(null);
   const infoWindowRef = React.useRef<any>(null);
 
   const { showEmojiPicker, emojiPickerPlace, openEmojiPicker, closeEmojiPicker } = useEmojiPicker();
-  const { location: mapCenter } = useCurrentLocation(true);
+
+  useEffect(() => {
+    getCurrentLocation()
+      .then(setMapCenter)
+      .catch(() => {
+        // Silently fail - map will use default center
+      });
+  }, []);
 
   // Calculate if Add Place button should be disabled
   // Button is disabled when no visible maps are editable (OWNER or EDIT)
@@ -176,12 +184,8 @@ const AppContent: React.FC = () => {
     infoWindowRef.current = ref;
   }, []);
 
-  const handleLocationRequest = useCallback((_location: any): void => {
-    // Location is handled by useCurrentLocation hook
-  }, []);
-
   return (
-    <Auth onLocationRequest={handleLocationRequest}>
+    <Auth onLocationRequest={() => {}}>
       <Box sx={{ position: 'relative', height: '100vh', width: '100vw' }}>
         <Backdrop open={loading} sx={{ color: '#fff', zIndex: 3000 }}>
           <CircularProgress color="inherit" />

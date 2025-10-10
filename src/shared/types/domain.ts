@@ -23,7 +23,7 @@ export class Place {
   emoji: string;
   group: PlaceGroup;
   geometry: Geometry;
-  formattedAddress: string;
+  formattedAddress?: string;
   placeId: string;
   types: string[];
   createdAt: Timestamp;
