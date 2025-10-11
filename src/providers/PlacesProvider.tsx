@@ -4,9 +4,6 @@ import { usePlaces, useActiveFilters } from '../features/places/hooks';
 import { useMapsContext } from './MapsProvider';
 import {createPlace, deletePlace, updatePlace} from '../services/PlacesService';
 
-/**
- * Context value provided by PlacesProvider
- */
 interface PlacesContextValue {
   allPlaces: Place[];
   filteredPlaces: Place[];
@@ -15,9 +12,9 @@ interface PlacesContextValue {
   activeFilters: Set<PlaceGroup>;
   setSelectedPlace: (place: Place | null) => void;
   toggleFilter: (filter: PlaceGroup) => void;
-  createPlace: (place: Place) => Promise<Place>;
-  updatePlace: (place: Place) => Promise<Place>;
-  deletePlace: (place: Place) => Promise<void>;
+  createPlace: (place: Omit<Place, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Place>;
+  updatePlace: (place: Pick<Place, 'group' | 'emoji' | 'mapId' | 'id'>) => Promise<Place>;
+  deletePlace: (place: Pick<Place, 'id' | 'mapId'>) => Promise<void>;
 }
 
 const PlacesContext = createContext<PlacesContextValue | undefined>(undefined);

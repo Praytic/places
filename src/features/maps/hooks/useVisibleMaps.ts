@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Set<string> } from '../../../shared/types';
 
 /**
  * Custom hook for managing map visibility with per-user localStorage persistence
@@ -14,7 +13,7 @@ import { Set<string> } from '../../../shared/types';
  * @returns {Object} Visibility state and controls
  * @returns {Set<string>} visibleMapIds - Set of map IDs currently visible
  * @returns {Function} toggleMapVisibility - Toggle a map's visibility on/off
- * @returns {Function} setSet<string> - Direct setter for visibility state
+ * @returns {Function} setVisibleMapIds - Direct setter for visibility state
  *
  * @example
  * ```tsx
@@ -39,14 +38,14 @@ export const useVisibleMaps = (
 ): {
   visibleMapIds: Set<string>;
   toggleMapVisibility: (mapId: string) => void;
-  setSet<string>: React.Dispatch<React.SetStateAction<Set<string>>>;
+  setVisibleMapIds: React.Dispatch<React.SetStateAction<Set<string>>>;
 } => {
-  const [visibleMapIds, setSet<string>] = useState<Set<string>>(new Set());
+  const [visibleMapIds, setVisibleMapIds] = useState<Set<string>>(new Set());
 
   // Load visible map IDs from localStorage on mount or when user changes
   useEffect(() => {
     if (!userId) {
-      setSet<string>(new Set());
+      setVisibleMapIds(new Set());
       return;
     }
 
@@ -57,9 +56,9 @@ export const useVisibleMaps = (
       const savedIds = JSON.parse(savedVisibleMaps) as string[];
       // Filter out IDs that are no longer available
       const validIds = savedIds.filter((id) => availableMapIds.includes(id));
-      setSet<string>(new Set(validIds));
+      setVisibleMapIds(new Set(validIds));
     } else if (defaultMapIds.length > 0) {
-      setSet<string>(new Set(defaultMapIds));
+      setVisibleMapIds(new Set(defaultMapIds));
     }
   }, [userId, availableMapIds, defaultMapIds]);
 
@@ -72,7 +71,7 @@ export const useVisibleMaps = (
   }, [userId, visibleMapIds]);
 
   const toggleMapVisibility = useCallback((mapId: string) => {
-    setSet<string>((prev) => {
+    setVisibleMapIds((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(mapId)) {
         newSet.delete(mapId);
@@ -83,5 +82,5 @@ export const useVisibleMaps = (
     });
   }, []);
 
-  return { visibleMapIds, toggleMapVisibility, setSet<string> };
+  return { visibleMapIds, toggleMapVisibility, setVisibleMapIds };
 };

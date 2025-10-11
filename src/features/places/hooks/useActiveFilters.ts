@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Set<PlaceGroup>, PlaceGroup } from '../../../shared/types';
+import { PlaceGroup } from '../../../shared/types';
 
 const STORAGE_KEY = 'activeFilters';
 const DEFAULT_FILTERS: PlaceGroup[] = ['favorite', 'want to go'];

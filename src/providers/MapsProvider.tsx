@@ -3,9 +3,6 @@ import { useUserMaps, useVisibleMaps } from '../features/maps/hooks';
 import { useAuthContext } from './AuthProvider';
 import {UserMap} from "../shared/types";
 
-/**
- * Context value provided by MapsProvider
- */
 interface MapsContextValue {
   maps: UserMap[];
   loading: boolean;

@@ -61,7 +61,7 @@ export class Place {
 }
 
 export class UserMap {
-  id?: string;
+  id: string;
   name: string;
   owner: string;
   collaborators: string[];
@@ -69,6 +69,7 @@ export class UserMap {
   updatedAt?: Timestamp;
 
   constructor(
+    id: string,
     name: string,
     owner: string,
     collaborators: string[] = [],
