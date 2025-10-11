@@ -1,7 +1,6 @@
 import { Timestamp } from 'firebase/firestore';
 
 export enum UserRole {
-  OWNER = 'owner',
   EDIT = 'edit',
   VIEW = 'view',
 }
@@ -19,6 +18,7 @@ export type PlaceGroup = 'want to go' | 'favorite';
 
 export class Place {
   id: string;
+  mapId: string;
   name: string;
   emoji: string;
   group: PlaceGroup;
@@ -26,11 +26,11 @@ export class Place {
   formattedAddress?: string;
   placeId: string;
   types: string[];
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 
   constructor(
-    id: string,
+    mapId: string,
     name: string,
     emoji: string,
     group: PlaceGroup,
@@ -38,10 +38,12 @@ export class Place {
     formattedAddress: string,
     placeId: string,
     types: string[],
-    createdAt: Timestamp,
-    updatedAt: Timestamp
+    id: string,
+    createdAt?: Timestamp,
+    updatedAt?: Timestamp,
   ) {
     this.id = id;
+    this.mapId = mapId;
     this.name = name;
     this.emoji = emoji;
     this.group = group;
@@ -58,37 +60,26 @@ export class Place {
   }
 }
 
-export interface PlaceCreate {
-  name: string;
-  emoji?: string;
-  group: PlaceGroup;
-  geometry: Geometry;
-}
-
-export interface PlaceUpdate {
-  name?: string;
-  emoji?: string;
-  group?: PlaceGroup;
-  geometry?: Geometry;
-}
-
 export class UserMap {
-  id: string;
+  id?: string;
   name: string;
   owner: string;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  collaborators: string[];
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 
   constructor(
-    id: string,
     name: string,
     owner: string,
-    createdAt: Timestamp,
-    updatedAt: Timestamp
+    collaborators: string[] = [],
+    id?: string,
+    createdAt?: Timestamp,
+    updatedAt?: Timestamp,
   ) {
-    this.id = id;
+    this.id = id
     this.name = name;
     this.owner = owner;
+    this.collaborators = collaborators;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
   }
@@ -107,24 +98,21 @@ export interface MapUpdate {
 }
 
 export class MapView {
-  id: string;
   mapId: string;
   collaborator: string;
   role: UserRole;
   displayName: string;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 
   constructor(
-    id: string,
     mapId: string,
     collaborator: string,
     role: UserRole,
     displayName: string,
-    createdAt: Timestamp,
-    updatedAt: Timestamp
+    createdAt?: Timestamp,
+    updatedAt?: Timestamp,
   ) {
-    this.id = id;
     this.mapId = mapId;
     this.collaborator = collaborator;
     this.role = role;
@@ -136,11 +124,4 @@ export class MapView {
   toString(): string {
     return `${this.displayName} (${this.role} access)`;
   }
-}
-
-export interface User {
-  uid: string;
-  email?: string;
-  displayName?: string;
-  photoURL?: string;
 }

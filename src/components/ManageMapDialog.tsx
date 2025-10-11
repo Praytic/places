@@ -18,7 +18,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { createMap, shareMapWithUser, unshareMapWithUser, updateMap, getMapCollaborators, deleteMap } from '../services/MapsService';
-import { updateMapViewDisplayedName } from '../services/MapViewService';
+import { updateMapViewDisplayName } from '../services/MapViewService';
 import { PlaceMapWithRole, UserRole } from '../shared/types/domain';
 
 interface EmailItem {
@@ -129,7 +129,7 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({ userEmail, onMapCreat
           if (!existingMap!.mapViewId) {
             throw new Error('MapView ID is missing for collaborator');
           }
-          await updateMapViewDisplayedName(existingMap!.mapViewId, trimmedName);
+          await updateMapViewDisplayName(existingMap!.mapViewId, trimmedName);
         }
 
         // Only owners can manage collaborators

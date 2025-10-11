@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { PlaceMapWithRole, UserRole } from '../../../shared/types';
-import { subscribeToUserMaps, createMap } from '../../../services/MapsService';
+import { subscribeUserToMap, createMap } from '../../../services/MapsService';
 
 /**
  * Custom hook for managing user's maps with real-time Firestore subscription
@@ -53,7 +53,7 @@ export const useUserMaps = (
 
     let isFirstUpdate = true;
 
-    const unsubscribe = subscribeToUserMaps(userId, async (userMaps: PlaceMapWithRole[]) => {
+    const unsubscribe = subscribeUserToMap(userId, async (userMaps: PlaceMapWithRole[]) => {
       try {
         let updatedMaps = userMaps;
 
