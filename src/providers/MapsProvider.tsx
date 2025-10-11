@@ -1,13 +1,13 @@
 import React, { createContext, useContext, ReactNode, useCallback, useMemo } from 'react';
-import { PlaceMapWithRole, Set<string> } from '../shared/types';
 import { useUserMaps, useVisibleMaps } from '../features/maps/hooks';
 import { useAuthContext } from './AuthProvider';
+import {UserMap} from "../shared/types";
 
 /**
  * Context value provided by MapsProvider
  */
 interface MapsContextValue {
-  maps: PlaceMapWithRole[];
+  maps: UserMap[];
   loading: boolean;
   error: string | null;
   currentMapId: string | null;
