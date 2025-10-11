@@ -73,7 +73,6 @@ export class UserMap {
     name: string,
     owner: string,
     collaborators: string[] = [],
-    id?: string,
     createdAt?: Timestamp,
     updatedAt?: Timestamp,
   ) {
