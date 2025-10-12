@@ -16,14 +16,18 @@ export interface Geometry {
 
 export type PlaceGroup = 'want to go' | 'favorite';
 
+export type AccessMap = UserMap | MapView;
+
+export type SelectableAccessMap = AccessMap & { selected: boolean };
+
 export class Place {
   id: string;
   mapId: string;
   name: string;
   emoji: string;
   group: PlaceGroup;
-  geometry: Geometry;
-  formattedAddress?: string;
+  geometry: Geometry | null;
+  formattedAddress: string | null;
   placeId: string;
   types: string[];
   createdAt?: Timestamp;

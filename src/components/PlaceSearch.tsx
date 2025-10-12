@@ -1,52 +1,45 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Box, Dialog, DialogContent, TextField, IconButton, List, ListItem, ListItemButton, ListItemText, Typography, CircularProgress } from '@mui/material';
+import React, {useEffect, useRef, useState} from 'react';
+import {
+  Box,
+  CircularProgress,
+  Dialog,
+  DialogContent,
+  IconButton,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  TextField,
+  Typography
+} from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import EmojiPicker, { EmojiStyle, EmojiClickData } from 'emoji-picker-react';
+import EmojiPicker, {EmojiClickData, EmojiStyle} from 'emoji-picker-react';
 import MapChips from './MapChips';
-import {MapView, Place, PlaceGroup, UserMap} from '../shared/types/domain';
+import {MapView, Place, SelectableAccessMap, UserRole} from '../shared/types';
+
+
+type AutocompleteSuggestion = google.maps.places.AutocompleteSuggestion;
+type PlacePrediction = google.maps.places.PlacePrediction;
+type PlaceCreation = Pick<Place, 'placeId' | 'name' | 'geometry' | 'types' | 'formattedAddress' | 'group' | 'emoji' | 'mapId'>
 
 interface PlaceSearchProps {
-  onPlaceSelect: (place: any, mapId: string) => Promise<void>;
+  onPlaceCreate: (placeCreation: PlaceCreation) => Promise<void>;
   onClose: () => void;
-  existingPlaces?: Place[];
-  userMaps: (UserMap | MapView)[];
-  visibleMapIds?: Set<string>;
-  onMapVisibilityToggle?: (mapId: string) => void;
-}
-
-interface GooglePlacePrediction {
-  mainText: { text: string };
-  secondaryText?: { text: string };
-  placeId: string;
-  toPlace: () => any;
-}
-
-interface GoogleSuggestion {
-  placePrediction: GooglePlacePrediction;
-}
-
-interface SelectedPlaceData {
-  name: string;
-  geometry: { location: any };
-  types?: string[];
-  place_id: string;
-  formatted_address?: string;
-  group: PlaceGroup;
+  selectableAccessMaps: SelectableAccessMap[];
+  existingPlaces: Place[];
 }
 
 const PlaceSearch: React.FC<PlaceSearchProps> = ({
-  onPlaceSelect,
+  onPlaceCreate,
   onClose,
+  selectableAccessMaps = [],
   existingPlaces = [],
-  userMaps = [],
-  visibleMapIds = new Set(),
-  onMapVisibilityToggle
 }) => {
   const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<GoogleSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [selectedPlaceData, setSelectedPlaceData] = useState<SelectedPlaceData | null>(null);
+  const [placeCreation, setPlaceCreation] = useState<Pick<Place, 'placeId' | 'name' | 'geometry' | 'types' | 'formattedAddress' | 'group'> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -59,65 +52,58 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
     const value = e.target.value;
     setQuery(value);
 
-    if (value.length > 2 && (window as any).google) {
+    if (value.length > 2) {
       setIsLoading(true);
       try {
-        const { AutocompleteSuggestion } = await (window as any).google.maps.importLibrary('places');
-
-        const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({
+        const { suggestions } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
           input: value,
           includedPrimaryTypes: ['establishment', 'street_address']
         });
 
         setSuggestions(suggestions || []);
       } catch (error) {
-        console.error('Failed to fetch suggestions:', error);
         setSuggestions([]);
       } finally {
         setIsLoading(false);
       }
-    } else {
-      setSuggestions([]);
     }
   };
 
-  const handleSuggestionClick = async (suggestion: GoogleSuggestion) => {
+  const handleSuggestionClick = async (placePrediction: PlacePrediction) => {
     setIsLoading(true);
     try {
-      const place = suggestion.placePrediction.toPlace();
+      const place = placePrediction.toPlace();
 
       await place.fetchFields({
         fields: ['displayName', 'location', 'types', 'id', 'formattedAddress']
       });
 
-      const placeData: SelectedPlaceData = {
-        name: place.displayName,
-        geometry: { location: place.location },
-        types: place.types,
-        place_id: place.id,
-        formatted_address: place.formattedAddress,
+      const placeData: Pick<Place, 'placeId' | 'name' | 'geometry' | 'types' | 'formattedAddress' | 'group'> = {
+        name: place.displayName ?? "Unknown",
+        geometry: (place.location?.lat() != null && place.location?.lng() != null ?
+          { location: { lng: place.location.lng(), lat: place.location.lat() } } : null),
+        types: place.types ?? [],
+        placeId: place.id,
+        formattedAddress: place.formattedAddress ?? null,
         group: 'want to go'
       };
 
-      setSelectedPlaceData(placeData);
+      setPlaceCreation(placeData);
       setShowEmojiPicker(true);
-    } catch (error) {
-      console.error('Failed to fetch place details:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleEmojiSelect = async (emojiObject: EmojiClickData) => {
-    if (selectedPlaceData && visibleMapIds.size > 0) {
-      const placeWithEmoji = {
-        ...selectedPlaceData,
-        emoji: emojiObject.emoji
-      };
-
-      // Create the place on each visible/selected map
-      for (const mapId of visibleMapIds) {
-        await onPlaceSelect(placeWithEmoji, mapId);
+    const selectedMapOrViewChipProps = selectableAccessMaps.filter(p => p.selected);
+    if (placeCreation && selectedMapOrViewChipProps.length > 0) {
+      // Create the place on each visible/selected map or view (with edit access)
+      for (const mapOrViewChip of selectedMapOrViewChipProps) {
+        const newPlace = mapOrViewChip instanceof MapView && mapOrViewChip.role == UserRole.EDIT
+          ? {...placeCreation, mapId: mapOrViewChip.mapId, emoji: emojiObject.emoji}
+          : {...placeCreation, mapId: mapOrViewChip.id, emoji: emojiObject.emoji};
+        await onPlaceCreate(newPlace);
       }
 
       onClose();
@@ -126,7 +112,7 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
 
   const handleEmojiCancel = () => {
     setShowEmojiPicker(false);
-    setSelectedPlaceData(null);
+    setPlaceCreation(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -137,12 +123,9 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
 
   return (
     <>
-      {userMaps.length > 0 && !showEmojiPicker && (
+      {selectableAccessMaps.length > 0 && !showEmojiPicker && (
         <MapChips
-          userMaps={userMaps}
-          selectedMapIds={visibleMapIds}
-          onMapToggle={onMapVisibilityToggle}
-          enableManagement={false}
+          selectableMaps={selectableAccessMaps}
           sx={{
             position: 'fixed',
             top: 'calc(33% - 50px)',
@@ -161,12 +144,15 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
         onClose={onClose}
         maxWidth="sm"
         fullWidth
-        PaperProps={{
-          sx: {
-            position: 'fixed',
-            top: '33%',
-            m: 0,
-            maxHeight: '80vh',
+        slotProps={{
+          paper: {
+            sx: {
+              position: 'fixed',
+              top: '33%',
+              m: 0,
+              maxHeight: '80vh',
+
+            }
           }
         }}
       >
@@ -179,8 +165,10 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder="Search for places..."
-            InputProps={{
-              disableUnderline: true,
+            slotProps={{
+              input: {
+                disableUnderline: true,
+              }
             }}
           />
           <IconButton onClick={onClose} size="small">
@@ -200,17 +188,17 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
             <List sx={{ maxHeight: 400, overflow: 'auto' }}>
               {suggestions.map((suggestion) => {
                 const prediction = suggestion.placePrediction;
-                const existingPlace = existingPlaces.find(p => (p as any).place_id === prediction.placeId);
-                return (
+                const existingPlace = existingPlaces.find(p => p.placeId === prediction?.placeId);
+                return (prediction &&
                   <ListItem key={prediction.placeId} disablePadding>
-                    <ListItemButton onClick={() => handleSuggestionClick(suggestion)}>
+                    <ListItemButton onClick={() => handleSuggestionClick(prediction)}>
                       <ListItemText
                         primary={
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             {existingPlace && (
                               <span style={{ fontSize: '1.2em' }}>{existingPlace.emoji}</span>
                             )}
-                            <span>{prediction.mainText.text}</span>
+                            <span>{prediction.mainText?.text}</span>
                           </Box>
                         }
                         secondary={prediction.secondaryText?.text}
@@ -225,14 +213,14 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
       </Dialog>
 
       <Dialog
-        open={showEmojiPicker && !!selectedPlaceData}
+        open={showEmojiPicker && !!placeCreation}
         onClose={handleEmojiCancel}
         maxWidth="sm"
         fullWidth
       >
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2.5, borderBottom: 1, borderColor: 'divider' }}>
           <Typography variant="h6">
-            Choose an emoji for {selectedPlaceData?.name}
+            Choose an emoji for {placeCreation?.name}
           </Typography>
           <IconButton onClick={handleEmojiCancel} size="small">
             <CloseIcon />

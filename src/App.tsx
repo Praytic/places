@@ -248,10 +248,10 @@ const AppContent: React.FC = () => {
         {showSearch && (
           <ErrorBoundary>
             <PlaceSearch
-              onPlaceSelect={handlePlaceSelect}
+              onPlaceCreate={handlePlaceSelect}
               onClose={() => setShowSearch(false)}
               existingPlaces={filteredPlaces as any}
-              userMaps={maps.filter((map) => map.userRole === UserRole.OWNER || map.userRole === UserRole.EDIT) as any}
+              mapOrViewChipProps={maps.filter((map) => map.userRole === UserRole.OWNER || map.userRole === UserRole.EDIT) as any}
               visibleMapIds={visibleMapIds as any}
               onMapVisibilityToggle={handleMapVisibilityToggle}
             />

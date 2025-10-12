@@ -378,7 +378,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
       </MapWrapper>
       {userMaps.length > 0 && !showSearch && (
         <MapChips
-          userMaps={userMaps}
+          selectableMaps={userMaps}
           selectedMapIds={visibleMapIds}
           onMapToggle={onMapVisibilityToggle}
           userEmail={userEmail}

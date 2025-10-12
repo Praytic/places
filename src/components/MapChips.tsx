@@ -1,12 +1,10 @@
 import React from 'react';
 import { Box, Chip, IconButton, SxProps, Theme } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import {MapView, UserMap} from "../shared/types";
+import { MapView, SelectableAccessMap, UserMap} from "../shared/types";
 
 interface MapChipsProps {
-  userMaps: (UserMap | MapView)[];
-  selectedMapIds: Set<string>;
-  onMapToggle?: (map: (UserMap | MapView)) => void;
+  selectableMaps: SelectableAccessMap[];
   onMapEdit?: (map: UserMap) => void;
   onViewEdit?: (map: MapView) => void;
   onMapCreate?: () => void;
@@ -14,17 +12,22 @@ interface MapChipsProps {
 }
 
 const MapChips: React.FC<MapChipsProps> = ({
-  userMaps = [],
-  selectedMapIds = new Set(),
-  onMapToggle,
+  selectableMaps = [],
   onMapEdit,
   onViewEdit,
   onMapCreate,
   sx = {}
 }) => {
+  const handleClick = (mapOrView: Pick<(UserMap | MapView), 'id'>) => {
+    const clickedMap = selectableMaps.find(prop => prop.id === mapOrView.id);
+    if (clickedMap) {
+      clickedMap.selected = !clickedMap.selected;
+    }
+  };
+
   const handleContextMenu = (event: React.MouseEvent, mapOrView: Pick<(UserMap | MapView), 'id'>) => {
     event.preventDefault();
-    const map = userMaps.find(m => m.id === mapOrView.id);
+    const map = selectableMaps.find(m => m.id === mapOrView.id);
     if (map instanceof UserMap && onMapEdit) {
       onMapEdit(map)
     } else if (map instanceof MapView && onViewEdit) {
@@ -34,7 +37,7 @@ const MapChips: React.FC<MapChipsProps> = ({
     }
   };
 
-  if (userMaps.length === 0) {
+  if (selectableMaps.length === 0) {
     return null;
   }
 
@@ -49,20 +52,20 @@ const MapChips: React.FC<MapChipsProps> = ({
         backgroundColor: 'transparent',
         ...sx
       }}>
-        {userMaps.map((map) => (
+        {selectableMaps.map((map) => (
           <Chip
             key={map.id}
             label={map.name}
             size="medium"
-            onClick={() => onMapToggle && onMapToggle(map)}
+            onClick={() => handleClick(map)}
             onContextMenu={(e) => handleContextMenu(e, map)}
             sx={{
               cursor: 'pointer',
-              backgroundColor: selectedMapIds.has(map.id) ? 'primary.main' : 'white',
-              color: selectedMapIds.has(map.id) ? 'white' : 'text.primary',
+              backgroundColor: map.selected ? 'primary.main' : 'white',
+              color: map.selected ? 'white' : 'text.primary',
               boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.15)',
               '&:hover': {
-                backgroundColor: selectedMapIds.has(map.id) ? 'primary.dark' : 'rgba(220, 220, 220, 1)',
+                backgroundColor: map.selected ? 'primary.dark' : 'rgba(220, 220, 220, 1)',
               },
             }}
           />
