@@ -98,30 +98,33 @@ export interface MapUpdate {
 }
 
 export class MapView {
+  id: string;
   mapId: string;
   collaborator: string;
   role: UserRole;
-  displayName: string;
+  name: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 
   constructor(
+    id: string,
     mapId: string,
     collaborator: string,
     role: UserRole,
-    displayName: string,
+    name: string,
     createdAt?: Timestamp,
     updatedAt?: Timestamp,
   ) {
+    this.id = id;
     this.mapId = mapId;
     this.collaborator = collaborator;
     this.role = role;
-    this.displayName = displayName;
+    this.name = name;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
   }
 
   toString(): string {
-    return `${this.displayName} (${this.role} access)`;
+    return `${this.name} (${this.role} access)`;
   }
 }

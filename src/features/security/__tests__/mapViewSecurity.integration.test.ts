@@ -28,7 +28,7 @@ describe('MapView Security Integration Test', () => {
         mapId,
         collaborator: collaboratorEmail,
         role: UserRole.VIEW,
-        displayName: 'Shared Map',
+        name: 'Shared Map',
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
@@ -86,7 +86,7 @@ describe('MapView Security Integration Test', () => {
         mapId,
         collaborator: collaboratorEmail,
         role: UserRole.VIEW,
-        displayName: 'Shared Map',
+        name: 'Shared Map',
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
@@ -127,7 +127,7 @@ describe('MapView Security Integration Test', () => {
         mapId,
         collaborator: collaboratorEmail,
         role: UserRole.VIEW,
-        displayName: 'My Shared Map',
+        name: 'My Shared Map',
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
@@ -148,7 +148,7 @@ describe('MapView Security Integration Test', () => {
         mapId,
         collaborator: otherCollaboratorEmail,
         role: UserRole.VIEW,
-        displayName: 'Other Map',
+        name: 'Other Map',
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
@@ -169,7 +169,7 @@ describe('MapView Security Integration Test', () => {
         mapId,
         collaborator: collaboratorEmail,
         role: UserRole.VIEW,
-        displayName: 'Original Name',
+        name: 'Original Name',
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
@@ -203,7 +203,7 @@ describe('MapView Security Integration Test', () => {
         mapId,
         collaborator: collaboratorEmail,
         role: UserRole.VIEW,
-        displayName: 'Map Name',
+        name: 'Map Name',
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
@@ -262,7 +262,7 @@ describe('MapView Security Integration Test', () => {
         mapId,
         collaborator: collaboratorEmail,
         role: UserRole.VIEW,
-        displayName: 'Map Name',
+        name: 'Map Name',
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
@@ -326,7 +326,7 @@ describe('MapView Security Integration Test', () => {
         mapId,
         collaborator: collaboratorEmail,
         role: UserRole.VIEW,
-        displayName: 'Private Name', // This should be invisible to owner
+        name: 'Private Name', // This should be invisible to owner
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };

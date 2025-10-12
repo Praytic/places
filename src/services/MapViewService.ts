@@ -20,7 +20,7 @@ const getCompositeId = (mapId: string, collaborator: string): string => {
 };
 
 export const createMapView = async (
-  mapView: Pick<MapView, 'mapId' | 'collaborator' | 'role' | 'displayName'>,
+  mapView: Pick<MapView, 'mapId' | 'collaborator' | 'role' | 'name'>,
   transaction?: Transaction
 ): Promise<MapView> => {
   const compositeId = getCompositeId(mapView.mapId, mapView.collaborator);
@@ -49,12 +49,12 @@ export const updateMapViewRole = async (mapView: Pick<MapView, 'mapId' | 'collab
 };
 
 export const updateMapViewDisplayName = async (
-  mapView: Pick<MapView, 'mapId' | 'collaborator' | 'displayName'>
+  mapView: Pick<MapView, 'mapId' | 'collaborator' | 'name'>
 ): Promise<MapView> => {
   return runTransaction(db, async (tx) => {
     const compositeId = getCompositeId(mapView.mapId, mapView.collaborator);
     const mapViewRef = doc(db, 'mapViews', compositeId).withConverter(mapViewConverter);
-    tx.update(mapViewRef, {displayName: mapView.displayName});
+    tx.update(mapViewRef, {displayName: mapView.name});
     return getMapView(mapView, tx);
   });
 };

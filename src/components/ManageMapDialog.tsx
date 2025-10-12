@@ -19,7 +19,6 @@ import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { createMap, shareMapWithUser, unshareMapWithUser, updateMap, getMapCollaborators, deleteMap } from '../services/MapsService';
 import { updateMapViewDisplayName } from '../services/MapViewService';
-import { PlaceMapWithRole, UserRole } from '../shared/types/domain';
 
 interface EmailItem {
   email: string;
@@ -33,7 +32,7 @@ interface ManageMapDialogProps {
   existingMap?: PlaceMapWithRole | null;
 }
 
-const ManageMapDialog: React.FC<ManageMapDialogProps> = ({ userEmail, onMapCreated, onClose, existingMap = null }) => {
+const ManageMapDialog: React.FC<ManageMapDialogProps> = (props: ManageMapDialogProps) => {
   const isEditMode = !!existingMap;
   const isOwner = isEditMode && existingMap.userRole === UserRole.OWNER;
   const [mapName, setMapName] = useState(existingMap?.displayedName || existingMap?.name || '');

@@ -70,7 +70,7 @@ describe('Composite ID Functionality Integration Test', () => {
         mapId,
         collaborator: collaboratorEmail,
         role: UserRole.VIEW,
-        displayName: 'Shared Map',
+        name: 'Shared Map',
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
@@ -135,7 +135,7 @@ describe('Composite ID Functionality Integration Test', () => {
         mapId,
         collaborator: collaboratorEmail,
         role: UserRole.VIEW,
-        displayName: 'Map',
+        name: 'Map',
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };

@@ -1,16 +1,15 @@
-import React, { useState, useRef } from 'react';
+import React from 'react';
 import { Box, Chip, IconButton, SxProps, Theme } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import ManageMapDialog from './ManageMapDialog';
-import { PlaceMapWithRole, Set<string> } from '../shared/types/domain';
+import {MapView, UserMap} from "../shared/types";
 
 interface MapChipsProps {
-  userMaps?: PlaceMapWithRole[];
-  selectedMapIds?: Set<string>;
-  onMapToggle?: (mapId: string) => void;
-  userEmail?: string;
-  onMapCreated?: () => void;
-  enableManagement?: boolean;
+  userMaps: (UserMap | MapView)[];
+  selectedMapIds: Set<string>;
+  onMapToggle?: (map: (UserMap | MapView)) => void;
+  onMapEdit?: (map: UserMap) => void;
+  onViewEdit?: (map: MapView) => void;
+  onMapCreate?: () => void;
   sx?: SxProps<Theme>;
 }
 
@@ -18,38 +17,20 @@ const MapChips: React.FC<MapChipsProps> = ({
   userMaps = [],
   selectedMapIds = new Set(),
   onMapToggle,
-  userEmail,
-  onMapCreated,
-  enableManagement = true,
+  onMapEdit,
+  onViewEdit,
+  onMapCreate,
   sx = {}
 }) => {
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [editingMap, setEditingMap] = useState<PlaceMapWithRole | null>(null);
-  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const handleLongPressStart = (mapId: string) => {
-    if (!enableManagement) return;
-    longPressTimerRef.current = setTimeout(() => {
-      const map = userMaps.find(m => m.id === mapId);
-      if (map) {
-        setEditingMap(map);
-      }
-    }, 500);
-  };
-
-  const handleLongPressEnd = () => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-  };
-
-  const handleContextMenu = (event: React.MouseEvent, mapId: string) => {
+  const handleContextMenu = (event: React.MouseEvent, mapOrView: Pick<(UserMap | MapView), 'id'>) => {
     event.preventDefault();
-    if (!enableManagement) return;
-    const map = userMaps.find(m => m.id === mapId);
-    if (map) {
-      setEditingMap(map);
+    const map = userMaps.find(m => m.id === mapOrView.id);
+    if (map instanceof UserMap && onMapEdit) {
+      onMapEdit(map)
+    } else if (map instanceof MapView && onViewEdit) {
+      onViewEdit(map)
+    } else {
+      return
     }
   };
 
@@ -71,15 +52,10 @@ const MapChips: React.FC<MapChipsProps> = ({
         {userMaps.map((map) => (
           <Chip
             key={map.id}
-            label={map.displayedName || map.name}
+            label={map.name}
             size="medium"
-            onClick={() => onMapToggle && onMapToggle(map.id)}
-            onContextMenu={(e) => handleContextMenu(e, map.id)}
-            onMouseDown={() => handleLongPressStart(map.id)}
-            onMouseUp={handleLongPressEnd}
-            onMouseLeave={handleLongPressEnd}
-            onTouchStart={() => handleLongPressStart(map.id)}
-            onTouchEnd={handleLongPressEnd}
+            onClick={() => onMapToggle && onMapToggle(map)}
+            onContextMenu={(e) => handleContextMenu(e, map)}
             sx={{
               cursor: 'pointer',
               backgroundColor: selectedMapIds.has(map.id) ? 'primary.main' : 'white',
@@ -91,10 +67,10 @@ const MapChips: React.FC<MapChipsProps> = ({
             }}
           />
         ))}
-        {userEmail && onMapCreated && (
+        {onMapCreate && (
           <IconButton
             size="small"
-            onClick={() => setShowCreateDialog(true)}
+            onClick={() => onMapCreate && onMapCreate()}
             sx={{
               backgroundColor: 'white',
               boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.15)',
@@ -109,23 +85,6 @@ const MapChips: React.FC<MapChipsProps> = ({
           </IconButton>
         )}
       </Box>
-
-      {showCreateDialog && (
-        <ManageMapDialog
-          userEmail={userEmail!}
-          onMapCreated={onMapCreated!}
-          onClose={() => setShowCreateDialog(false)}
-        />
-      )}
-
-      {editingMap && (
-        <ManageMapDialog
-          userEmail={userEmail!}
-          onMapCreated={onMapCreated!}
-          onClose={() => setEditingMap(null)}
-          existingMap={editingMap}
-        />
-      )}
     </>
   );
 };

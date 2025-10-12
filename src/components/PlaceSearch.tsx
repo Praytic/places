@@ -3,14 +3,13 @@ import { Box, Dialog, DialogContent, TextField, IconButton, List, ListItem, List
 import CloseIcon from '@mui/icons-material/Close';
 import EmojiPicker, { EmojiStyle, EmojiClickData } from 'emoji-picker-react';
 import MapChips from './MapChips';
-import { Place, PlaceGroup, Set<string> } from '../shared/types/domain';
-import { PlaceMapWithRole } from '../shared/types/domain';
+import {MapView, Place, PlaceGroup, UserMap} from '../shared/types/domain';
 
 interface PlaceSearchProps {
   onPlaceSelect: (place: any, mapId: string) => Promise<void>;
   onClose: () => void;
   existingPlaces?: Place[];
-  userMaps?: PlaceMapWithRole[];
+  userMaps: (UserMap | MapView)[];
   visibleMapIds?: Set<string>;
   onMapVisibilityToggle?: (mapId: string) => void;
 }

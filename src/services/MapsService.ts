@@ -21,7 +21,7 @@ export const createMap = async (
     await Promise.all(
       mapViews.map(mapView => {
         const displayName = `${map.name} (by ${map.owner})`;
-        return createMapView({...mapView, mapId: mapRef.id, displayName: displayName})
+        return createMapView({...mapView, mapId: mapRef.id, name: displayName})
       })
     );
     return map
@@ -70,7 +70,7 @@ export const updateMap = async (
       addedCollaborators.map(email => {
         const role = mapViews?.find(mapView => mapView.mapId === mapId && mapView.collaborator === email)?.role ?? UserRole.VIEW
         const displayName = `${newMap.name} (by ${newMap.owner})`
-        createMapView({mapId: mapId, collaborator: email, role: role, displayName: displayName}, tx)
+        createMapView({mapId: mapId, collaborator: email, role: role, name: displayName}, tx)
       })
     );
 
