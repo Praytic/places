@@ -17,19 +17,17 @@ import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { createMap, shareMapWithUser, unshareMapWithUser, updateMap, getMapCollaborators, deleteMap } from '../services/MapsService';
+import { createMap, updateMap, deleteMap } from '../services/MapsService';
 import { updateMapViewDisplayName } from '../services/MapViewService';
+import {AccessMap} from "../shared/types";
 
-interface EmailItem {
-  email: string;
-  role: UserRole;
-}
 
 interface ManageMapDialogProps {
-  userEmail: string;
+  managedAccessMap: AccessMap;
+  user: User;
+  onAccessMapUpdated:
   onMapCreated: (mapId?: string, role?: UserRole) => void;
   onClose: () => void;
-  existingMap?: PlaceMapWithRole | null;
 }
 
 const ManageMapDialog: React.FC<ManageMapDialogProps> = (props: ManageMapDialogProps) => {
