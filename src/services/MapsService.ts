@@ -3,20 +3,18 @@ import {db} from '../lib/firebase/config';
 import {createMapView, deleteMapView} from './MapViewService';
 import {MapView, UserMap, UserRole} from '../shared/types';
 import {userMapConverter} from "../shared/types";
-import {useAuthUser} from "../components/Auth";
 import {assertDefined} from "../shared/utils/asserts";
 
 export const createMap = async (
   userMap: Pick<UserMap, 'name' | 'collaborators'>,
   mapViews: Pick<MapView, 'collaborator' | 'role'>[],
+  userEmail: string,
 ): Promise<UserMap> => {
-  const user = useAuthUser()
-  const email = user.email
-  assertDefined(email)
+  assertDefined(userEmail)
 
   return runTransaction(db, async (tx) => {
     const mapRef = doc(db, 'maps').withConverter(userMapConverter);
-    tx.set(mapRef, {...userMap, owner: email, id: mapRef.id});
+    tx.set(mapRef, {...userMap, owner: userEmail, id: mapRef.id});
     const map = await getUserMap(mapRef.id);
     await Promise.all(
       mapViews.map(mapView => {
@@ -36,11 +34,10 @@ export const getUserMap = async (mapId: string, transaction?: Transaction): Prom
   return mapData;
 };
 
-export const getUserMaps = async (): Promise<UserMap[]> => {
-  const user = useAuthUser();
+export const getUserMaps = async (userEmail: string): Promise<UserMap[]> => {
   const ownedMapsQuery = query(
     collection(db, 'maps'),
-    where('owner', '==', user.email)
+    where('owner', '==', userEmail)
   ).withConverter(userMapConverter);
   const ownedMapsSnapshot = await getDocs(ownedMapsQuery);
   return ownedMapsSnapshot.docs.map(doc => doc.data());
@@ -70,7 +67,7 @@ export const updateMap = async (
       addedCollaborators.map(email => {
         const role = mapViews?.find(mapView => mapView.mapId === mapId && mapView.collaborator === email)?.role ?? UserRole.VIEW
         const displayName = `${newMap.name} (by ${newMap.owner})`
-        createMapView({mapId: mapId, collaborator: email, role: role, name: displayName}, tx)
+        return createMapView({mapId: mapId, collaborator: email, role: role, name: displayName}, tx)
       })
     );
 

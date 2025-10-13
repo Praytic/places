@@ -5,6 +5,15 @@ export enum UserRole {
   VIEW = 'view',
 }
 
+export interface Collaborator {
+  userId: string;
+  role: UserRole;
+}
+
+export type UnsubscribeFn = () => void;
+
+export type SubscriptionCallback<T> = (data: T) => void;
+
 export interface Location {
   lat: number;
   lng: number;

@@ -111,9 +111,6 @@ export const PlacesProvider: React.FC<PlacesProviderProps> = ({ children }) => {
       activeFilters,
       setSelectedPlace,
       toggleFilter,
-      createPlace,
-      updatePlace,
-      deletePlace,
     ]
   );
 

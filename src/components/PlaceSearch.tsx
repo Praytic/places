@@ -100,7 +100,7 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
     if (placeCreation && selectedMapOrViewChipProps.length > 0) {
       // Create the place on each visible/selected map or view (with edit access)
       for (const mapOrViewChip of selectedMapOrViewChipProps) {
-        const newPlace = mapOrViewChip instanceof MapView && mapOrViewChip.role == UserRole.EDIT
+        const newPlace = mapOrViewChip instanceof MapView && mapOrViewChip.role === UserRole.EDIT
           ? {...placeCreation, mapId: mapOrViewChip.mapId, emoji: emojiObject.emoji}
           : {...placeCreation, mapId: mapOrViewChip.id, emoji: emojiObject.emoji};
         await onPlaceCreate(newPlace);

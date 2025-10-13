@@ -51,7 +51,7 @@ export const usePlaces = (
     };
 
     fetchPlaces();
-  }, [maps]);
+  }, [maps, views]);
 
   const filteredPlaces = useMemo(
     () => allPlaces.filter((place) => visibleMapIds.has(place.mapId)),

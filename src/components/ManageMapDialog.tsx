@@ -43,10 +43,11 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
                                                            onMapDeleted
                                                          }) => {
   const {
-    collaborators,
-    setCollaborators,
+    sharedViews,
     loading: collaboratorsLoading
-  } = useSharedMapViews(userMap);
+  } = useSharedMapViews(userMap ? [userMap] : []);
+
+  const [collaborators, setCollaborators] = useState<CollaboratorEntry[]>([]);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -56,10 +57,18 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
   const [originalCollaborators, setOriginalCollaborators] = useState<CollaboratorEntry[]>([]);
 
   useEffect(() => {
-    if (!collaboratorsLoading && collaborators.length > 0 && originalCollaborators.length === 0) {
-      setOriginalCollaborators(collaborators);
+    if (!collaboratorsLoading && userMap) {
+      const mapViews = sharedViews.get(userMap) || [];
+      const collaboratorEntries: CollaboratorEntry[] = mapViews.map(view => ({
+        collaborator: view.collaborator,
+        role: view.role
+      }));
+      if (collaboratorEntries.length > 0 && originalCollaborators.length === 0) {
+        setCollaborators(collaboratorEntries);
+        setOriginalCollaborators(collaboratorEntries);
+      }
     }
-  }, [collaboratorsLoading, collaborators, originalCollaborators.length]);
+  }, [collaboratorsLoading, userMap, sharedViews, originalCollaborators.length]);
 
   const handleAddEmail = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +82,7 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
       return;
     }
 
-    if (collaborators.some(item => item.collaborator === newCollaborator)) {
+    if (collaborators.some((item: CollaboratorEntry) => item.collaborator === newCollaborator)) {
       setError('Email already added');
       return;
     }
@@ -84,20 +93,20 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
   };
 
   const handleEmailChange = (changingEntry: CollaboratorEntry, email: string) => {
-    setCollaborators(collaborators.map(entry =>
+    setCollaborators(collaborators.map((entry: CollaboratorEntry) =>
       entry.collaborator === changingEntry.collaborator ? {...entry, collaborator: email} : entry
     ));
   };
 
   const handleToggleRole = (changingEntry: CollaboratorEntry, currentRole: UserRole) => {
     const newRole = currentRole === UserRole.EDIT ? UserRole.VIEW : UserRole.EDIT;
-    setCollaborators(collaborators.map(entry =>
+    setCollaborators(collaborators.map((entry: CollaboratorEntry) =>
       entry.collaborator === changingEntry.collaborator ? {...entry, role: newRole} : entry
     ));
   };
 
   const handleRemoveEmail = (removingEntry: CollaboratorEntry) => {
-    setCollaborators(collaborators.filter(entry => entry.collaborator !== removingEntry.collaborator));
+    setCollaborators(collaborators.filter((entry: CollaboratorEntry) => entry.collaborator !== removingEntry.collaborator));
   };
 
   const handleSave = async () => {
@@ -110,20 +119,20 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
         const updatedMap = await updateMap(userMap.id, {name: newName.trim()});
 
         const removedCollaborators = originalCollaborators.filter(
-          original => !collaborators.some(current => current.collaborator === original.collaborator)
+          (original: CollaboratorEntry) => !collaborators.some((current: CollaboratorEntry) => current.collaborator === original.collaborator)
         );
         const addedCollaborators = collaborators.filter(
-          current => !originalCollaborators.some(original => original.collaborator === current.collaborator)
+          (current: CollaboratorEntry) => !originalCollaborators.some((original: CollaboratorEntry) => original.collaborator === current.collaborator)
         );
-        const updatedCollaborators = collaborators.filter(current =>
-          originalCollaborators.some(original =>
+        const updatedCollaborators = collaborators.filter((current: CollaboratorEntry) =>
+          originalCollaborators.some((original: CollaboratorEntry) =>
             original.collaborator === current.collaborator && original.role !== current.role
           )
         );
 
-        await Promise.all(removedCollaborators.map(removedEntry =>
+        await Promise.all(removedCollaborators.map((removedEntry: CollaboratorEntry) =>
           deleteMapView({mapId: updatedMap.id, collaborator: removedEntry.collaborator})));
-        await Promise.all(addedCollaborators.map(addedEntry =>
+        await Promise.all(addedCollaborators.map((addedEntry: CollaboratorEntry) =>
           createMapView({
             mapId: updatedMap.id,
             collaborator: addedEntry.collaborator,
@@ -131,7 +140,7 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
             name: updatedMap.name
           }))
         );
-        await Promise.all(updatedCollaborators.map(updatedEntry =>
+        await Promise.all(updatedCollaborators.map((updatedEntry: CollaboratorEntry) =>
           updateMapViewRole({mapId: updatedMap.id, collaborator: updatedEntry.collaborator, role: updatedEntry.role}))
         );
 
@@ -141,8 +150,10 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
         setCreating(true);
 
         const createdMap = await createMap(
-          {name: newName.trim(), collaborators: collaborators.map(view => view.collaborator)},
-          collaborators.map(view => ({collaborator: view.collaborator, role: view.role})));
+          {name: newName.trim(), collaborators: collaborators.map((view: CollaboratorEntry) => view.collaborator)},
+          collaborators.map((view: CollaboratorEntry) => ({collaborator: view.collaborator, role: view.role})),
+          user.email!
+        );
 
         onMapCreated && onMapCreated(createdMap);
       }
@@ -213,7 +224,7 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
           </Typography>
 
           <List disablePadding>
-            {collaborators.map((entry, index) => (
+            {collaborators.map((entry: CollaboratorEntry, index: number) => (
               <ListItem
                 key={index}
                 sx={{

@@ -12,7 +12,6 @@ import {
 import {db} from '../lib/firebase/config';
 import {MapView, UserMap} from '../shared/types';
 import {mapViewConverter} from "../shared/types";
-import {useAuthUser} from "../components/Auth";
 import {assertDefined} from "../shared/utils/asserts";
 
 const getCompositeId = (mapId: string, collaborator: string): string => {
@@ -74,11 +73,10 @@ export const getMapView = async (mapView: Pick<MapView, 'mapId' | 'collaborator'
   return retrievedMapView;
 };
 
-export const getAccessibleMapViews = async (): Promise<MapView[]> => {
-  const user = useAuthUser();
+export const getAccessibleMapViews = async (userEmail: string): Promise<MapView[]> => {
   const userMapViewsQuery = query(
     collection(db, 'mapViews'),
-    where('collaborator', '==', user.email)
+    where('collaborator', '==', userEmail)
   ).withConverter(mapViewConverter);
   const mapViewsSnapshot = await getDocs(userMapViewsQuery);
   return mapViewsSnapshot.docs.map(doc => doc.data());

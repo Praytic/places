@@ -230,7 +230,7 @@ const Markers: React.FC<MarkersProps> = ({
     };
 
     updateMarkers();
-  }, [map, places, activeFilters]);
+  }, [map, places, activeFilters, accessMaps]);
 
   // Update marker data and appearance when place changes
   useEffect(() => {
