@@ -1,67 +1,58 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  TextField,
-  Button,
-  Box,
-  IconButton,
-  Divider,
-  Typography,
   Alert,
+  Box,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  IconButton,
   List,
-  ListItem
+  ListItem,
+  TextField,
+  Typography
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { createMap, updateMap, deleteMap } from '../services/MapsService';
-import { updateMapViewDisplayName } from '../services/MapViewService';
-import {AccessMap} from "../shared/types";
+import {createMap, deleteMap, updateMap} from '../services/MapsService';
+import {getAccessibleMapViews, updateMapViewDisplayName} from '../services/MapViewService';
+import {AccessMap, MapView, UserMap, UserRole} from "../shared/types";
+import {User} from "firebase/auth";
 
 
 interface ManageMapDialogProps {
-  managedAccessMap: AccessMap;
+  userMap: UserMap;
   user: User;
-  onAccessMapUpdated:
-  onMapCreated: (mapId?: string, role?: UserRole) => void;
+  onAccessMapUpdated: (accessMap: AccessMap) => void;
   onClose: () => void;
 }
 
 const ManageMapDialog: React.FC<ManageMapDialogProps> = (props: ManageMapDialogProps) => {
-  const isEditMode = !!existingMap;
-  const isOwner = isEditMode && existingMap.userRole === UserRole.OWNER;
-  const [mapName, setMapName] = useState(existingMap?.displayedName || existingMap?.name || '');
+  const userMap = props.userMap;
+  const user = props.user;
+
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [email, setEmail] = useState('');
-  const [emailList, setEmailList] = useState<EmailItem[]>([]);
-  const [originalEmailList, setOriginalEmailList] = useState<EmailItem[]>([]);
+  const [mapViews, setMapViews] = useState<MapView[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Load existing collaborators when in edit mode
   useEffect(() => {
-    if (isEditMode && existingMap?.id) {
-      const loadCollaborators = async () => {
-        try {
-          const collaborators = await getMapCollaborators(existingMap.id);
-          // Filter out the owner and convert to emailList format
-          const filteredCollaborators = collaborators
-            .filter(collab => collab.userId !== existingMap.owner)
-            .map(collab => ({
-              email: collab.userId,
-              role: collab.userRole
-            }));
-          setEmailList(filteredCollaborators);
-          setOriginalEmailList(filteredCollaborators);
-        } catch (err) {
-          console.error('Error loading collaborators:', err);
-        }
-      };
-      loadCollaborators();
-    }
+    const loadCollaborators = async () => {
+      const collaborators = await getAccessibleMapViews(existingMap.id);
+      const filteredCollaborators = collaborators
+        .filter(collab => collab.userId !== existingMap.owner)
+        .map(collab => ({
+          email: collab.userId,
+          role: collab.userRole
+        }));
+      setEmailList(filteredCollaborators);
+      setOriginalEmailList(filteredCollaborators);
+    };
+    loadCollaborators();
   }, [isEditMode, existingMap]);
 
   const handleAddEmail = (e: React.FormEvent) => {

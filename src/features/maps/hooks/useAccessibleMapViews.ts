@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import {MapView} from '../../../shared/types';
-import {getUserMapViews} from "../../../services/MapViewService";
+import {getAccessibleMapViews} from "../../../services/MapViewService";
 
-export const useMapViews = (): {
-  views: MapView[];
+export const useAccessibleMapViews = (): {
+  accessibleViews: MapView[];
   loading: boolean;
   error: string | null;
 } => {
@@ -15,7 +15,7 @@ export const useMapViews = (): {
     const fetchViews = async () => {
       setLoading(true);
       try {
-        const mapViews = await getUserMapViews()
+        const mapViews = await getAccessibleMapViews()
         setViews(mapViews);
       } catch (err) {
         console.error('Error fetching map views:', err);
@@ -28,5 +28,5 @@ export const useMapViews = (): {
     fetchViews();
   });
 
-  return { views: views, loading, error };
+  return { accessibleViews: views, loading, error };
 };

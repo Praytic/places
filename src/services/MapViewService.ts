@@ -10,7 +10,7 @@ import {
   where,
 } from 'firebase/firestore';
 import {db} from '../lib/firebase/config';
-import {MapView} from '../shared/types/domain';
+import {MapView, UserMap} from '../shared/types';
 import {mapViewConverter} from "../shared/types";
 import {useAuthUser} from "../components/Auth";
 import {assertDefined} from "../shared/utils/asserts";
@@ -26,11 +26,11 @@ export const createMapView = async (
   const compositeId = getCompositeId(mapView.mapId, mapView.collaborator);
   const mapViewRef = doc(db, 'mapViews', compositeId).withConverter(mapViewConverter)
   if (transaction) {
-    transaction.set(mapViewRef, {...mapView});
+    transaction.set(mapViewRef, {...mapView, id: compositeId});
     return getMapView(mapView, transaction)
   } else {
     return runTransaction(db, async (tx) => {
-        tx.set(mapViewRef, {...mapView})
+        tx.set(mapViewRef, {...mapView, id: compositeId})
         return getMapView(mapView, tx);
       }
     );
@@ -74,7 +74,7 @@ export const getMapView = async (mapView: Pick<MapView, 'mapId' | 'collaborator'
   return retrievedMapView;
 };
 
-export const getUserMapViews = async (): Promise<MapView[]> => {
+export const getAccessibleMapViews = async (): Promise<MapView[]> => {
   const user = useAuthUser();
   const userMapViewsQuery = query(
     collection(db, 'mapViews'),
@@ -82,4 +82,36 @@ export const getUserMapViews = async (): Promise<MapView[]> => {
   ).withConverter(mapViewConverter);
   const mapViewsSnapshot = await getDocs(userMapViewsQuery);
   return mapViewsSnapshot.docs.map(doc => doc.data());
+};
+
+export const getSharedMapViews = async (userMaps: UserMap[]): Promise<Map<UserMap, MapView[]>> => {
+  return runTransaction(db, async (tx) => {
+    const compositeIdToUserMap = new Map<string, UserMap>();
+    const compositeIds = userMaps.flatMap(userMap =>
+      userMap.collaborators.map(collaborator => {
+        const compositeId = getCompositeId(userMap.id, collaborator);
+        compositeIdToUserMap.set(compositeId, userMap);
+        return compositeId;
+      })
+    );
+
+    const mapViewPromises = compositeIds.map(async compositeId => {
+      const mapViewRef = doc(db, 'mapViews', compositeId).withConverter(mapViewConverter);
+      const snapshot = await tx.get(mapViewRef);
+      return { compositeId, data: snapshot.data() };
+    });
+
+    const results = await Promise.all(mapViewPromises);
+    const mapViewsByUserMap = new Map<UserMap, MapView[]>();
+
+    for (const { compositeId, data } of results) {
+      if (data) {
+        const userMap = compositeIdToUserMap.get(compositeId)!;
+        const existing = mapViewsByUserMap.get(userMap) || [];
+        mapViewsByUserMap.set(userMap, [...existing, data]);
+      }
+    }
+
+    return mapViewsByUserMap;
+  });
 };

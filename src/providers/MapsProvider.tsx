@@ -1,10 +1,12 @@
 import React, {createContext, ReactNode, useContext, useMemo} from 'react';
-import {useMapViews, useUserMaps, useVisibleMaps} from '../features/maps/hooks';
+import {useAccessibleMapViews, useUserMaps, useVisibleMaps} from '../features/maps/hooks';
 import {MapView, UserMap} from "../shared/types";
+import {useSharedMapViews} from "../features/maps/hooks/useSharedMapViews";
 
 interface MapsContextValue {
   maps: UserMap[];
-  views: MapView[];
+  accessibleViews: MapView[];
+  sharedViews: Map<UserMap, MapView[]>;
   loading: boolean;
   error: string | null;
   visibleMapIds: Set<string>;
@@ -27,25 +29,27 @@ interface MapsProviderProps {
 
 export const MapsProvider: React.FC<MapsProviderProps> = ({children}) => {
     const {maps, loading: mapsLoading, error: mapsError} = useUserMaps();
-    const {views, loading: viewsLoading, error: viewsError} = useMapViews();
+    const {accessibleViews, loading: accessibleViewsLoading, error: accessibleViewsError} = useAccessibleMapViews();
+    const {sharedViews, loading: sharedViewsLoading, error: sharedViewsError} = useSharedMapViews(maps);
 
-    const loading = mapsLoading || viewsLoading;
-    const error = mapsError || viewsError;
+    const loading = mapsLoading || accessibleViewsLoading || sharedViewsLoading;
+    const error = mapsError || accessibleViewsError || sharedViewsError;
 
-    const availableMapIds = useMemo(() => [...maps, ...views].map((m) => 'mapId' in m ? m.mapId : m.id), [maps, views]);
+    const availableMapIds = useMemo(() => [...maps, ...accessibleViews].map((m) => 'mapId' in m ? m.mapId : m.id), [maps, accessibleViews]);
 
     const {visibleMapIds, toggleMapVisibility} = useVisibleMaps(availableMapIds);
 
     const value: MapsContextValue = useMemo(
       () => ({
         maps,
-        views,
+        accessibleViews,
+        sharedViews,
         loading,
         error,
         visibleMapIds,
         toggleMapVisibility,
       }),
-      [maps, views, loading, error, visibleMapIds, toggleMapVisibility]
+      [maps, accessibleViews, sharedViews, loading, error, visibleMapIds, toggleMapVisibility]
     );
 
     return <MapsContext.Provider value={value}>{children}</MapsContext.Provider>;

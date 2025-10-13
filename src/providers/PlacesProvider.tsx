@@ -82,10 +82,10 @@ interface PlacesProviderProps {
  * ```
  */
 export const PlacesProvider: React.FC<PlacesProviderProps> = ({ children }) => {
-  const { maps, views, visibleMapIds } = useMapsContext();
+  const { maps, accessibleViews, visibleMapIds } = useMapsContext();
   const { allPlaces, filteredPlaces, loading, selectedPlace, setSelectedPlace } = usePlaces(
     maps,
-    views,
+    accessibleViews,
     visibleMapIds
   );
   const { activeFilters, toggleFilter } = useActiveFilters();
