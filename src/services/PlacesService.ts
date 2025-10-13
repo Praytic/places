@@ -8,7 +8,7 @@ import {
   Transaction,
 } from 'firebase/firestore';
 import {db} from '../lib/firebase/config';
-import {Place, placeConverter} from '../shared/types';
+import {MapView, Place, placeConverter, UserMap} from '../shared/types';
 import {assertDefined} from '../shared/utils/asserts';
 
 export const createPlace = async (
@@ -35,8 +35,14 @@ export const getPlace = async (place: Pick<Place, 'id' | 'mapId'>, transaction?:
   return placeData;
 };
 
-export const getPlacesForMap = async (place: Pick<Place, 'mapId'>): Promise<Place[]> => {
-  const placesRef = collection(db, 'maps', place.mapId, 'places').withConverter(placeConverter);
+export const getPlacesForMap = async (userMap: Pick<UserMap, 'id'>): Promise<Place[]> => {
+  const placesRef = collection(db, 'maps', userMap.id, 'places').withConverter(placeConverter);
+  const placesSnapshot = await getDocs(placesRef);
+  return placesSnapshot.docs.map(doc => doc.data());
+};
+
+export const getPlacesForView = async (mapView: Pick<MapView, 'mapId'>): Promise<Place[]> => {
+  const placesRef = collection(db, 'maps', mapView.mapId, 'places').withConverter(placeConverter);
   const placesSnapshot = await getDocs(placesRef);
   return placesSnapshot.docs.map(doc => doc.data());
 };

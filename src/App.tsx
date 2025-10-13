@@ -4,12 +4,13 @@ import CloseIcon from '@mui/icons-material/Close';
 import MapComponent from './components/MapComponent';
 import ControlPanel from './components/ControlPanel';
 import PlaceSearch from './components/PlaceSearch';
+import ManageMapDialog from './components/ManageMapDialog';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { AuthProvider, MapsProvider, PlacesProvider, useAuthContext, useMapsContext, usePlacesContext } from './providers';
 import { useEmojiPicker } from './shared/hooks';
 import { getCurrentLocation } from './shared/utils/locationService';
 import { ErrorBoundary } from './shared/components';
-import { Location, SelectableAccessMap } from './shared/types/domain';
+import { AccessMap, Location, SelectableAccessMap } from './shared/types/domain';
 
 const AppContent: React.FC = () => {
   const { user } = useAuthContext();
@@ -27,11 +28,25 @@ const AppContent: React.FC = () => {
   } = usePlacesContext();
 
   const [showSearch, setShowSearch] = useState(false);
+  const [showMapDialog, setShowMapDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<Location | null>(null);
   const infoWindowRef = React.useRef<any>(null);
 
   const { showEmojiPicker, emojiPickerPlace, openEmojiPicker, closeEmojiPicker } = useEmojiPicker();
+
+  // Combine maps and views into accessMaps for MapComponent
+  const accessMaps = useMemo(() => {
+    const mapsByMapId = new Map<string, AccessMap>();
+    maps.forEach(map => mapsByMapId.set(map.id, map));
+    accessibleViews.forEach(view => {
+      // Only add view if map not already owned
+      if (!mapsByMapId.has(view.mapId)) {
+        mapsByMapId.set(view.mapId, view);
+      }
+    });
+    return mapsByMapId;
+  }, [maps, accessibleViews]);
 
   useEffect(() => {
     getCurrentLocation()
@@ -165,6 +180,10 @@ const AppContent: React.FC = () => {
     infoWindowRef.current = ref;
   }, []);
 
+  const handleMapCreate = useCallback(() => {
+    setShowMapDialog(true);
+  }, []);
+
   // Create selectableAccessMaps for PlaceSearch
   const selectableAccessMaps = useMemo<SelectableAccessMap[]>(() => {
     const allAccessMaps = [
@@ -214,6 +233,8 @@ const AppContent: React.FC = () => {
             onMapVisibilityToggle={handleMapVisibilityToggle}
             showSearch={showSearch}
             userEmail={user?.email || undefined}
+            accessMaps={accessMaps}
+            onMapCreated={handleMapCreate}
           />
         </ErrorBoundary>
       </Box>
@@ -257,6 +278,16 @@ const AppContent: React.FC = () => {
           </DialogContent>
         </ErrorBoundary>
       </Dialog>
+
+      {showMapDialog && (
+        <ManageMapDialog
+          user={user!}
+          onClose={() => setShowMapDialog(false)}
+          onMapCreated={() => {
+            setShowMapDialog(false);
+          }}
+        />
+      )}
     </Box>
   );
 };

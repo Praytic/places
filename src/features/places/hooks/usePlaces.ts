@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 import {MapView, Place, UserMap, UserRole} from '../../../shared/types';
-import {getPlacesForMap} from '../../../services/PlacesService';
+import {getPlacesForMap, getPlacesForView} from '../../../services/PlacesService';
 
 type PlaceWithRole = Place & { userRole: UserRole };
 
@@ -31,11 +31,11 @@ export const usePlaces = (
       try {
         const placesArrays = await Promise.all([
           ...maps.map(async (map) => {
-            const places = await getPlacesForMap({mapId: map.id});
+            const places = await getPlacesForMap(map);
             return places.map(place => ({...place, userRole: UserRole.EDIT}));
           }),
           ...views.map(async (view) => {
-            const places = await getPlacesForMap({mapId: view.mapId});
+            const places = await getPlacesForView(view);
             return places.map(place => ({...place, userRole: view.role}));
           })
         ]);
@@ -43,7 +43,6 @@ export const usePlaces = (
         const places = placesArrays.flat();
         setAllPlaces(places);
       } catch (error) {
-        console.error('Error fetching places:', error);
         setAllPlaces([]);
       } finally {
         setLoading(false);
