@@ -7,7 +7,7 @@ import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
 import RemoveRedEyeOutlinedIcon from '@mui/icons-material/RemoveRedEyeOutlined';
 import LayersIcon from '@mui/icons-material/Layers';
 import ShareIcon from '@mui/icons-material/Share';
-import { PlaceGroup, Set<PlaceGroup> } from '../shared/types/domain';
+import {PlaceGroup} from "../shared/types";
 
 interface ControlPanelProps {
   onAddPlace: () => void;

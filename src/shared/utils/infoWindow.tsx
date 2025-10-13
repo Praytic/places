@@ -130,7 +130,7 @@ export function createInfoWindow(
     disableAutoPan: false,
   });
 
-  infoWindow.addListener('closeclick', () => {
+  google.maps.event.addListener(infoWindow, 'closeclick', () => {
     onClose?.();
   });
 

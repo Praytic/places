@@ -23,7 +23,7 @@ import {User} from "firebase/auth";
 import {useSharedMapViews} from "../features/maps/hooks/useSharedMapViews";
 import {createMapView, deleteMapView, updateMapViewRole} from "../services/MapViewService";
 
-type CollaboratorEntry = Pick<MapView, 'collaborator' | 'role'>;
+type CollaboratorEntry = Required<Pick<MapView, 'collaborator' | 'role'>>;
 
 interface ManageMapDialogProps {
   userMap?: UserMap;
@@ -45,8 +45,7 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
   const {
     collaborators,
     setCollaborators,
-    loading: collaboratorsLoading,
-    error: collaboratorsError
+    loading: collaboratorsLoading
   } = useSharedMapViews(userMap);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -54,7 +53,7 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
   const [newCollaborator, setNewCollaborator] = useState('');
   const [newName, setNewName] = useState<string>(userMap?.name ?? 'My Places');
   const [error, setError] = useState<string | null>(null);
-  const [originalCollaborators, setOriginalCollaborators] = useState<Partial<MapView>[]>([]);
+  const [originalCollaborators, setOriginalCollaborators] = useState<CollaboratorEntry[]>([]);
 
   useEffect(() => {
     if (!collaboratorsLoading && collaborators.length > 0 && originalCollaborators.length === 0) {
@@ -123,17 +122,17 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
         );
 
         await Promise.all(removedCollaborators.map(removedEntry =>
-          deleteMapView({mapId: updatedMap.id, collaborator: removedEntry.collaborator!})));
+          deleteMapView({mapId: updatedMap.id, collaborator: removedEntry.collaborator})));
         await Promise.all(addedCollaborators.map(addedEntry =>
           createMapView({
             mapId: updatedMap.id,
-            collaborator: addedEntry.collaborator!,
-            role: addedEntry.role!,
-            name: addedEntry.name!
+            collaborator: addedEntry.collaborator,
+            role: addedEntry.role,
+            name: updatedMap.name
           }))
         );
         await Promise.all(updatedCollaborators.map(updatedEntry =>
-          updateMapViewRole({mapId: updatedMap.id, collaborator: updatedEntry.collaborator!, role: updatedEntry.role!}))
+          updateMapViewRole({mapId: updatedMap.id, collaborator: updatedEntry.collaborator, role: updatedEntry.role}))
         );
 
         onMapEdited && onMapEdited(updatedMap);
@@ -142,8 +141,8 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
         setCreating(true);
 
         const createdMap = await createMap(
-          {name: newName.trim(), collaborators: collaborators.map(view => view.collaborator!)},
-          collaborators.map(view => ({collaborator: view.collaborator!, role: view.role!})));
+          {name: newName.trim(), collaborators: collaborators.map(view => view.collaborator)},
+          collaborators.map(view => ({collaborator: view.collaborator, role: view.role})));
 
         onMapCreated && onMapCreated(createdMap);
       }
@@ -162,7 +161,9 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete "${userMap!.name}"? This will also delete all places in this map.`)) {
+    if (!userMap) return;
+
+    if (!window.confirm(`Are you sure you want to delete "${userMap.name}"? This will also delete all places in this map.`)) {
       return;
     }
 
@@ -170,7 +171,7 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
       setDeleting(true);
       setError(null);
 
-      await deleteMap(userMap!.id);
+      await deleteMap(userMap.id);
 
       onMapDeleted && onMapDeleted();
       onClose();
@@ -228,15 +229,15 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
                   type="email"
                   value={entry.collaborator}
                   onChange={(e) => handleEmailChange({
-                    collaborator: entry.collaborator!,
-                    role: entry.role!
+                    collaborator: entry.collaborator,
+                    role: entry.role
                   }, e.target.value)}
                   placeholder="email@example.com"
                   disabled={creating || updating}
                 />
                 <IconButton
                   size="small"
-                  onClick={() => handleToggleRole({collaborator: entry.collaborator!, role: entry.role!}, entry.role!)}
+                  onClick={() => handleToggleRole({collaborator: entry.collaborator, role: entry.role}, entry.role)}
                   disabled={creating || updating}
                   title={entry.role === UserRole.EDIT ? 'Switch to viewer' : 'Switch to editor'}
                 >
@@ -244,7 +245,7 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
                 </IconButton>
                 <IconButton
                   size="small"
-                  onClick={() => handleRemoveEmail({collaborator: entry.collaborator!, role: entry.role!})}
+                  onClick={() => handleRemoveEmail({collaborator: entry.collaborator, role: entry.role})}
                   disabled={creating || updating}
                   title="Remove"
                 >

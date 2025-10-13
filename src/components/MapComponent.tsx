@@ -5,7 +5,7 @@ import { createInfoWindow } from '../shared/utils/infoWindow';
 import { createCustomEqual } from 'fast-equals';
 import { isLatLngLiteral } from '@googlemaps/typescript-guards';
 import MapChips from './MapChips';
-import { Place, PlaceGroup, Set<PlaceGroup>, Location, PlaceMapWithRole, Set<string>, UserRole } from '../shared/types/domain';
+import {AccessMap, Place, PlaceGroup, UserRole} from "../shared/types";
 
 const deepCompareEqualsForMaps = createCustomEqual({
   createCustomConfig: () => ({
@@ -115,6 +115,7 @@ interface MarkersProps {
   onChangeGroup: (place: Place, newGroup: PlaceGroup) => Promise<void>;
   onRemovePlace: (place: Place) => Promise<void>;
   onInfoWindowRefUpdate?: (ref: React.MutableRefObject<any | null>) => void;
+  accessMaps?: Record<string, AccessMap>;
 }
 
 const Markers: React.FC<MarkersProps> = ({
@@ -177,10 +178,10 @@ const Markers: React.FC<MarkersProps> = ({
 
           const marker = new AdvancedMarkerElement({
             map: shouldShow ? map : null,
-            position: place.geometry.location,
+            position: place.geometry!.location,
             content,
             title: place.name,
-            zIndex: 1
+            zIndex: 1,
           });
 
           marker.addListener('click', () => {
