@@ -5,23 +5,27 @@ import { MapView, SelectableAccessMap, UserMap} from "../shared/types";
 
 interface MapChipsProps {
   selectableMaps: SelectableAccessMap[];
+  selectedMapIds?: Set<string>;
+  onMapToggle?: (mapId: string) => void;
   onMapEdit?: (map: UserMap) => void;
   onViewEdit?: (map: MapView) => void;
   onMapCreate?: () => void;
+  userEmail?: string;
   sx?: SxProps<Theme>;
 }
 
 const MapChips: React.FC<MapChipsProps> = ({
   selectableMaps = [],
+  onMapToggle,
   onMapEdit,
   onViewEdit,
   onMapCreate,
   sx = {}
 }) => {
-  const handleClick = (mapOrView: Pick<(UserMap | MapView), 'id'>) => {
-    const clickedMap = selectableMaps.find(prop => prop.id === mapOrView.id);
-    if (clickedMap) {
-      clickedMap.selected = !clickedMap.selected;
+  const handleClick = (mapOrView: SelectableAccessMap) => {
+    if (onMapToggle) {
+      const mapId = 'mapId' in mapOrView ? mapOrView.mapId : mapOrView.id;
+      onMapToggle(mapId);
     }
   };
 

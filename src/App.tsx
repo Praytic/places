@@ -12,11 +12,11 @@ import { AuthProvider, MapsProvider, PlacesProvider, useAuthContext, useMapsCont
 import { useEmojiPicker } from './shared/hooks';
 import { getCurrentLocation } from './shared/utils/locationService';
 import { ErrorBoundary } from './shared/components';
-import { UserRole, Location } from './shared/types/domain';
+import { UserRole, Location, AccessMap } from './shared/types/domain';
 
 const AppContent: React.FC = () => {
   const { user } = useAuthContext();
-  const { maps, currentMapId, visibleMapIds, toggleMapVisibility, setCurrentMapId } = useMapsContext();
+  const { maps, accessibleViews, currentMapId, visibleMapIds, toggleMapVisibility, setCurrentMapId } = useMapsContext();
   const {
     filteredPlaces,
     loading,
@@ -47,6 +47,23 @@ const AppContent: React.FC = () => {
         // Silently fail - map will use default center
       });
   }, []);
+
+  // Create accessMaps Map indexed by mapId
+  const accessMaps = useMemo(() => {
+    const result = new Map<string, AccessMap>();
+
+    // Add UserMaps with EDIT role (user owns these maps)
+    maps.forEach(map => {
+      result.set(map.id, { ...map, role: UserRole.EDIT } as AccessMap & { role: UserRole });
+    });
+
+    // Add MapViews with their respective roles
+    accessibleViews.forEach(view => {
+      result.set(view.mapId, view as AccessMap & { role: UserRole });
+    });
+
+    return result;
+  }, [maps, accessibleViews]);
 
   // Calculate if Add Place button should be disabled
   // Button is disabled when no visible maps are editable (OWNER or EDIT)
@@ -227,6 +244,7 @@ const AppContent: React.FC = () => {
               showSearch={showSearch}
               userEmail={user?.email || undefined}
               onMapCreated={handleMapsUpdated}
+              accessMaps={accessMaps}
             />
           </ErrorBoundary>
         </Box>

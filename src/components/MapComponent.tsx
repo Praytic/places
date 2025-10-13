@@ -1,11 +1,11 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, {useRef, useEffect, useState, useMemo} from 'react';
 import { Wrapper } from '@googlemaps/react-wrapper';
 import { createRegularMarker, createSelectedMarker } from '../shared/utils/markerTemplates';
 import { createInfoWindow } from '../shared/utils/infoWindow';
 import { createCustomEqual } from 'fast-equals';
 import { isLatLngLiteral } from '@googlemaps/typescript-guards';
 import MapChips from './MapChips';
-import {AccessMap, Place, PlaceGroup, UserRole} from "../shared/types";
+import {AccessMap, Location, Place, PlaceGroup, SelectableAccessMap, UserRole} from "../shared/types";
 
 const deepCompareEqualsForMaps = createCustomEqual({
   createCustomConfig: () => ({
@@ -115,7 +115,7 @@ interface MarkersProps {
   onChangeGroup: (place: Place, newGroup: PlaceGroup) => Promise<void>;
   onRemovePlace: (place: Place) => Promise<void>;
   onInfoWindowRefUpdate?: (ref: React.MutableRefObject<any | null>) => void;
-  accessMaps?: Record<string, AccessMap>;
+  accessMaps?: Map<string, AccessMap>;
 }
 
 const Markers: React.FC<MarkersProps> = ({
@@ -127,7 +127,8 @@ const Markers: React.FC<MarkersProps> = ({
   onEmojiChangeRequest,
   onChangeGroup,
   onRemovePlace,
-  onInfoWindowRefUpdate
+  onInfoWindowRefUpdate,
+  accessMaps = new Map<string, AccessMap>()
 }) => {
   const markersRef = useRef<Map<string, any>>(new Map()); // Map of placeId -> marker
   const infoWindowRef = useRef<any | null>(null);
@@ -190,6 +191,9 @@ const Markers: React.FC<MarkersProps> = ({
             }
 
             const createInfoWindowWithToggle = (currentPlace: Place) => {
+              const accessMap = accessMaps.get(currentPlace.mapId);
+              const userRole = accessMap ? ('role' in accessMap ? accessMap.role : UserRole.EDIT) : UserRole.VIEW;
+
               infoWindowRef.current = createInfoWindow(
                 map,
                 marker,
@@ -210,7 +214,7 @@ const Markers: React.FC<MarkersProps> = ({
                   createInfoWindowWithToggle(updatedPlace);
                 },
                 onRemovePlaceRef.current,
-                currentPlace.userRole as UserRole
+                userRole
               );
             };
 
@@ -303,12 +307,12 @@ interface MapComponentProps {
   onInfoWindowRefUpdate?: (ref: React.MutableRefObject<any | null>) => void;
   center?: Location;
   onMapReady?: (map: any) => void;
-  userMaps?: PlaceMapWithRole[];
   visibleMapIds?: Set<string>;
   onMapVisibilityToggle?: (mapId: string) => void;
   showSearch?: boolean;
   userEmail?: string;
   onMapCreated?: () => void;
+  accessMaps?: Map<string, AccessMap>;
 }
 
 const MapComponent: React.FC<MapComponentProps> = ({
@@ -323,16 +327,27 @@ const MapComponent: React.FC<MapComponentProps> = ({
   onInfoWindowRefUpdate,
   center: propCenter,
   onMapReady,
-  userMaps = [],
   visibleMapIds = new Set(),
   onMapVisibilityToggle,
   showSearch = false,
   userEmail,
-  onMapCreated
+  onMapCreated,
+  accessMaps = new Map<string, AccessMap>()
 }) => {
-  const center = propCenter || { lat: 37.7749, lng: -122.4194 };
+  const center: Location = propCenter ?? { lat: 37.7749, lng: -122.4194 };
   const [zoom] = useState(13);
   const mapRef = useRef<any | null>(null);
+
+  // Convert accessMaps and visibleMapIds to SelectableAccessMap[]
+  const selectableAccessMaps = useMemo((): SelectableAccessMap[] => {
+    return Array.from(accessMaps.values()).map(accessMap => {
+      const mapId = 'mapId' in accessMap ? accessMap.mapId : accessMap.id;
+      return {
+        ...accessMap,
+        selected: visibleMapIds.has(mapId)
+      } as SelectableAccessMap;
+    });
+  }, [accessMaps, visibleMapIds]);
 
   const onClick = (e: any) => {
     if (onMapClick && e.latLng) {
@@ -375,15 +390,16 @@ const MapComponent: React.FC<MapComponentProps> = ({
           onRemovePlace={onRemovePlace}
           activeFilters={activeFilters}
           onInfoWindowRefUpdate={onInfoWindowRefUpdate}
+          accessMaps={accessMaps}
         />
       </MapWrapper>
-      {userMaps.length > 0 && !showSearch && (
+      {selectableAccessMaps.length > 0 && !showSearch && (
         <MapChips
-          selectableMaps={userMaps}
+          selectableMaps={selectableAccessMaps}
           selectedMapIds={visibleMapIds}
           onMapToggle={onMapVisibilityToggle}
           userEmail={userEmail}
-          onMapCreated={onMapCreated}
+          onMapCreate={onMapCreated}
           sx={{
             position: 'absolute',
             top: 16,

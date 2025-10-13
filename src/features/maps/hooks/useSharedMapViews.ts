@@ -2,34 +2,27 @@ import { useState, useEffect } from 'react';
 import {MapView, UserMap} from '../../../shared/types';
 import {getSharedMapViews} from "../../../services/MapViewService";
 
-type CollaboratorEntry = Required<Pick<MapView, 'collaborator' | 'role'>>;
-
-export const useSharedMapViews = (userMap?: UserMap): {
-  collaborators: CollaboratorEntry[];
-  setCollaborators: React.Dispatch<React.SetStateAction<CollaboratorEntry[]>>;
+export const useSharedMapViews = (userMaps: UserMap[]): {
+  sharedViews: Map<UserMap, MapView[]>;
   loading: boolean;
   error: string | null;
 } => {
-  const [sharedViews, setSharedViews] = useState<CollaboratorEntry[]>([]);
+  const [sharedViews, setSharedViews] = useState<Map<UserMap, MapView[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchViews = async () => {
-      if (!userMap) {
+      if (userMaps.length === 0) {
+        setSharedViews(new Map());
+        setLoading(false);
         return;
       }
 
       setLoading(true);
       try {
-        const viewsPerUserMap = await getSharedMapViews([userMap]);
-        const mapViews = viewsPerUserMap.get(userMap) ?? [];
-        const validCollaborators: CollaboratorEntry[] = mapViews
-          .filter((view): view is MapView & { collaborator: string; role: string } =>
-            !!view.collaborator && !!view.role
-          )
-          .map(view => ({ collaborator: view.collaborator, role: view.role }));
-        setSharedViews(validCollaborators);
+        const viewsPerUserMap = await getSharedMapViews(userMaps);
+        setSharedViews(viewsPerUserMap);
       } catch (err) {
         setError('Failed to fetch map views');
       } finally {
@@ -38,7 +31,7 @@ export const useSharedMapViews = (userMap?: UserMap): {
     };
 
     fetchViews();
-  });
+  }, [userMaps]);
 
-  return { collaborators: sharedViews, setCollaborators: setSharedViews, loading, error };
+  return { sharedViews, loading, error };
 };
