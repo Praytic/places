@@ -117,11 +117,6 @@ describe('Composite ID Functionality Integration Test', () => {
       // Update operation uses composite ID directly
       const compositeId = `${mapId}_${collaboratorEmail}`;
 
-      const updateData = {
-        displayName: 'New Name',
-        updatedAt: Timestamp.now(),
-      };
-
       const docPath = `mapViews/${compositeId}`;
 
       expect(docPath).toBe(`mapViews/${mapId}_${collaboratorEmail}`);
@@ -294,8 +289,7 @@ describe('Composite ID Functionality Integration Test', () => {
       expect(userACompositeId).not.toBe(userBCompositeId);
 
       // User A trying to access User B's view
-      const canAccess = userACompositeId === userBCompositeId;
-      expect(canAccess).toBe(false);
+      expect(userACompositeId === userBCompositeId).toBe(false);
     });
 
     it('should prevent ID guessing attacks', () => {
@@ -310,14 +304,11 @@ describe('Composite ID Functionality Integration Test', () => {
 
       // But Firestore rule checks: resource.data.collaborator == userEmail()
       // Attacker's email doesn't match victim's email
-      const isCollaborator = attackerEmail === victimEmail;
-
-      expect(isCollaborator).toBe(false);
+      expect(attackerEmail === victimEmail).toBe(false);
       expect(guessedCompositeId).toBe(`${mapId}_${victimEmail}`);
 
       // Access denied despite knowing the ID
-      const canAccess = isCollaborator;
-      expect(canAccess).toBe(false);
+      expect(attackerEmail === victimEmail).toBe(false);
     });
 
     it('should enforce isolation between maps', () => {
@@ -340,7 +331,7 @@ describe('Composite ID Functionality Integration Test', () => {
 
       // Each map requires separate access check
       expect(mapViews).toHaveLength(2);
-      expect(mapViews[0].mapId).not.toBe(mapViews[1].mapId);
+      expect(mapViews[0]?.mapId).not.toBe(mapViews[1]?.mapId);
     });
   });
 
@@ -358,8 +349,8 @@ describe('Composite ID Functionality Integration Test', () => {
         where: [{ field: 'mapId', operator: '==', value: mapId }],
       };
 
-      expect(queryByCollaborator.where[0].value).toBe(collaboratorEmail);
-      expect(queryByMapId.where[0].value).toBe(mapId);
+      expect(queryByCollaborator.where[0]?.value).toBe(collaboratorEmail);
+      expect(queryByMapId.where[0]?.value).toBe(mapId);
 
       // Composite IDs don't break existing queries
       const compatibleWithQueries = true;

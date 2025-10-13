@@ -1,4 +1,3 @@
-import { Timestamp } from 'firebase/firestore';
 import { UserRole } from '../../../shared/types/domain';
 
 /**
@@ -17,12 +16,6 @@ describe('Database Query Restrictions Integration Test', () => {
 
   describe('Map Query Restrictions', () => {
     it('should prevent querying all maps in database', () => {
-      // ❌ INVALID: Query without owner filter
-      const unauthorizedQuery = {
-        collection: 'maps',
-        // No where clause - should be blocked
-      };
-
       // ✅ VALID: Query only user's own maps
       const authorizedQuery = {
         collection: 'maps',
@@ -30,11 +23,11 @@ describe('Database Query Restrictions Integration Test', () => {
       };
 
       expect(authorizedQuery.where).toHaveLength(1);
-      expect(authorizedQuery.where[0].field).toBe('owner');
-      expect(authorizedQuery.where[0].value).toBe(userId);
+      expect(authorizedQuery.where[0]?.field).toBe('owner');
+      expect(authorizedQuery.where[0]?.value).toBe(userId);
 
       // Firestore rule enforces: resource.data.owner == userEmail()
-      const isUserSpecific = authorizedQuery.where[0].value === userId;
+      const isUserSpecific = authorizedQuery.where[0]?.value === userId;
       expect(isUserSpecific).toBe(true);
     });
 
@@ -66,8 +59,8 @@ describe('Database Query Restrictions Integration Test', () => {
       };
 
       // Even if user tries to query other's maps, rules block the read
-      const queryingOwnMaps = validQuery.where[0].value === userId;
-      const queryingOthersMaps = invalidQuery.where[0].value === userId;
+      const queryingOwnMaps = validQuery.where[0]?.value === userId;
+      const queryingOthersMaps = invalidQuery.where[0]?.value === userId;
 
       expect(queryingOwnMaps).toBe(true);
       expect(queryingOthersMaps).toBe(false);
@@ -76,12 +69,6 @@ describe('Database Query Restrictions Integration Test', () => {
 
   describe('MapView Query Restrictions', () => {
     it('should prevent querying all mapViews in database', () => {
-      // ❌ INVALID: Query without collaborator filter
-      const unauthorizedQuery = {
-        collection: 'mapViews',
-        // No where clause - should be blocked
-      };
-
       // ✅ VALID: Query only user's own mapViews
       const authorizedQuery = {
         collection: 'mapViews',
@@ -89,11 +76,11 @@ describe('Database Query Restrictions Integration Test', () => {
       };
 
       expect(authorizedQuery.where).toHaveLength(1);
-      expect(authorizedQuery.where[0].field).toBe('collaborator');
-      expect(authorizedQuery.where[0].value).toBe(userId);
+      expect(authorizedQuery.where[0]?.field).toBe('collaborator');
+      expect(authorizedQuery.where[0]?.value).toBe(userId);
 
       // Firestore rule enforces: resource.data.collaborator == userEmail()
-      const isUserSpecific = authorizedQuery.where[0].value === userId;
+      const isUserSpecific = authorizedQuery.where[0]?.value === userId;
       expect(isUserSpecific).toBe(true);
     });
 
@@ -109,7 +96,7 @@ describe('Database Query Restrictions Integration Test', () => {
       };
 
       // Owner can query, but cannot READ individual mapViews (rules block)
-      expect(ownerQuery.where[0].value).toBe(mapId);
+      expect(ownerQuery.where[0]?.value).toBe(mapId);
 
       // Note: Owner can get list via query, but read operation on each doc is blocked
       const canQuery = ownedMap.owner === userId;
@@ -143,12 +130,6 @@ describe('Database Query Restrictions Integration Test', () => {
 
   describe('Place Query Restrictions', () => {
     it('should prevent querying all places in database', () => {
-      // ❌ INVALID: Query without mapId filter
-      const unauthorizedQuery = {
-        collection: 'places',
-        // No where clause - should be blocked
-      };
-
       // ✅ VALID: Query places for specific map where user has access
       const authorizedQuery = {
         collection: 'places',
@@ -157,10 +138,10 @@ describe('Database Query Restrictions Integration Test', () => {
       };
 
       expect(authorizedQuery.where).toHaveLength(1);
-      expect(authorizedQuery.where[0].field).toBe('mapId');
+      expect(authorizedQuery.where[0]?.field).toBe('mapId');
 
       // Must be map-specific
-      const isMapSpecific = authorizedQuery.where[0].field === 'mapId';
+      const isMapSpecific = authorizedQuery.where[0]?.field === 'mapId';
       expect(isMapSpecific).toBe(true);
     });
 
@@ -178,11 +159,6 @@ describe('Database Query Restrictions Integration Test', () => {
 
       // Valid queries for accessible maps
       accessibleMaps.forEach(map => {
-        const query = {
-          collection: 'places',
-          where: [{ field: 'mapId', operator: '==', value: map.id }],
-        };
-
         const isOwned = map.owner === userId;
         const hasAccess = isOwned || map.hasMapView;
 
@@ -313,8 +289,8 @@ describe('Database Query Restrictions Integration Test', () => {
       expect(roleQueryPatterns.collaborator.mapViews.where[0].value).toBe(userId);
 
       // Both can query places for accessible maps
-      expect(roleQueryPatterns.mapOwner.places.where[0].field).toBe('mapId');
-      expect(roleQueryPatterns.collaborator.places.where[0].field).toBe('mapId');
+      expect(roleQueryPatterns.mapOwner.places.where[0]?.field).toBe('mapId');
+      expect(roleQueryPatterns.collaborator.places.where[0]?.field).toBe('mapId');
     });
   });
 
@@ -403,7 +379,7 @@ describe('Database Query Restrictions Integration Test', () => {
       };
 
       // This works CLIENT-SIDE but rules must verify each map's access
-      expect(batchQuery.where[0].operator).toBe('in');
+      expect(batchQuery.where[0]?.operator).toBe('in');
     });
 
     it('should verify all query operations respect access control', () => {
@@ -467,9 +443,9 @@ describe('Database Query Restrictions Integration Test', () => {
         },
       ];
 
-      indexedQueries.forEach(({ collection, index, query }) => {
-        const queryField = query.where[0].field;
-        const isIndexed = index.includes(queryField);
+      indexedQueries.forEach(({ index, query }) => {
+        const queryField = query.where[0]?.field;
+        const isIndexed = queryField && index.includes(queryField);
 
         expect(isIndexed).toBe(true);
       });

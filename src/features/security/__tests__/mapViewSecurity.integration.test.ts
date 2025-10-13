@@ -234,13 +234,6 @@ describe('MapView Security Integration Test', () => {
         owner: ownerEmail, // Someone else owns the map
       };
 
-      const newMapView = {
-        id: `${mapId}_${collaboratorEmail}`,
-        mapId,
-        collaborator: collaboratorEmail,
-        role: UserRole.VIEW,
-      };
-
       // Collaborator trying to create a mapView
       const canCreate = map.owner === collaboratorEmail;
 

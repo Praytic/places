@@ -23,6 +23,7 @@ describe('Place Security Integration Test', () => {
     id: mapId,
     name: 'Test Map',
     owner: ownerEmail,
+    collaborators: [],
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   };
@@ -36,6 +37,9 @@ describe('Place Security Integration Test', () => {
     geometry: {
       location: { lat: 0, lng: 0 },
     },
+    formattedAddress: 'Test Address',
+    placeId: 'google-place-id',
+    types: ['restaurant'],
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   };
@@ -412,8 +416,6 @@ describe('Place Security Integration Test', () => {
     it('should prevent unauthorized queries across all places', () => {
       // Security requirement: No user can query all places in database
       // Places must be queried per map with access verification
-
-      const userEmail = editorEmail;
 
       // ❌ INVALID: Query all places (should be blocked by rules)
       const invalidQuery = {

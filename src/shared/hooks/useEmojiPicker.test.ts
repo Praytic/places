@@ -5,7 +5,7 @@ import { Place } from '../types';
 
 describe('useEmojiPicker', () => {
   const mockPlace: Place = new Place(
-    '1',
+    'map-1',
     'Test Place',
     '📍',
     'favorite',
@@ -15,6 +15,7 @@ describe('useEmojiPicker', () => {
     '123 Main St, City, Country',
     'ChIJplace123',
     ['restaurant', 'food'],
+    'place-1',
     Timestamp.now(),
     Timestamp.now()
   );
@@ -61,7 +62,7 @@ describe('useEmojiPicker', () => {
     const { result } = renderHook(() => useEmojiPicker());
 
     const place1 = new Place(
-      '1',
+      'map-1',
       'Place 1',
       '📍',
       'favorite',
@@ -69,11 +70,12 @@ describe('useEmojiPicker', () => {
       '123 Main St',
       'ChIJplace1',
       ['point_of_interest'],
+      'place-1',
       Timestamp.now(),
       Timestamp.now()
     );
     const place2 = new Place(
-      '2',
+      'map-2',
       'Place 2',
       '📍',
       'favorite',
@@ -81,6 +83,7 @@ describe('useEmojiPicker', () => {
       '456 Oak Ave',
       'ChIJplace2',
       ['point_of_interest'],
+      'place-2',
       Timestamp.now(),
       Timestamp.now()
     );
