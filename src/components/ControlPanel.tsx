@@ -5,16 +5,12 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
 import RemoveRedEyeOutlinedIcon from '@mui/icons-material/RemoveRedEyeOutlined';
-import LayersIcon from '@mui/icons-material/Layers';
-import ShareIcon from '@mui/icons-material/Share';
 import {PlaceGroup} from "../shared/types";
 
 interface ControlPanelProps {
   onAddPlace: () => void;
   onToggleFilter: (group: PlaceGroup) => void;
   activeFilters: Set<PlaceGroup>;
-  onManageMaps: (event: React.MouseEvent) => void;
-  onShareMap: () => void;
   isAddPlaceDisabled?: boolean;
 }
 
@@ -22,8 +18,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   onAddPlace,
   onToggleFilter,
   activeFilters,
-  onManageMaps,
-  onShareMap,
   isAddPlaceDisabled = false,
 }) => {
   return (
@@ -152,56 +146,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           ) : (
             <RemoveRedEyeOutlinedIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
           )}
-        </IconButton>
-
-        <IconButton
-          onClick={(e) => onManageMaps(e)}
-          title="Manage Maps"
-          sx={{
-            minWidth: { xs: 40, sm: 48 },
-            height: { xs: 40, sm: 48 },
-            color: 'text.secondary',
-            '&:hover': {
-              bgcolor: 'action.hover',
-              color: 'text.primary',
-            },
-            '&:active': {
-              transform: 'scale(0.95)',
-            },
-            borderRadius: 0,
-            position: 'relative',
-            '&::after': {
-              content: '""',
-              position: 'absolute',
-              right: 0,
-              top: { xs: '8px', sm: '12px' },
-              bottom: { xs: '8px', sm: '12px' },
-              width: '1px',
-              bgcolor: 'action.disabled',
-            },
-          }}
-        >
-          <LayersIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
-        </IconButton>
-
-        <IconButton
-          onClick={onShareMap}
-          title="Share Map"
-          sx={{
-            minWidth: { xs: 40, sm: 48 },
-            height: { xs: 40, sm: 48 },
-            color: 'text.secondary',
-            '&:hover': {
-              bgcolor: 'action.hover',
-              color: 'text.primary',
-            },
-            '&:active': {
-              transform: 'scale(0.95)',
-            },
-            borderRadius: 0,
-          }}
-        >
-          <ShareIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
         </IconButton>
       </Paper>
     </Box>

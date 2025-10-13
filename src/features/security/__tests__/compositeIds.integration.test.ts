@@ -282,8 +282,8 @@ describe('Composite ID Functionality Integration Test', () => {
       const userA = 'userA@example.com';
       const userB = 'userB@example.com';
 
-      const userACompositeId = `${mapId}_${userA}`;
-      const userBCompositeId = `${mapId}_${userB}`;
+      const userACompositeId: string = `${mapId}_${userA}`;
+      const userBCompositeId: string = `${mapId}_${userB}`;
 
       // Different composite IDs ensure isolation
       expect(userACompositeId).not.toBe(userBCompositeId);
@@ -296,8 +296,8 @@ describe('Composite ID Functionality Integration Test', () => {
       // Composite ID is predictable but access is controlled by rules
       // Even if attacker knows the ID format, they can't access without proper auth
 
-      const attackerEmail = 'attacker@example.com';
-      const victimEmail = 'victim@example.com';
+      const attackerEmail: string = 'attacker@example.com';
+      const victimEmail: string = 'victim@example.com';
 
       // Attacker constructs composite ID
       const guessedCompositeId = `${mapId}_${victimEmail}`;

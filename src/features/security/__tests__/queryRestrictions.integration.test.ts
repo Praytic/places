@@ -283,10 +283,10 @@ describe('Database Query Restrictions Integration Test', () => {
       };
 
       // Owner can query owned maps
-      expect(roleQueryPatterns.mapOwner.maps.where[0].value).toBe(userId);
+      expect(roleQueryPatterns.mapOwner.maps.where[0]?.value).toBe(userId);
 
       // Collaborator queries their own mapViews
-      expect(roleQueryPatterns.collaborator.mapViews.where[0].value).toBe(userId);
+      expect(roleQueryPatterns.collaborator.mapViews.where[0]?.value).toBe(userId);
 
       // Both can query places for accessible maps
       expect(roleQueryPatterns.mapOwner.places.where[0]?.field).toBe('mapId');
@@ -369,7 +369,7 @@ describe('Database Query Restrictions Integration Test', () => {
       expect(queries).toHaveLength(3);
 
       queries.forEach((query, index) => {
-        expect(query.where[0].value).toBe(accessibleMapIds[index]);
+        expect(query.where[0]?.value).toBe(accessibleMapIds[index]);
       });
 
       // Cannot use 'in' operator to query all at once without access verification
@@ -408,7 +408,7 @@ describe('Database Query Restrictions Integration Test', () => {
       };
 
       // All operations have access control
-      Object.entries(queryOperations).forEach(([collection, operations]) => {
+      Object.values(queryOperations).forEach(operations => {
         Object.values(operations).forEach(rule => {
           expect(rule).toContain('Must');
           expect(rule.length).toBeGreaterThan(0);
