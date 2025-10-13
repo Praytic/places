@@ -2,23 +2,28 @@ import { useState, useEffect } from 'react';
 import {MapView, UserMap} from '../../../shared/types';
 import {getSharedMapViews} from "../../../services/MapViewService";
 
-export const useSharedMapViews = (userMaps: UserMap[]): {
-  sharedViews: Map<UserMap, MapView[]>;
+export const useSharedMapViews = (userMap?: UserMap): {
+  collaborators: Partial<MapView>[];
+  setCollaborators: React.Dispatch<React.SetStateAction<Partial<MapView>[]>>;
   loading: boolean;
   error: string | null;
 } => {
-  const [sharedViews, setSharedViews] = useState<Map<UserMap, MapView[]>>(new Map());
+  const [sharedViews, setSharedViews] = useState<Partial<MapView>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchViews = async () => {
+      if (!userMap) {
+        return;
+      }
+
       setLoading(true);
       try {
-        const mapViews = await getSharedMapViews(userMaps)
+        const viewsPerUserMap = await getSharedMapViews([userMap]);
+        const mapViews = viewsPerUserMap.get(userMap)!;
         setSharedViews(mapViews);
       } catch (err) {
-        console.error('Error fetching map views:', err);
         setError('Failed to fetch map views');
       } finally {
         setLoading(false);
@@ -28,5 +33,5 @@ export const useSharedMapViews = (userMaps: UserMap[]): {
     fetchViews();
   });
 
-  return { sharedViews: sharedViews, loading, error };
+  return { collaborators: sharedViews, setCollaborators: setSharedViews, loading, error };
 };

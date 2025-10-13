@@ -30,7 +30,7 @@ interface MapsProviderProps {
 export const MapsProvider: React.FC<MapsProviderProps> = ({children}) => {
     const {maps, loading: mapsLoading, error: mapsError} = useUserMaps();
     const {accessibleViews, loading: accessibleViewsLoading, error: accessibleViewsError} = useAccessibleMapViews();
-    const {sharedViews, loading: sharedViewsLoading, error: sharedViewsError} = useSharedMapViews(maps);
+    const {collaborators, loading: sharedViewsLoading, error: sharedViewsError} = useSharedMapViews(maps);
 
     const loading = mapsLoading || accessibleViewsLoading || sharedViewsLoading;
     const error = mapsError || accessibleViewsError || sharedViewsError;
@@ -43,13 +43,13 @@ export const MapsProvider: React.FC<MapsProviderProps> = ({children}) => {
       () => ({
         maps,
         accessibleViews,
-        sharedViews,
+        sharedViews: collaborators,
         loading,
         error,
         visibleMapIds,
         toggleMapVisibility,
       }),
-      [maps, accessibleViews, sharedViews, loading, error, visibleMapIds, toggleMapVisibility]
+      [maps, accessibleViews, collaborators, loading, error, visibleMapIds, toggleMapVisibility]
     );
 
     return <MapsContext.Provider value={value}>{children}</MapsContext.Provider>;
