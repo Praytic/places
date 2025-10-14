@@ -48,31 +48,32 @@ export const updateMap = async (
   mapId: string,
   updates: Partial<Pick<UserMap, 'collaborators' | 'name'>>,
   mapViews?: Pick<MapView, 'collaborator' | 'mapId' | 'role'>[],
-): Promise<UserMap> => {
+): Promise<void> => {
   return runTransaction(db, async (tx) => {
     const mapRef = doc(db, 'maps', mapId).withConverter(userMapConverter);
     const oldMap = await getUserMap(mapId, tx);
+
+    const newCollaborators = updates.collaborators ?? oldMap.collaborators;
+    const newName = updates.name ?? oldMap.name;
+
     tx.set(
       mapRef,
       {...updates},
       {merge: true, mergeFields: ['collaborators', 'name', 'updatedAt']}
     );
-    const newMap = await getUserMap(mapId, tx);
 
-    const removedCollaborators = oldMap.collaborators.filter(x => !newMap.collaborators.includes(x));
-    const addedCollaborators = newMap.collaborators.filter(x => !oldMap.collaborators.includes(x));
+    const removedCollaborators = oldMap.collaborators.filter(x => !newCollaborators.includes(x));
+    const addedCollaborators = newCollaborators.filter(x => !oldMap.collaborators.includes(x));
     await Promise.all(
       removedCollaborators.map(email => deleteMapView({mapId: mapId, collaborator: email}, tx))
     );
     await Promise.all(
       addedCollaborators.map(email => {
         const role = mapViews?.find(mapView => mapView.mapId === mapId && mapView.collaborator === email)?.role ?? UserRole.VIEW
-        const displayName = `${newMap.name} (by ${newMap.owner})`
+        const displayName = `${newName} (by ${oldMap.owner})`
         return createMapView({mapId: mapId, collaborator: email, role: role, name: displayName}, tx)
       })
     );
-
-    return getUserMap(mapId, tx);
   });
 };
 

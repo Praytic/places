@@ -21,40 +21,36 @@ const getCompositeId = (mapId: string, collaborator: string): string => {
 export const createMapView = async (
   mapView: Pick<MapView, 'mapId' | 'collaborator' | 'role' | 'name'>,
   transaction?: Transaction
-): Promise<MapView> => {
+): Promise<void> => {
   const compositeId = getCompositeId(mapView.mapId, mapView.collaborator);
   const mapViewRef = doc(db, 'mapViews', compositeId).withConverter(mapViewConverter)
   if (transaction) {
     transaction.set(mapViewRef, {...mapView, id: compositeId});
-    return getMapView(mapView, transaction)
   } else {
     return runTransaction(db, async (tx) => {
         tx.set(mapViewRef, {...mapView, id: compositeId})
-        return getMapView(mapView, tx);
       }
     );
   }
 }
 
-export const updateMapViewRole = async (mapView: Pick<MapView, 'mapId' | 'collaborator' | 'role'>): Promise<MapView> => {
+export const updateMapViewRole = async (mapView: Pick<MapView, 'mapId' | 'collaborator' | 'role'>): Promise<void> => {
   return runTransaction(db, async (tx) => {
     const compositeId = getCompositeId(mapView.mapId, mapView.collaborator);
     const mapViewRef = doc(db, 'mapViews', compositeId).withConverter(mapViewConverter);
     tx.update(mapViewRef, {
       role: mapView.role
     });
-    return getMapView(mapView, tx);
   });
 };
 
 export const updateMapViewDisplayName = async (
   mapView: Pick<MapView, 'mapId' | 'collaborator' | 'name'>
-): Promise<MapView> => {
+): Promise<void> => {
   return runTransaction(db, async (tx) => {
     const compositeId = getCompositeId(mapView.mapId, mapView.collaborator);
     const mapViewRef = doc(db, 'mapViews', compositeId).withConverter(mapViewConverter);
     tx.update(mapViewRef, {name: mapView.name});
-    return getMapView(mapView, tx);
   });
 };
 

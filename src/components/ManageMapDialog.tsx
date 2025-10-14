@@ -17,7 +17,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import {createMap, deleteMap, updateMap} from '../services/MapsService';
+import {createMap, deleteMap, getUserMap, updateMap} from '../services/MapsService';
 import {MapView, UserMap, UserRole} from "../shared/types";
 import {User} from "firebase/auth";
 import {useSharedMapViews} from "../features/maps/hooks/useSharedMapViews";
@@ -115,9 +115,9 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
       setError(null);
 
       if (userMap) {
-        // Edit mode
         setUpdating(true)
-        const updatedMap = await updateMap(userMap.id, {name: newName.trim()});
+        await updateMap(userMap.id, {name: newName.trim()});
+        const updatedMap = await getUserMap(userMap.id);
 
         const removedCollaborators = originalCollaborators.filter(
           (original: CollaboratorEntry) => !collaborators.some((current: CollaboratorEntry) => current.collaborator === original.collaborator)
@@ -147,7 +147,6 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
 
         onMapEdited && onMapEdited(updatedMap);
       } else {
-        // Create mode - create new map and share with collaborators
         setCreating(true);
 
         const createdMap = await createMap(
