@@ -200,9 +200,11 @@ const Markers: React.FC<MarkersProps> = ({
                 currentPlace,
                 () => onPlaceSelectRef.current(null),
                 onEmojiChangeRequestRef.current,
-                async (placeToToggle: Place) => {
-                  const newGroup: PlaceGroup = placeToToggle.group === 'favorite' ? 'want to go' : 'favorite';
-                  await onChangeGroupRef.current(placeToToggle, newGroup);
+                async () => {
+                  // Use current marker data to avoid stale emoji
+                  const currentPlaceData = (marker as any).placeData;
+                  const newGroup: PlaceGroup = currentPlaceData.group === 'favorite' ? 'want to go' : 'favorite';
+                  await onChangeGroupRef.current(currentPlaceData, newGroup);
 
                   // Close and reopen the info window to reflect the change
                   if (infoWindowRef.current) {
@@ -210,7 +212,7 @@ const Markers: React.FC<MarkersProps> = ({
                   }
 
                   // Update the place data with new group and recreate info window
-                  const updatedPlace = { ...placeToToggle, group: newGroup };
+                  const updatedPlace = { ...currentPlaceData, group: newGroup };
                   createInfoWindowWithToggle(updatedPlace);
                 },
                 onRemovePlaceRef.current,

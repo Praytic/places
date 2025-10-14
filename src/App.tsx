@@ -84,13 +84,19 @@ const AppContent: React.FC = () => {
         try {
           setError(null);
           await createPlace(place);
+
+          // Automatically enable the filter for the created place's group if not already active
+          const placeGroup = place.group || 'want to go';
+          if (!activeFilters.has(placeGroup)) {
+            toggleFilter(placeGroup as any);
+          }
         } catch (err) {
           console.error('Error creating place:', err);
           setError('Failed to add place. Please try again.');
         }
       }
     },
-    [createPlace]
+    [createPlace, activeFilters, toggleFilter]
   );
 
   const handleRemovePlace = useCallback(
