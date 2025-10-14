@@ -56,11 +56,7 @@ export const updateMap = async (
     const newCollaborators = updates.collaborators ?? oldMap.collaborators;
     const newName = updates.name ?? oldMap.name;
 
-    tx.set(
-      mapRef,
-      {...updates},
-      {merge: true, mergeFields: ['collaborators', 'name', 'updatedAt']}
-    );
+    tx.update(mapRef, updates);
 
     const removedCollaborators = oldMap.collaborators.filter(x => !newCollaborators.includes(x));
     const addedCollaborators = newCollaborators.filter(x => !oldMap.collaborators.includes(x));
