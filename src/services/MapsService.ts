@@ -13,16 +13,17 @@ export const createMap = async (
   assertDefined(userEmail)
 
   return runTransaction(db, async (tx) => {
-    const mapRef = doc(db, 'maps').withConverter(userMapConverter);
-    tx.set(mapRef, {...userMap, owner: userEmail, id: mapRef.id});
-    const map = await getUserMap(mapRef.id);
+    const mapRef = doc(collection(db, 'maps')).withConverter(userMapConverter);
+    const newMap: UserMap = {...userMap, owner: userEmail, id: mapRef.id};
+    tx.set(mapRef, newMap);
+
     await Promise.all(
       mapViews.map(mapView => {
-        const displayName = `${map.name} (by ${map.owner})`;
-        return createMapView({...mapView, mapId: mapRef.id, name: displayName})
+        const displayName = `${newMap.name} (by ${newMap.owner})`;
+        return createMapView({...mapView, mapId: mapRef.id, name: displayName}, tx)
       })
     );
-    return map
+    return newMap;
   });
 };
 
