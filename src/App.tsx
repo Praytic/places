@@ -5,12 +5,13 @@ import MapComponent from './components/MapComponent';
 import ControlPanel from './components/ControlPanel';
 import PlaceSearch from './components/PlaceSearch';
 import ManageMapDialog from './components/ManageMapDialog';
+import ManageViewDialog from './components/ManageViewDialog';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { AuthProvider, MapsProvider, PlacesProvider, useAuthContext, useMapsContext, usePlacesContext } from './providers';
 import { useEmojiPicker } from './shared/hooks';
 import { getCurrentLocation } from './shared/utils/locationService';
 import { ErrorBoundary } from './shared/components';
-import { AccessMap, Location, SelectableAccessMap, UserMap } from './shared/types/domain';
+import { AccessMap, Location, MapView, SelectableAccessMap, UserMap } from './shared/types/domain';
 
 const AppContent: React.FC = () => {
   const { user } = useAuthContext();
@@ -30,6 +31,7 @@ const AppContent: React.FC = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [showMapDialog, setShowMapDialog] = useState(false);
   const [editingMap, setEditingMap] = useState<UserMap | null>(null);
+  const [editingMapView, setEditingMapView] = useState<MapView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<Location | null>(null);
   const infoWindowRef = React.useRef<any>(null);
@@ -181,24 +183,23 @@ const AppContent: React.FC = () => {
 
   const handleMapCreate = useCallback(() => {
     setEditingMap(null);
+    setEditingMapView(null);
     setShowMapDialog(true);
   }, []);
 
   const handleMapEdit = useCallback((map: AccessMap) => {
-    // Only allow editing UserMaps (maps owned by the user)
     if ('mapId' in map) {
-      // This is a MapView - find the corresponding UserMap
-      const userMap = maps.find(m => m.id === map.mapId);
-      if (userMap) {
-        setEditingMap(userMap);
-        setShowMapDialog(true);
-      }
+      // This is a MapView - allow editing the MapView name
+      setEditingMapView(map as MapView);
+      setEditingMap(null);
+      setShowMapDialog(true);
     } else {
       // This is a UserMap
       setEditingMap(map as UserMap);
+      setEditingMapView(null);
       setShowMapDialog(true);
     }
-  }, [maps]);
+  }, []);
 
   // Create selectableAccessMaps for PlaceSearch
   const selectableAccessMaps = useMemo<SelectableAccessMap[]>(() => {
@@ -296,25 +297,71 @@ const AppContent: React.FC = () => {
         </ErrorBoundary>
       </Dialog>
 
-      {showMapDialog && (
+      {showMapDialog && editingMap && (
         <ManageMapDialog
-          userMap={editingMap || undefined}
+          userMap={editingMap}
           user={user!}
           onClose={() => {
             setShowMapDialog(false);
             setEditingMap(null);
+            setEditingMapView(null);
           }}
           onMapCreated={() => {
             setShowMapDialog(false);
             setEditingMap(null);
+            setEditingMapView(null);
           }}
           onMapEdited={() => {
             setShowMapDialog(false);
             setEditingMap(null);
+            setEditingMapView(null);
           }}
           onMapDeleted={() => {
             setShowMapDialog(false);
             setEditingMap(null);
+            setEditingMapView(null);
+          }}
+        />
+      )}
+
+      {showMapDialog && editingMapView && (
+        <ManageViewDialog
+          mapView={editingMapView}
+          onClose={() => {
+            setShowMapDialog(false);
+            setEditingMap(null);
+            setEditingMapView(null);
+          }}
+          onMapViewEdited={() => {
+            setShowMapDialog(false);
+            setEditingMap(null);
+            setEditingMapView(null);
+          }}
+        />
+      )}
+
+      {showMapDialog && !editingMap && !editingMapView && (
+        <ManageMapDialog
+          user={user!}
+          onClose={() => {
+            setShowMapDialog(false);
+            setEditingMap(null);
+            setEditingMapView(null);
+          }}
+          onMapCreated={() => {
+            setShowMapDialog(false);
+            setEditingMap(null);
+            setEditingMapView(null);
+          }}
+          onMapEdited={() => {
+            setShowMapDialog(false);
+            setEditingMap(null);
+            setEditingMapView(null);
+          }}
+          onMapDeleted={() => {
+            setShowMapDialog(false);
+            setEditingMap(null);
+            setEditingMapView(null);
           }}
         />
       )}
