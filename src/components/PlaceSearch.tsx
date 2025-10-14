@@ -48,6 +48,24 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
     }
   }, []);
 
+  const getExistingPlaceInfo = (placeId: string): { emoji: string; mapName: string } | null => {
+    const matchingPlaces = existingPlaces.filter(p => p.placeId === placeId);
+    if (matchingPlaces.length === 0) return null;
+    // Pick a random place if multiple exist
+    const randomPlace = matchingPlaces[Math.floor(Math.random() * matchingPlaces.length)];
+    if (!randomPlace) return null;
+
+    // Find the map or view name
+    const mapOrView = selectableAccessMaps.find(m =>
+      m instanceof MapView ? m.mapId === randomPlace.mapId : m.id === randomPlace.mapId
+    );
+
+    return {
+      emoji: randomPlace.emoji,
+      mapName: mapOrView?.name ?? 'Unknown Map'
+    };
+  };
+
   const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setQuery(value);
@@ -77,14 +95,6 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
       await place.fetchFields({
         fields: ['displayName', 'location', 'types', 'id', 'formattedAddress']
       });
-
-      // Check if place already exists using the actual place ID (not the prediction ID)
-      const existingPlace = existingPlaces.find(p => p.placeId === place.id);
-      if (existingPlace) {
-        setIsLoading(false);
-        alert(`This place "${existingPlace.name}" ${existingPlace.emoji} has already been added to your map.`);
-        return;
-      }
 
       const placeData: Pick<Place, 'placeId' | 'name' | 'geometry' | 'types' | 'formattedAddress' | 'group'> = {
         name: place.displayName ?? "Unknown",
@@ -196,6 +206,7 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
             <List sx={{ maxHeight: 400, overflow: 'auto' }}>
               {suggestions.map((suggestion) => {
                 const prediction = suggestion.placePrediction;
+                const existingPlaceInfo = prediction ? getExistingPlaceInfo(prediction.placeId) : null;
                 return (prediction &&
                   <ListItem key={prediction.placeId} disablePadding>
                     <ListItemButton onClick={() => handleSuggestionClick(prediction)}>
@@ -203,6 +214,16 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
                         primary={prediction.mainText?.text}
                         secondary={prediction.secondaryText?.text}
                       />
+                      {existingPlaceInfo && (
+                        <Box sx={{ ml: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            {existingPlaceInfo.mapName}
+                          </Typography>
+                          <Typography sx={{ fontSize: '1.5rem' }}>
+                            {existingPlaceInfo.emoji}
+                          </Typography>
+                        </Box>
+                      )}
                     </ListItemButton>
                   </ListItem>
                 );
