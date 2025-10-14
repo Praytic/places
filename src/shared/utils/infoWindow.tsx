@@ -5,7 +5,7 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { Place, UserRole } from '../types';
+import { Place, PlaceGroup, UserRole } from '../types';
 
 type AdvancedMarkerElement = google.maps.marker.AdvancedMarkerElement;
 type Map = google.maps.Map;
@@ -13,8 +13,8 @@ type InfoWindow = google.maps.InfoWindow;
 
 interface InfoWindowContentProps {
   place: Place & { vicinity?: string };
-  onEmojiChange: (place: Place) => void;
-  onToggleFavorite: (place: Place) => void;
+  onEmojiChange: () => void;
+  onToggleFavorite: () => void;
   onDelete: (place: Place) => void;
   userRole?: UserRole;
 }
@@ -66,7 +66,7 @@ const InfoWindowContent: React.FC<InfoWindowContentProps> = ({
 
       <Box sx={{ mt: 1.5, display: 'flex', justifyContent: 'space-around' }}>
         <IconButton
-          onClick={() => onToggleFavorite(place)}
+          onClick={onToggleFavorite}
           disabled={isReadOnly}
           title={isReadOnly ? '' : isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
           size="small"
@@ -76,7 +76,7 @@ const InfoWindowContent: React.FC<InfoWindowContentProps> = ({
         </IconButton>
 
         <IconButton
-          onClick={() => onEmojiChange(place)}
+          onClick={onEmojiChange}
           disabled={isReadOnly}
           title={isReadOnly ? '' : 'Change Emoji'}
           size="small"
@@ -106,22 +106,39 @@ export function createInfoWindow(
   place: Place & { vicinity?: string },
   onClose: () => void,
   onEmojiChange: (place: Place) => void,
-  onToggleFavorite: (place: Place) => void,
+  onToggleFavorite: (place: Place, newGroup: PlaceGroup) => void,
   onDelete: (place: Place) => void,
-  userRole?: UserRole
+  userRole?: UserRole,
+  onUpdateMarkerEmoji?: (emoji: string) => void
 ): InfoWindow {
   const contentDiv = document.createElement('div');
   const root = ReactDOM.createRoot(contentDiv);
 
-  root.render(
-    <InfoWindowContent
-      place={place}
-      onEmojiChange={onEmojiChange}
-      onToggleFavorite={onToggleFavorite}
-      onDelete={onDelete}
-      userRole={userRole}
-    />
-  );
+  // Local state for deferred updates
+  let localEmoji = place.emoji;
+  let localGroup = place.group;
+  const originalEmoji = place.emoji;
+  const originalGroup = place.group;
+
+  const render = () => {
+    root.render(
+      <InfoWindowContent
+        place={{ ...place, emoji: localEmoji, group: localGroup }}
+        onEmojiChange={() => {
+          onEmojiChange({ ...place, emoji: localEmoji, group: localGroup });
+        }}
+        onToggleFavorite={() => {
+          const newGroup: PlaceGroup = localGroup === 'favorite' ? 'want to go' : 'favorite';
+          localGroup = newGroup;
+          render();
+        }}
+        onDelete={onDelete}
+        userRole={userRole}
+      />
+    );
+  };
+
+  render();
 
   const infoWindow = new google.maps.InfoWindow({
     content: contentDiv,
@@ -130,7 +147,24 @@ export function createInfoWindow(
     disableAutoPan: false,
   });
 
+  // Expose update method for emoji changes
+  (infoWindow as any).updateEmoji = (newEmoji: string) => {
+    localEmoji = newEmoji;
+    if (onUpdateMarkerEmoji) {
+      onUpdateMarkerEmoji(newEmoji);
+    }
+    render();
+  };
+
   google.maps.event.addListener(infoWindow, 'closeclick', () => {
+    // Persist changes to database only when closing
+    const emojiChanged = localEmoji !== originalEmoji;
+    const groupChanged = localGroup !== originalGroup;
+
+    if (emojiChanged || groupChanged) {
+      onToggleFavorite({ ...place, emoji: localEmoji, group: localGroup }, localGroup);
+    }
+
     onClose?.();
   });
 

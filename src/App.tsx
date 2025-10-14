@@ -119,9 +119,10 @@ const AppContent: React.FC = () => {
     async (place: any, newGroup: string): Promise<void> => {
       try {
         setError(null);
+        // Update both emoji and group (place object will have current values)
         await updatePlace({ mapId: place.mapId, id: place.id, group: newGroup as any, emoji: place.emoji });
         if (selectedPlace && selectedPlace.id === place.id) {
-          setSelectedPlace({ ...selectedPlace, group: newGroup as any });
+          setSelectedPlace({ ...selectedPlace, group: newGroup as any, emoji: place.emoji });
         }
       } catch (err) {
         setError('Failed to update place. Please try again.');
@@ -160,17 +161,23 @@ const AppContent: React.FC = () => {
   const handleEmojiSelect = useCallback(
     async (emojiObject: any): Promise<void> => {
       if (emojiPickerPlace) {
-        const placeToUpdate = emojiPickerPlace;
         closeEmojiPicker();
 
-        try {
-          setError(null);
-          await updatePlace({ mapId: placeToUpdate.mapId, id: placeToUpdate.id, emoji: emojiObject.emoji, group: placeToUpdate.group });
-          if (selectedPlace && selectedPlace.id === placeToUpdate.id) {
-            setSelectedPlace({ ...selectedPlace, emoji: emojiObject.emoji });
+        // If InfoWindow is open, update it locally (deferred save)
+        if (infoWindowRef.current?.current?.updateEmoji) {
+          infoWindowRef.current.current.updateEmoji(emojiObject.emoji);
+        } else {
+          // Otherwise, save directly to database (legacy flow)
+          const placeToUpdate = emojiPickerPlace;
+          try {
+            setError(null);
+            await updatePlace({ mapId: placeToUpdate.mapId, id: placeToUpdate.id, emoji: emojiObject.emoji, group: placeToUpdate.group });
+            if (selectedPlace && selectedPlace.id === placeToUpdate.id) {
+              setSelectedPlace({ ...selectedPlace, emoji: emojiObject.emoji });
+            }
+          } catch (err) {
+            setError('Failed to update emoji. Please try again.');
           }
-        } catch (err) {
-          setError('Failed to update emoji. Please try again.');
         }
       }
     },

@@ -190,39 +190,28 @@ const Markers: React.FC<MarkersProps> = ({
               infoWindowRef.current.close();
             }
 
-            const createInfoWindowWithToggle = (currentPlace: Place) => {
-              const accessMap = accessMaps.get(currentPlace.mapId);
-              const userRole = accessMap ? ('role' in accessMap ? accessMap.role : UserRole.EDIT) : UserRole.VIEW;
+            const currentPlace = (marker as any).placeData;
+            const accessMap = accessMaps.get(currentPlace.mapId);
+            const userRole = accessMap ? ('role' in accessMap ? accessMap.role : UserRole.EDIT) : UserRole.VIEW;
 
-              infoWindowRef.current = createInfoWindow(
-                map,
-                marker,
-                currentPlace,
-                () => onPlaceSelectRef.current(null),
-                onEmojiChangeRequestRef.current,
-                async () => {
-                  // Use current marker data to avoid stale emoji
-                  const currentPlaceData = (marker as any).placeData;
-                  const newGroup: PlaceGroup = currentPlaceData.group === 'favorite' ? 'want to go' : 'favorite';
-                  await onChangeGroupRef.current(currentPlaceData, newGroup);
+            infoWindowRef.current = createInfoWindow(
+              map,
+              marker,
+              currentPlace,
+              () => onPlaceSelectRef.current(null),
+              onEmojiChangeRequestRef.current,
+              async (placeToUpdate: Place, newGroup: PlaceGroup) => {
+                await onChangeGroupRef.current(placeToUpdate, newGroup);
+              },
+              onRemovePlaceRef.current,
+              userRole,
+              (newEmoji: string) => {
+                // Update marker emoji visually
+                marker.content = createRegularMarker(newEmoji);
+              }
+            );
 
-                  // Close and reopen the info window to reflect the change
-                  if (infoWindowRef.current) {
-                    infoWindowRef.current.close();
-                  }
-
-                  // Update the place data with new group and recreate info window
-                  const updatedPlace = { ...currentPlaceData, group: newGroup };
-                  createInfoWindowWithToggle(updatedPlace);
-                },
-                onRemovePlaceRef.current,
-                userRole
-              );
-            };
-
-            // Use the current place data from marker.placeData instead of stale closure
-            createInfoWindowWithToggle((marker as any).placeData);
-            onPlaceSelectRef.current((marker as any).placeData);
+            onPlaceSelectRef.current(currentPlace);
           });
 
           (marker as any).placeData = place;
