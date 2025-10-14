@@ -147,6 +147,20 @@ export function createInfoWindow(
     disableAutoPan: false,
   });
 
+  // Wrap the close method to save changes before closing
+  const originalClose = infoWindow.close.bind(infoWindow);
+  infoWindow.close = () => {
+    // Persist changes to database when closing
+    const emojiChanged = localEmoji !== originalEmoji;
+    const groupChanged = localGroup !== originalGroup;
+
+    if (emojiChanged || groupChanged) {
+      onToggleFavorite({ ...place, emoji: localEmoji, group: localGroup }, localGroup);
+    }
+
+    originalClose();
+  };
+
   // Expose update method for emoji changes
   (infoWindow as any).updateEmoji = (newEmoji: string) => {
     localEmoji = newEmoji;
@@ -157,14 +171,6 @@ export function createInfoWindow(
   };
 
   google.maps.event.addListener(infoWindow, 'closeclick', () => {
-    // Persist changes to database only when closing
-    const emojiChanged = localEmoji !== originalEmoji;
-    const groupChanged = localGroup !== originalGroup;
-
-    if (emojiChanged || groupChanged) {
-      onToggleFavorite({ ...place, emoji: localEmoji, group: localGroup }, localGroup);
-    }
-
     onClose?.();
   });
 
