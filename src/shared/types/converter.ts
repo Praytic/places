@@ -49,9 +49,10 @@ export const userMapConverter = {
   fromFirestore: (snapshot: any, options: any) => {
     const data = snapshot.data(options);
     return new UserMap(
+      snapshot.id,
       data.name,
       data.owner,
-      snapshot.id,
+      data.collaborators,
       data.createdAt,
       data.updatedAt
     );
@@ -73,6 +74,7 @@ export const mapViewConverter = {
   fromFirestore: (snapshot: any, options: any) => {
     const data = snapshot.data(options);
     return new MapView(
+      snapshot.id,
       data.mapId,
       data.collaborator,
       data.role,
