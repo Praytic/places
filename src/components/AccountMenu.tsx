@@ -5,7 +5,7 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import { signOut, signInWithPopup, GoogleAuthProvider, User } from 'firebase/auth';
 import { auth } from '../lib/firebase/config';
-import { getCurrentLocation, setLocationPermission } from '../shared/utils/locationService';
+import { getCurrentLocation } from '../shared/utils/locationService';
 import { Location } from '../shared/types/domain';
 
 interface AccountMenuProps {
@@ -42,7 +42,6 @@ const AccountMenu: React.FC<AccountMenuProps> = ({ user, onLocationRequest }) =>
   const handleGoToCurrentLocation = async () => {
     try {
       const location = await getCurrentLocation();
-      setLocationPermission(true);
       if (onLocationRequest) {
         onLocationRequest(location);
       }

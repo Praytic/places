@@ -1,6 +1,6 @@
 import {
-  PlaceMap,
-  MapInput,
+  UserMap,
+  MapCreate,
   MapUpdate,
   UserRole,
   Collaborator,
@@ -15,17 +15,17 @@ export interface IMapsRepository {
   /**
    * Create a new map
    */
-  createMap(ownerId: string, mapInput: MapInput): Promise<PlaceMap>;
+  createMap(ownerId: string, mapInput: MapCreate): Promise<UserMap>;
 
   /**
    * Get a map by ID
    */
-  getMap(mapId: string): Promise<PlaceMap | null>;
+  getMap(mapId: string): Promise<UserMap | null>;
 
   /**
    * Get all maps accessible to a user
    */
-  getUserMaps(userId: string): Promise<PlaceMap[]>;
+  getUserMaps(userId: string): Promise<UserMap[]>;
 
   /**
    * Update map details
@@ -65,7 +65,7 @@ export interface IMapsRepository {
   /**
    * Subscribe to user's maps in real-time
    */
-  subscribeToUserMaps(userId: string, callback: SubscriptionCallback<PlaceMap[]>): UnsubscribeFn;
+  subscribeToUserMaps(userId: string, callback: SubscriptionCallback<UserMap[]>): UnsubscribeFn;
 
   /**
    * Get count of maps owned by user

@@ -5,16 +5,12 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
 import RemoveRedEyeOutlinedIcon from '@mui/icons-material/RemoveRedEyeOutlined';
-import LayersIcon from '@mui/icons-material/Layers';
-import ShareIcon from '@mui/icons-material/Share';
-import { PlaceGroup, FilterSet } from '../shared/types/domain';
+import {PlaceGroup} from "../shared/types";
 
 interface ControlPanelProps {
   onAddPlace: () => void;
   onToggleFilter: (group: PlaceGroup) => void;
-  activeFilters: FilterSet;
-  onManageMaps: (event: React.MouseEvent) => void;
-  onShareMap: () => void;
+  activeFilters: Set<PlaceGroup>;
   isAddPlaceDisabled?: boolean;
 }
 
@@ -22,8 +18,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   onAddPlace,
   onToggleFilter,
   activeFilters,
-  onManageMaps,
-  onShareMap,
   isAddPlaceDisabled = false,
 }) => {
   return (
@@ -44,8 +38,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         sx={{
           display: 'flex',
           borderRadius: 4,
-          p: 1,
-          m: 1.5,
+          p: { xs: 0.5, sm: 1 },
+          m: { xs: 1, sm: 1.5 },
           gap: 0,
           pointerEvents: 'auto',
         }}
@@ -57,8 +51,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           disabled={isAddPlaceDisabled}
           title="Add Place"
           sx={{
-            minWidth: 48,
-            height: 48,
+            minWidth: { xs: 40, sm: 48 },
+            height: { xs: 40, sm: 48 },
             color: 'text.secondary',
             '&:hover': {
               bgcolor: 'action.hover',
@@ -76,22 +70,22 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               content: '""',
               position: 'absolute',
               right: 0,
-              top: '12px',
-              bottom: '12px',
+              top: { xs: '8px', sm: '12px' },
+              bottom: { xs: '8px', sm: '12px' },
               width: '1px',
               bgcolor: 'action.disabled',
             },
           }}
         >
-          <AddIcon fontSize="small" />
+          <AddIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
         </IconButton>
 
         <IconButton
           onClick={() => onToggleFilter('favorite')}
           title="Toggle Favorites"
           sx={{
-            minWidth: 48,
-            height: 48,
+            minWidth: { xs: 40, sm: 48 },
+            height: { xs: 40, sm: 48 },
             color: activeFilters.has('favorite') ? 'error.main' : 'text.disabled',
             '&:hover': {
               bgcolor: 'action.hover',
@@ -106,17 +100,17 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               content: '""',
               position: 'absolute',
               right: 0,
-              top: '12px',
-              bottom: '12px',
+              top: { xs: '8px', sm: '12px' },
+              bottom: { xs: '8px', sm: '12px' },
               width: '1px',
               bgcolor: 'action.disabled',
             },
           }}
         >
           {activeFilters.has('favorite') ? (
-            <FavoriteIcon fontSize="small" />
+            <FavoriteIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
           ) : (
-            <FavoriteBorderIcon fontSize="small" />
+            <FavoriteBorderIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
           )}
         </IconButton>
 
@@ -124,8 +118,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           onClick={() => onToggleFilter('want to go')}
           title="Toggle Want to Go"
           sx={{
-            minWidth: 48,
-            height: 48,
+            minWidth: { xs: 40, sm: 48 },
+            height: { xs: 40, sm: 48 },
             color: activeFilters.has('want to go') ? 'primary.main' : 'text.disabled',
             '&:hover': {
               bgcolor: 'action.hover',
@@ -140,68 +134,18 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               content: '""',
               position: 'absolute',
               right: 0,
-              top: '12px',
-              bottom: '12px',
+              top: { xs: '8px', sm: '12px' },
+              bottom: { xs: '8px', sm: '12px' },
               width: '1px',
               bgcolor: 'action.disabled',
             },
           }}
         >
           {activeFilters.has('want to go') ? (
-            <RemoveRedEyeIcon fontSize="small" />
+            <RemoveRedEyeIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
           ) : (
-            <RemoveRedEyeOutlinedIcon fontSize="small" />
+            <RemoveRedEyeOutlinedIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
           )}
-        </IconButton>
-
-        <IconButton
-          onClick={(e) => onManageMaps(e)}
-          title="Manage Maps"
-          sx={{
-            minWidth: 48,
-            height: 48,
-            color: 'text.secondary',
-            '&:hover': {
-              bgcolor: 'action.hover',
-              color: 'text.primary',
-            },
-            '&:active': {
-              transform: 'scale(0.95)',
-            },
-            borderRadius: 0,
-            position: 'relative',
-            '&::after': {
-              content: '""',
-              position: 'absolute',
-              right: 0,
-              top: '12px',
-              bottom: '12px',
-              width: '1px',
-              bgcolor: 'action.disabled',
-            },
-          }}
-        >
-          <LayersIcon fontSize="small" />
-        </IconButton>
-
-        <IconButton
-          onClick={onShareMap}
-          title="Share Map"
-          sx={{
-            minWidth: 48,
-            height: 48,
-            color: 'text.secondary',
-            '&:hover': {
-              bgcolor: 'action.hover',
-              color: 'text.primary',
-            },
-            '&:active': {
-              transform: 'scale(0.95)',
-            },
-            borderRadius: 0,
-          }}
-        >
-          <ShareIcon fontSize="small" />
         </IconButton>
       </Paper>
     </Box>

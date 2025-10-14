@@ -1,120 +1,183 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// @ts-nocheck
+import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Box, IconButton, Link, Typography } from '@mui/material';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { Place, UserRole } from '../types';
+import { Place, PlaceGroup, UserRole } from '../types';
+
+type AdvancedMarkerElement = google.maps.marker.AdvancedMarkerElement;
+type Map = google.maps.Map;
+type InfoWindow = google.maps.InfoWindow;
+
+interface InfoWindowContentProps {
+  place: Place & { vicinity?: string };
+  onEmojiChange: () => void;
+  onToggleFavorite: () => void;
+  onDelete: (place: Place) => void;
+  userRole?: UserRole;
+}
+
+const InfoWindowContent: React.FC<InfoWindowContentProps> = ({
+  place,
+  onEmojiChange,
+  onToggleFavorite,
+  onDelete,
+  userRole,
+}) => {
+  const isReadOnly = userRole === UserRole.VIEW;
+  const isFavorite = place.group === 'favorite';
+
+  return (
+    <Box
+      sx={{
+        width: 260,
+        p: 1.5,
+        bgcolor: 'transparent', // don't fight Google Maps styling
+        overflow: 'visible',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <Typography variant="subtitle1" fontWeight={600}>
+        {place.name}
+      </Typography>
+
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ mb: 1.5, lineHeight: 1.43, wordBreak: 'break-word' }}
+      >
+        {place.formattedAddress || place.vicinity || 'Address not available'}
+      </Typography>
+
+      <Link
+        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+          place.name
+        )}&query_place_id=${place.placeId || ''}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        underline="none"
+        sx={{ display: 'inline-block', mt: 1.5, fontSize: 14, fontWeight: 500 }}
+      >
+        View on Google Maps
+      </Link>
+
+      <Box sx={{ mt: 1.5, display: 'flex', justifyContent: 'space-around' }}>
+        <IconButton
+          onClick={onToggleFavorite}
+          disabled={isReadOnly}
+          title={isReadOnly ? '' : isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+          size="small"
+          color={isFavorite ? 'error' : 'default'}
+        >
+          {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+        </IconButton>
+
+        <IconButton
+          onClick={onEmojiChange}
+          disabled={isReadOnly}
+          title={isReadOnly ? '' : 'Change Emoji'}
+          size="small"
+        >
+          <EmojiEmotionsIcon />
+        </IconButton>
+
+        <IconButton
+          onClick={() => onDelete(place)}
+          disabled={isReadOnly}
+          title={isReadOnly ? '' : 'Delete Place'}
+          size="small"
+        >
+          <DeleteIcon />
+        </IconButton>
+      </Box>
+    </Box>
+  );
+};
 
 /**
  * Creates and displays an info window for a place marker
- * Fully rewritten to use MUI components
  */
 export function createInfoWindow(
-  map: google.maps.Map,
-  marker: google.maps.marker.AdvancedMarkerElement,
-  place: Place & { formatted_address?: string; vicinity?: string; place_id?: string },
-  onClose: (() => void) | undefined,
+  map: Map,
+  marker: AdvancedMarkerElement,
+  place: Place & { vicinity?: string },
+  onClose: () => void,
   onEmojiChange: (place: Place) => void,
-  onToggleFavorite: (place: Place) => void,
+  onToggleFavorite: (place: Place, newGroup: PlaceGroup) => void,
   onDelete: (place: Place) => void,
-  userRole?: UserRole
-): google.maps.InfoWindow {
-  const isReadOnly = userRole === UserRole.VIEWER;
-  const isFavorite = place.group === 'favorite';
-
-  // Create React root
+  userRole?: UserRole,
+  onUpdateMarkerEmoji?: (emoji: string) => void
+): InfoWindow {
   const contentDiv = document.createElement('div');
   const root = ReactDOM.createRoot(contentDiv);
 
-  // Render function that we can call when props change
-  const render = (): void =>
+  // Local state for deferred updates
+  let localEmoji = place.emoji;
+  let localGroup = place.group;
+  const originalEmoji = place.emoji;
+  const originalGroup = place.group;
+
+  const render = () => {
     root.render(
-      <Box
-        sx={{
-          width: 260,
-          p: 1.5,
-          bgcolor: 'transparent', // don't fight Google Maps styling
-          overflow: 'visible',
-          display: 'flex',
-          flexDirection: 'column',
+      <InfoWindowContent
+        place={{ ...place, emoji: localEmoji, group: localGroup }}
+        onEmojiChange={() => {
+          onEmojiChange({ ...place, emoji: localEmoji, group: localGroup });
         }}
-      >
-        <Typography variant="subtitle1" fontWeight={600}>
-          {place.name}
-        </Typography>
-
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ mb: 1.5, lineHeight: 1.43, wordBreak: 'break-word' }}
-        >
-          {place.formatted_address || place.vicinity || 'Address not available'}
-        </Typography>
-
-        <Link
-          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-            place.name
-          )}&query_place_id=${place.place_id || ''}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          underline="none"
-          sx={{ display: 'inline-block', mt: 1.5, fontSize: 14, fontWeight: 500 }}
-        >
-          View on Google Maps
-        </Link>
-
-        <Box sx={{ mt: 1.5, display: 'flex', justifyContent: 'space-around' }}>
-          <IconButton
-            onClick={() => !isReadOnly && onToggleFavorite(place)}
-            disabled={isReadOnly}
-            title={isReadOnly ? '' : isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
-            size="small"
-            color={isFavorite ? 'error' : 'default'}
-          >
-            {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-          </IconButton>
-
-          <IconButton
-            onClick={() => !isReadOnly && onEmojiChange(place)}
-            disabled={isReadOnly}
-            title={isReadOnly ? '' : 'Change Emoji'}
-            size="small"
-          >
-            <EmojiEmotionsIcon />
-          </IconButton>
-
-          <IconButton
-            onClick={() => !isReadOnly && onDelete(place)}
-            disabled={isReadOnly}
-            title={isReadOnly ? '' : 'Delete Place'}
-            size="small"
-          >
-            <DeleteIcon />
-          </IconButton>
-        </Box>
-      </Box>
+        onToggleFavorite={() => {
+          const newGroup: PlaceGroup = localGroup === 'favorite' ? 'want to go' : 'favorite';
+          localGroup = newGroup;
+          render();
+        }}
+        onDelete={onDelete}
+        userRole={userRole}
+      />
     );
+  };
 
-  // Initial render
   render();
 
-  const infoWindow = new window.google.maps.InfoWindow({
+  const infoWindow = new google.maps.InfoWindow({
     content: contentDiv,
     ariaLabel: place.name,
     maxWidth: 280,
     disableAutoPan: false,
   });
 
-  infoWindow.addListener('closeclick', () => {
+  // Wrap the close method to save changes before closing
+  const originalClose = infoWindow.close.bind(infoWindow);
+  infoWindow.close = () => {
+    // Persist changes to database when closing
+    const emojiChanged = localEmoji !== originalEmoji;
+    const groupChanged = localGroup !== originalGroup;
+
+    if (emojiChanged || groupChanged) {
+      onToggleFavorite({ ...place, emoji: localEmoji, group: localGroup }, localGroup);
+    }
+
+    originalClose();
+  };
+
+  // Expose update method for emoji changes
+  (infoWindow as any).updateEmoji = (newEmoji: string) => {
+    localEmoji = newEmoji;
+    if (onUpdateMarkerEmoji) {
+      onUpdateMarkerEmoji(newEmoji);
+    }
+    render();
+  };
+
+  google.maps.event.addListener(infoWindow, 'closeclick', () => {
     onClose?.();
   });
 
   infoWindow.open(map, marker);
 
-  window.google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
+  // Customization of InfoWindow
+  google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
     const iwContainer = document.querySelector('.gm-style-iw-d');
     if (iwContainer) {
       // Force override max-height continuously

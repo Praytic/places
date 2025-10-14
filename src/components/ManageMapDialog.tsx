@@ -1,187 +1,138 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  TextField,
-  Button,
-  Box,
-  IconButton,
-  Divider,
-  Typography,
   Alert,
+  Box,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  IconButton,
   List,
-  ListItem
+  ListItem,
+  TextField,
+  Typography
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { createMap, shareMapWithUser, unshareMapWithUser, updateMap, getMapCollaborators, deleteMap, ROLES } from '../services/MapsService';
-import { updateMapViewDisplayedName } from '../services/MapViewService';
-import { PlaceMapWithRole, UserRole } from '../shared/types/domain';
+import {createMap, deleteMap, getUserMap, updateMap} from '../services/MapsService';
+import {UserMap, UserRole} from "../shared/types";
+import {User} from "firebase/auth";
 
-interface EmailItem {
-  email: string;
+type CollaboratorEntry = {
+  collaborator: string;
   role: UserRole;
-}
+};
 
 interface ManageMapDialogProps {
-  userEmail: string;
-  onMapCreated: (mapId?: string, role?: UserRole) => void;
+  userMap?: UserMap;
+  user: User;
   onClose: () => void;
-  existingMap?: PlaceMapWithRole | null;
+  onMapCreated?: (userMap: UserMap) => void;
+  onMapEdited?: (userMap: UserMap) => void;
+  onMapDeleted?: () => void;
 }
 
-const ManageMapDialog: React.FC<ManageMapDialogProps> = ({ userEmail, onMapCreated, onClose, existingMap = null }) => {
-  const isEditMode = !!existingMap;
-  const isOwner = isEditMode && existingMap.userRole === ROLES.OWNER;
-  const [mapName, setMapName] = useState(existingMap?.displayedName || existingMap?.name || '');
+const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
+                                                           userMap,
+                                                           user,
+                                                           onClose,
+                                                           onMapCreated,
+                                                           onMapEdited,
+                                                           onMapDeleted
+                                                         }) => {
+  const [collaborators, setCollaborators] = useState<CollaboratorEntry[]>([]);
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [email, setEmail] = useState('');
-  const [emailList, setEmailList] = useState<EmailItem[]>([]);
-  const [originalEmailList, setOriginalEmailList] = useState<EmailItem[]>([]);
+  const [newCollaborator, setNewCollaborator] = useState('');
+  const [newName, setNewName] = useState<string>(userMap?.name ?? 'My Places');
   const [error, setError] = useState<string | null>(null);
 
-  // Load existing collaborators when in edit mode
   useEffect(() => {
-    if (isEditMode && existingMap?.id) {
-      const loadCollaborators = async () => {
-        try {
-          const collaborators = await getMapCollaborators(existingMap.id);
-          // Filter out the owner and convert to emailList format
-          const filteredCollaborators = collaborators
-            .filter(collab => collab.userId !== existingMap.owner)
-            .map(collab => ({
-              email: collab.userId,
-              role: collab.userRole
-            }));
-          setEmailList(filteredCollaborators);
-          setOriginalEmailList(filteredCollaborators);
-        } catch (err) {
-          console.error('Error loading collaborators:', err);
-        }
-      };
-      loadCollaborators();
+    if (userMap) {
+      const collaboratorEntries: CollaboratorEntry[] = Object.entries(userMap.collaborators).map(([email, role]) => ({
+        collaborator: email,
+        role: role
+      }));
+      setCollaborators(collaboratorEntries);
     }
-  }, [isEditMode, existingMap]);
+  }, [userMap]);
 
   const handleAddEmail = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !email.includes('@')) {
+    if (!newCollaborator || !newCollaborator.includes('@')) {
       setError('Please enter a valid email address');
       return;
     }
 
-    if (email === userEmail) {
+    if (newCollaborator === user.email) {
       setError('You cannot share with yourself');
       return;
     }
 
-    if (emailList.some(item => item.email === email)) {
+    if (collaborators.some((item: CollaboratorEntry) => item.collaborator === newCollaborator)) {
       setError('Email already added');
       return;
     }
 
-    setEmailList([...emailList, { email, role: ROLES.VIEWER }]);
-    setEmail('');
+    setCollaborators([...collaborators, {collaborator: newCollaborator, role: UserRole.VIEW}]);
+    setNewCollaborator('');
     setError(null);
   };
 
-  const handleEmailChange = (index: number, value: string) => {
-    const newList = [...emailList];
-    const item = newList[index];
-    if (item) {
-      newList[index] = { email: value, role: item.role };
-      setEmailList(newList);
-    }
-  };
-
-  const handleToggleRole = (emailToToggle: string, currentRole: UserRole) => {
-    const newRole = currentRole === ROLES.EDITOR ? ROLES.VIEWER : ROLES.EDITOR;
-    setEmailList(emailList.map(item =>
-      item.email === emailToToggle ? { ...item, role: newRole } : item
+  const handleEmailChange = (changingEntry: CollaboratorEntry, email: string) => {
+    setCollaborators(collaborators.map((entry: CollaboratorEntry) =>
+      entry.collaborator === changingEntry.collaborator ? {...entry, collaborator: email} : entry
     ));
   };
 
-  const handleRemoveEmail = (emailToRemove: string) => {
-    setEmailList(emailList.filter(item => item.email !== emailToRemove));
+  const handleToggleRole = (changingEntry: CollaboratorEntry, currentRole: UserRole) => {
+    const newRole = currentRole === UserRole.EDIT ? UserRole.VIEW : UserRole.EDIT;
+    setCollaborators(collaborators.map((entry: CollaboratorEntry) =>
+      entry.collaborator === changingEntry.collaborator ? {...entry, role: newRole} : entry
+    ));
   };
 
-  const handleCreate = async () => {
-    const trimmedName = mapName.trim();
-    if (!trimmedName) {
-      return;
-    }
+  const handleRemoveEmail = (removingEntry: CollaboratorEntry) => {
+    setCollaborators(collaborators.filter((entry: CollaboratorEntry) => entry.collaborator !== removingEntry.collaborator));
+  };
 
+  const handleSave = async () => {
     try {
-      setCreating(true);
       setError(null);
 
-      if (isEditMode) {
-        // Edit mode
-        if (isOwner) {
-          // Owner updates the Map entity directly
-          await updateMap(existingMap!.id, { name: trimmedName });
-        } else {
-          // Collaborator updates their MapView's displayedName
-          if (!existingMap!.mapViewId) {
-            throw new Error('MapView ID is missing for collaborator');
-          }
-          await updateMapViewDisplayedName(existingMap!.mapViewId, trimmedName);
-        }
+      // Convert collaborators array to Record format
+      const collaboratorsRecord: Record<string, UserRole> = {};
+      collaborators.forEach(entry => {
+        collaboratorsRecord[entry.collaborator] = entry.role;
+      });
 
-        // Only owners can manage collaborators
-        if (isOwner) {
-          // Find emails that were removed (in original but not in current list)
-          const currentEmails = emailList.map(item => item.email);
-          const originalEmails = originalEmailList.map(item => item.email);
-          const removedEmails = originalEmails.filter(email => !currentEmails.includes(email));
-
-          // Unshare with removed collaborators
-          for (const email of removedEmails) {
-            try {
-              await unshareMapWithUser(existingMap!.id, email);
-            } catch (err) {
-              console.error(`Error unsharing with ${email}:`, err);
-            }
-          }
-
-          // Share with all emails in the current list (will add new ones or update existing roles)
-          for (const { email, role } of emailList) {
-            try {
-              await shareMapWithUser(existingMap!.id, email, role);
-            } catch (err) {
-              console.error(`Error sharing with ${email}:`, err);
-              // Continue with other emails even if one fails
-            }
-          }
-        }
-
-        onMapCreated(existingMap!.id);
+      if (userMap) {
+        setUpdating(true);
+        await updateMap(userMap.id, {
+          name: newName.trim(),
+          collaborators: collaboratorsRecord
+        });
+        const updatedMap = await getUserMap(userMap.id);
+        onMapEdited && onMapEdited(updatedMap);
       } else {
-        // Create mode - create new map and share with collaborators
-        const newMap = await createMap(userEmail, trimmedName);
-
-        // Share with all emails in the list
-        for (const { email, role } of emailList) {
-          try {
-            await shareMapWithUser(newMap.id, email, role);
-          } catch (err) {
-            console.error(`Error sharing with ${email}:`, err);
-            // Continue with other emails even if one fails
-          }
-        }
-
-        onMapCreated(newMap.id, ROLES.OWNER);
+        setCreating(true);
+        const createdMap = await createMap(
+          {name: newName.trim(), collaborators: collaboratorsRecord},
+          user.email!
+        );
+        onMapCreated && onMapCreated(createdMap);
       }
 
       onClose();
     } catch (err) {
-      console.error(`Error ${isEditMode ? 'updating' : 'creating'} map:`, err);
-      setError(`Failed to ${isEditMode ? 'update' : 'create'} map. Please try again.`);
+      setError(`Failed to ${userMap ? 'update' : 'create'} map. Please try again.`);
+    } finally {
       setCreating(false);
+      setUpdating(false);
     }
   };
 
@@ -190,7 +141,9 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({ userEmail, onMapCreat
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete "${existingMap!.name}"? This will also delete all places in this map.`)) {
+    if (!userMap) return;
+
+    if (!window.confirm(`Are you sure you want to delete "${userMap.name}"? This will also delete all places in this map.`)) {
       return;
     }
 
@@ -198,159 +151,155 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({ userEmail, onMapCreat
       setDeleting(true);
       setError(null);
 
-      // Close dialog immediately after user confirms
+      await deleteMap(userMap.id);
+
+      onMapDeleted && onMapDeleted();
       onClose();
-
-      await deleteMap(existingMap!.id);
-
-      // Trigger refresh of map list after deletion completes
-      if (onMapCreated) {
-        onMapCreated();
-      }
     } catch (err) {
-      console.error('Error deleting map:', err);
+      setError(`Failed to delete map. Please try again.`);
+    } finally {
+      setDeleting(false);
     }
   };
 
   return (
     <Dialog open={true} onClose={handleCancel} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        {isEditMode ? (isOwner ? 'Edit Map' : 'Rename Map') : 'Create New Map'}
+      <DialogTitle sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+        {userMap ? 'Edit Map' : 'Create New Map'}
         <IconButton onClick={handleCancel} size="small">
-          <CloseIcon />
+          <CloseIcon/>
         </IconButton>
       </DialogTitle>
 
       <DialogContent>
-        {/* Map Creation Section */}
         <Box>
-          <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+          <Typography variant="body2" sx={{mb: 1, fontWeight: 500}}>
             Map name:
           </Typography>
           <TextField
             fullWidth
             size="small"
-            value={mapName}
-            onChange={(e) => setMapName(e.target.value)}
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
             placeholder="Enter map name"
-            disabled={creating}
+            disabled={creating || updating}
             autoFocus
           />
         </Box>
 
-        {/* Email Adding Section - Only for owners */}
-        {(!isEditMode || isOwner) && (
-          <Box sx={{ mt: 3 }}>
-            <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
-              Add collaborator by email:
-            </Typography>
+        <Box sx={{mt: 3}}>
+          <Typography variant="body2" sx={{mb: 1, fontWeight: 500}}>
+            Add collaborator by email:
+          </Typography>
 
-            <List disablePadding>
-              {emailList.map((item, index) => (
-                <ListItem
-                  key={index}
-                  sx={{
-                    display: 'flex',
-                    gap: 1,
-                    p: 0,
-                    mb: 1
-                  }}
-                >
-                  <TextField
-                    fullWidth
-                    size="small"
-                    type="email"
-                    value={item.email}
-                    onChange={(e) => handleEmailChange(index, e.target.value)}
-                    placeholder="email@example.com"
-                    disabled={creating}
-                  />
-                  <IconButton
-                    size="small"
-                    onClick={() => handleToggleRole(item.email, item.role)}
-                    disabled={creating}
-                    title={item.role === ROLES.EDITOR ? 'Switch to viewer' : 'Switch to editor'}
-                  >
-                    {item.role === ROLES.EDITOR ? <EditIcon /> : <VisibilityIcon />}
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleRemoveEmail(item.email)}
-                    disabled={creating}
-                    title="Remove"
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </ListItem>
-              ))}
-
-              {/* Active input field with ADD button */}
+          <List disablePadding>
+            {collaborators.map((entry: CollaboratorEntry, index: number) => (
               <ListItem
-                component="form"
-                onSubmit={handleAddEmail}
+                key={index}
                 sx={{
                   display: 'flex',
                   gap: 1,
-                  p: 0
+                  p: 0,
+                  mb: 1
                 }}
               >
                 <TextField
                   fullWidth
                   size="small"
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={entry.collaborator}
+                  onChange={(e) => handleEmailChange({
+                    collaborator: entry.collaborator,
+                    role: entry.role
+                  }, e.target.value)}
                   placeholder="email@example.com"
-                  disabled={creating}
+                  disabled={creating || updating}
                 />
-                <Button
-                  type="submit"
-                  variant="outlined"
-                  disabled={creating || !email}
-                  sx={{ minWidth: 80 }}
+                <IconButton
+                  size="small"
+                  onClick={() => handleToggleRole({collaborator: entry.collaborator, role: entry.role}, entry.role)}
+                  disabled={creating || updating}
+                  title={entry.role === UserRole.EDIT ? 'Switch to viewer' : 'Switch to editor'}
                 >
-                  Add
-                </Button>
+                  {entry.role === UserRole.EDIT ? <EditIcon/> : <VisibilityIcon/>}
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={() => handleRemoveEmail({collaborator: entry.collaborator, role: entry.role})}
+                  disabled={creating || updating}
+                  title="Remove"
+                >
+                  <DeleteIcon/>
+                </IconButton>
               </ListItem>
-            </List>
-          </Box>
-        )}
+            ))}
+
+            {/* Active input field with ADD button */}
+            <ListItem
+              component="form"
+              onSubmit={handleAddEmail}
+              sx={{
+                display: 'flex',
+                gap: 1,
+                p: 0
+              }}
+            >
+              <TextField
+                fullWidth
+                size="small"
+                type="email"
+                value={newCollaborator}
+                onChange={(e) => setNewCollaborator(e.target.value)}
+                placeholder="email@example.com"
+                disabled={creating || updating}
+              />
+              <Button
+                type="submit"
+                variant="outlined"
+                disabled={creating || updating || !newCollaborator}
+                sx={{minWidth: 80}}
+              >
+                Add
+              </Button>
+            </ListItem>
+          </List>
+        </Box>
 
         {error && (
-          <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError(null)}>
+          <Alert severity="error" sx={{mt: 2}} onClose={() => setError(null)}>
             {error}
           </Alert>
         )}
       </DialogContent>
 
-      <Divider />
+      <Divider/>
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, p: 1.5 }}>
-        {isEditMode && isOwner && (
+      <Box sx={{display: 'flex', justifyContent: 'space-between', gap: 1, p: 1.5}}>
+        {userMap && (
           <Button
             onClick={handleDelete}
-            disabled={creating || deleting}
+            disabled={creating || deleting || updating}
             variant="outlined"
             color="error"
-            startIcon={<DeleteIcon />}
+            startIcon={<DeleteIcon/>}
           >
             {deleting ? 'Deleting...' : 'Delete'}
           </Button>
         )}
-        <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
+        <Box sx={{display: 'flex', gap: 1, ml: 'auto'}}>
           <Button
             onClick={handleCancel}
-            disabled={creating || deleting}
+            disabled={creating || deleting || updating}
             variant="outlined"
           >
             Cancel
           </Button>
           <Button
-            onClick={handleCreate}
-            disabled={creating || deleting || !mapName.trim()}
+            onClick={handleSave}
+            disabled={creating || deleting || updating || !newName.trim()}
             variant="contained"
           >
-            {creating ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save' : 'Create')}
+            {creating ? 'Creating...' : (updating ? 'Saving...' : (userMap ? 'Save' : 'Create'))}
           </Button>
         </Box>
       </Box>

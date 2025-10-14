@@ -1,59 +1,82 @@
-import React, { useState, useRef } from 'react';
+import React from 'react';
 import { Box, Chip, IconButton, SxProps, Theme } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import ManageMapDialog from './ManageMapDialog';
-import { PlaceMapWithRole, VisibleMapIds } from '../shared/types/domain';
+import ShareIcon from '@mui/icons-material/Share';
+import { MapView, SelectableAccessMap, UserMap} from "../shared/types";
 
 interface MapChipsProps {
-  userMaps?: PlaceMapWithRole[];
-  selectedMapIds?: VisibleMapIds;
+  selectableMaps: SelectableAccessMap[];
+  selectedMapIds?: Set<string>;
   onMapToggle?: (mapId: string) => void;
+  onMapEdit?: (map: UserMap) => void;
+  onViewEdit?: (map: MapView) => void;
+  onMapCreate?: () => void;
   userEmail?: string;
-  onMapCreated?: () => void;
-  enableManagement?: boolean;
   sx?: SxProps<Theme>;
 }
 
 const MapChips: React.FC<MapChipsProps> = ({
-  userMaps = [],
-  selectedMapIds = new Set(),
+  selectableMaps = [],
   onMapToggle,
-  userEmail,
-  onMapCreated,
-  enableManagement = true,
+  onMapEdit,
+  onViewEdit,
+  onMapCreate,
   sx = {}
 }) => {
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [editingMap, setEditingMap] = useState<PlaceMapWithRole | null>(null);
-  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [longPressTimer, setLongPressTimer] = React.useState<NodeJS.Timeout | null>(null);
+  const [longPressTriggered, setLongPressTriggered] = React.useState(false);
 
-  const handleLongPressStart = (mapId: string) => {
-    if (!enableManagement) return;
-    longPressTimerRef.current = setTimeout(() => {
-      const map = userMaps.find(m => m.id === mapId);
-      if (map) {
-        setEditingMap(map);
-      }
-    }, 500);
-  };
-
-  const handleLongPressEnd = () => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
+  const handleClick = (mapOrView: SelectableAccessMap) => {
+    // Only toggle if long press wasn't triggered
+    if (!longPressTriggered && onMapToggle) {
+      const mapId = 'mapId' in mapOrView ? mapOrView.mapId : mapOrView.id;
+      onMapToggle(mapId);
     }
+    setLongPressTriggered(false);
   };
 
-  const handleContextMenu = (event: React.MouseEvent, mapId: string) => {
+  const handleContextMenu = (event: React.MouseEvent, mapOrView: Pick<(UserMap | MapView), 'id'>) => {
     event.preventDefault();
-    if (!enableManagement) return;
-    const map = userMaps.find(m => m.id === mapId);
-    if (map) {
-      setEditingMap(map);
+    const map = selectableMaps.find(m => m.id === mapOrView.id);
+    if (!map) return;
+
+    // Check if it's a MapView by the presence of 'mapId' property
+    if ('mapId' in map && onViewEdit) {
+      onViewEdit(map as MapView);
+    }
+    // Otherwise it's a UserMap
+    else if (onMapEdit) {
+      onMapEdit(map as UserMap);
     }
   };
 
-  if (userMaps.length === 0) {
+  const handleTouchStart = (mapOrView: Pick<(UserMap | MapView), 'id'>) => {
+    setLongPressTriggered(false);
+    const timer = setTimeout(() => {
+      setLongPressTriggered(true);
+      const map = selectableMaps.find(m => m.id === mapOrView.id);
+      if (!map) return;
+
+      // Check if it's a MapView by the presence of 'mapId' property
+      if ('mapId' in map && onViewEdit) {
+        onViewEdit(map as MapView);
+      }
+      // Otherwise it's a UserMap
+      else if (onMapEdit) {
+        onMapEdit(map as UserMap);
+      }
+    }, 500); // 500ms for long press
+    setLongPressTimer(timer);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  };
+
+  if (selectableMaps.length === 0) {
     return null;
   }
 
@@ -68,33 +91,53 @@ const MapChips: React.FC<MapChipsProps> = ({
         backgroundColor: 'transparent',
         ...sx
       }}>
-        {userMaps.map((map) => (
-          <Chip
-            key={map.id}
-            label={map.displayedName || map.name}
-            size="medium"
-            onClick={() => onMapToggle && onMapToggle(map.id)}
-            onContextMenu={(e) => handleContextMenu(e, map.id)}
-            onMouseDown={() => handleLongPressStart(map.id)}
-            onMouseUp={handleLongPressEnd}
-            onMouseLeave={handleLongPressEnd}
-            onTouchStart={() => handleLongPressStart(map.id)}
-            onTouchEnd={handleLongPressEnd}
-            sx={{
-              cursor: 'pointer',
-              backgroundColor: selectedMapIds.has(map.id) ? 'primary.main' : 'white',
-              color: selectedMapIds.has(map.id) ? 'white' : 'text.primary',
-              boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.15)',
-              '&:hover': {
-                backgroundColor: selectedMapIds.has(map.id) ? 'primary.dark' : 'rgba(220, 220, 220, 1)',
-              },
-            }}
-          />
+        {selectableMaps.map((map) => (
+          <Box key={map.id} sx={{ position: 'relative', display: 'inline-block' }}>
+            <Chip
+              label={map.name}
+              size="medium"
+              onClick={() => handleClick(map)}
+              onContextMenu={(e) => handleContextMenu(e, map)}
+              onTouchStart={() => handleTouchStart(map)}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchEnd}
+              sx={{
+                cursor: 'pointer',
+                backgroundColor: map.selected ? 'primary.main' : 'white',
+                color: map.selected ? 'white' : 'text.primary',
+                boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.15)',
+                '&:hover': {
+                  backgroundColor: map.selected ? 'primary.dark' : 'rgba(220, 220, 220, 1)',
+                },
+              }}
+            />
+            {'mapId' in map && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: -6,
+                  right: -6,
+                  backgroundColor: 'white',
+                  borderRadius: '50%',
+                  width: 20,
+                  height: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)',
+                  pointerEvents: 'none',
+                  zIndex: 1,
+                }}
+              >
+                <ShareIcon sx={{ fontSize: 12, color: 'primary.main' }} />
+              </Box>
+            )}
+          </Box>
         ))}
-        {userEmail && onMapCreated && (
+        {onMapCreate && (
           <IconButton
             size="small"
-            onClick={() => setShowCreateDialog(true)}
+            onClick={() => onMapCreate && onMapCreate()}
             sx={{
               backgroundColor: 'white',
               boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.15)',
@@ -109,23 +152,6 @@ const MapChips: React.FC<MapChipsProps> = ({
           </IconButton>
         )}
       </Box>
-
-      {showCreateDialog && (
-        <ManageMapDialog
-          userEmail={userEmail!}
-          onMapCreated={onMapCreated!}
-          onClose={() => setShowCreateDialog(false)}
-        />
-      )}
-
-      {editingMap && (
-        <ManageMapDialog
-          userEmail={userEmail!}
-          onMapCreated={onMapCreated!}
-          onClose={() => setEditingMap(null)}
-          existingMap={editingMap}
-        />
-      )}
     </>
   );
 };

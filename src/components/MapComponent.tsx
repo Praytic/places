@@ -1,11 +1,11 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, {useRef, useEffect, useState, useMemo} from 'react';
 import { Wrapper } from '@googlemaps/react-wrapper';
 import { createRegularMarker, createSelectedMarker } from '../shared/utils/markerTemplates';
 import { createInfoWindow } from '../shared/utils/infoWindow';
 import { createCustomEqual } from 'fast-equals';
 import { isLatLngLiteral } from '@googlemaps/typescript-guards';
 import MapChips from './MapChips';
-import { Place, PlaceGroup, FilterSet, Location, PlaceMapWithRole, VisibleMapIds, UserRole } from '../shared/types/domain';
+import {AccessMap, Location, Place, PlaceGroup, SelectableAccessMap, UserRole} from "../shared/types";
 
 const deepCompareEqualsForMaps = createCustomEqual({
   createCustomConfig: () => ({
@@ -55,6 +55,7 @@ interface MapWrapperProps {
 const MapWrapper: React.FC<MapWrapperProps> = ({ onClick, onIdle, children, sx, onMapReady, center, zoom, ...options }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>();
+  const initialCenterSetRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (ref.current && !map) {
@@ -68,6 +69,14 @@ const MapWrapper: React.FC<MapWrapperProps> = ({ onClick, onIdle, children, sx, 
       }
     }
   }, [ref, map, onMapReady, center, zoom]);
+
+  // Update map center only on initial geolocation load
+  useEffect(() => {
+    if (map && center && !initialCenterSetRef.current) {
+      map.setCenter(center);
+      initialCenterSetRef.current = true;
+    }
+  }, [map, center]);
 
   // Update only non-camera options (exclude center and zoom to prevent auto-panning)
   useDeepCompareEffectForMaps(() => {
@@ -110,11 +119,12 @@ interface MarkersProps {
   places: Place[];
   selectedPlace: Place | null;
   onPlaceSelect: (place: Place | null) => void;
-  activeFilters: FilterSet;
+  activeFilters: Set<PlaceGroup>;
   onEmojiChangeRequest: (place: Place) => void;
   onChangeGroup: (place: Place, newGroup: PlaceGroup) => Promise<void>;
   onRemovePlace: (place: Place) => Promise<void>;
   onInfoWindowRefUpdate?: (ref: React.MutableRefObject<any | null>) => void;
+  accessMaps?: Map<string, AccessMap>;
 }
 
 const Markers: React.FC<MarkersProps> = ({
@@ -126,7 +136,8 @@ const Markers: React.FC<MarkersProps> = ({
   onEmojiChangeRequest,
   onChangeGroup,
   onRemovePlace,
-  onInfoWindowRefUpdate
+  onInfoWindowRefUpdate,
+  accessMaps = new Map<string, AccessMap>()
 }) => {
   const markersRef = useRef<Map<string, any>>(new Map()); // Map of placeId -> marker
   const infoWindowRef = useRef<any | null>(null);
@@ -177,10 +188,10 @@ const Markers: React.FC<MarkersProps> = ({
 
           const marker = new AdvancedMarkerElement({
             map: shouldShow ? map : null,
-            position: place.geometry.location,
+            position: place.geometry!.location,
             content,
             title: place.name,
-            zIndex: 1
+            zIndex: 1,
           });
 
           marker.addListener('click', () => {
@@ -188,34 +199,28 @@ const Markers: React.FC<MarkersProps> = ({
               infoWindowRef.current.close();
             }
 
-            const createInfoWindowWithToggle = (currentPlace: Place) => {
-              infoWindowRef.current = createInfoWindow(
-                map,
-                marker,
-                currentPlace,
-                () => onPlaceSelectRef.current(null),
-                onEmojiChangeRequestRef.current,
-                async (placeToToggle: Place) => {
-                  const newGroup: PlaceGroup = placeToToggle.group === 'favorite' ? 'want to go' : 'favorite';
-                  await onChangeGroupRef.current(placeToToggle, newGroup);
+            const currentPlace = (marker as any).placeData;
+            const accessMap = accessMaps.get(currentPlace.mapId);
+            const userRole = accessMap ? ('role' in accessMap ? accessMap.role : UserRole.EDIT) : UserRole.VIEW;
 
-                  // Close and reopen the info window to reflect the change
-                  if (infoWindowRef.current) {
-                    infoWindowRef.current.close();
-                  }
+            infoWindowRef.current = createInfoWindow(
+              map,
+              marker,
+              currentPlace,
+              () => onPlaceSelectRef.current(null),
+              onEmojiChangeRequestRef.current,
+              async (placeToUpdate: Place, newGroup: PlaceGroup) => {
+                await onChangeGroupRef.current(placeToUpdate, newGroup);
+              },
+              onRemovePlaceRef.current,
+              userRole,
+              (newEmoji: string) => {
+                // Update marker emoji visually
+                marker.content = createRegularMarker(newEmoji);
+              }
+            );
 
-                  // Update the place data with new group and recreate info window
-                  const updatedPlace = { ...placeToToggle, group: newGroup };
-                  createInfoWindowWithToggle(updatedPlace);
-                },
-                onRemovePlaceRef.current,
-                currentPlace.userRole as UserRole
-              );
-            };
-
-            // Use the current place data from marker.placeData instead of stale closure
-            createInfoWindowWithToggle((marker as any).placeData);
-            onPlaceSelectRef.current((marker as any).placeData);
+            onPlaceSelectRef.current(currentPlace);
           });
 
           (marker as any).placeData = place;
@@ -225,7 +230,7 @@ const Markers: React.FC<MarkersProps> = ({
     };
 
     updateMarkers();
-  }, [map, places, activeFilters]);
+  }, [map, places, activeFilters, accessMaps]);
 
   // Update marker data and appearance when place changes
   useEffect(() => {
@@ -298,16 +303,17 @@ interface MapComponentProps {
   onEmojiChangeRequest: (place: Place) => void;
   onChangeGroup: (place: Place, newGroup: PlaceGroup) => Promise<void>;
   onRemovePlace: (place: Place) => Promise<void>;
-  activeFilters: FilterSet;
+  activeFilters: Set<PlaceGroup>;
   onInfoWindowRefUpdate?: (ref: React.MutableRefObject<any | null>) => void;
   center?: Location;
   onMapReady?: (map: any) => void;
-  userMaps?: PlaceMapWithRole[];
-  visibleMapIds?: VisibleMapIds;
+  visibleMapIds?: Set<string>;
   onMapVisibilityToggle?: (mapId: string) => void;
   showSearch?: boolean;
   userEmail?: string;
   onMapCreated?: () => void;
+  onMapEdit?: (map: AccessMap) => void;
+  accessMaps?: Map<string, AccessMap>;
 }
 
 const MapComponent: React.FC<MapComponentProps> = ({
@@ -322,16 +328,28 @@ const MapComponent: React.FC<MapComponentProps> = ({
   onInfoWindowRefUpdate,
   center: propCenter,
   onMapReady,
-  userMaps = [],
   visibleMapIds = new Set(),
   onMapVisibilityToggle,
   showSearch = false,
   userEmail,
-  onMapCreated
+  onMapCreated,
+  onMapEdit,
+  accessMaps = new Map<string, AccessMap>()
 }) => {
-  const center = propCenter || { lat: 37.7749, lng: -122.4194 };
+  const center: Location = propCenter ?? { lat: 37.7749, lng: -122.4194 };
   const [zoom] = useState(13);
   const mapRef = useRef<any | null>(null);
+
+  // Convert accessMaps and visibleMapIds to SelectableAccessMap[]
+  const selectableAccessMaps = useMemo((): SelectableAccessMap[] => {
+    return Array.from(accessMaps.values()).map(accessMap => {
+      const mapId = 'mapId' in accessMap ? accessMap.mapId : accessMap.id;
+      return {
+        ...accessMap,
+        selected: visibleMapIds.has(mapId)
+      } as SelectableAccessMap;
+    });
+  }, [accessMaps, visibleMapIds]);
 
   const onClick = (e: any) => {
     if (onMapClick && e.latLng) {
@@ -374,15 +392,18 @@ const MapComponent: React.FC<MapComponentProps> = ({
           onRemovePlace={onRemovePlace}
           activeFilters={activeFilters}
           onInfoWindowRefUpdate={onInfoWindowRefUpdate}
+          accessMaps={accessMaps}
         />
       </MapWrapper>
-      {userMaps.length > 0 && !showSearch && (
+      {selectableAccessMaps.length > 0 && !showSearch && (
         <MapChips
-          userMaps={userMaps}
+          selectableMaps={selectableAccessMaps}
           selectedMapIds={visibleMapIds}
           onMapToggle={onMapVisibilityToggle}
+          onMapEdit={onMapEdit}
+          onViewEdit={onMapEdit}
           userEmail={userEmail}
-          onMapCreated={onMapCreated}
+          onMapCreate={onMapCreated}
           sx={{
             position: 'absolute',
             top: 16,

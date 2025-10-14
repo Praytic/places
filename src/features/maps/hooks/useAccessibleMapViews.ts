@@ -1,44 +1,44 @@
 import { useState, useEffect } from 'react';
-import { UserMap, userMapConverter } from '../../../shared/types';
+import {MapView, mapViewConverter} from '../../../shared/types';
 import { useAuthContext } from '../../../providers';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../../../lib/firebase/config';
 
-export const useUserMaps = (): {
-  maps: UserMap[];
+export const useAccessibleMapViews = (): {
+  accessibleViews: MapView[];
   loading: boolean;
   error: string | null;
 } => {
   const { user, loading: authLoading } = useAuthContext();
-  const [maps, setMaps] = useState<UserMap[]>([]);
+  const [views, setViews] = useState<MapView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
     if (!user?.email) {
-      setMaps([]);
+      setViews([]);
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    const ownedMapsQuery = query(
-      collection(db, 'maps'),
-      where('owner', '==', user.email)
-    ).withConverter(userMapConverter);
+    const accessibleViewsQuery = query(
+      collection(db, 'mapViews'),
+      where('collaborator', '==', user.email)
+    ).withConverter(mapViewConverter);
 
     const unsubscribe = onSnapshot(
-      ownedMapsQuery,
+      accessibleViewsQuery,
       (snapshot) => {
-        const ownedMaps = snapshot.docs.map(doc => doc.data());
-        setMaps(ownedMaps);
+        const accessibleViews = snapshot.docs.map(doc => doc.data());
+        setViews(accessibleViews);
         setLoading(false);
         setError(null);
       },
       (err) => {
-        console.error('Error fetching maps:', err);
-        setError('Failed to fetch maps');
+        console.error('Error fetching map views:', err);
+        setError('Failed to fetch map views');
         setLoading(false);
       }
     );
@@ -46,5 +46,5 @@ export const useUserMaps = (): {
     return () => unsubscribe();
   }, [user?.email, authLoading]);
 
-  return { maps, loading, error };
+  return { accessibleViews: views, loading, error };
 };

@@ -1,38 +1,13 @@
-import { useState, useEffect } from 'react';
-import { Place, PlaceMapWithRole, UserRole } from '../../../shared/types';
-import PlacesService from '../../../services/PlacesService';
+import {useEffect, useMemo, useState} from 'react';
+import {MapView, Place, UserMap, UserRole, placeConverter} from '../../../shared/types';
+import { collection, onSnapshot, Unsubscribe } from 'firebase/firestore';
+import { db } from '../../../lib/firebase/config';
 
-/**
- * Custom hook for managing places with real-time Firestore subscription
- *
- * Subscribes to all places from the user's accessible maps and provides
- * both unfiltered and filtered views based on visible map IDs.
- * Manages selected place state for map interactions.
- *
- * @param {PlaceMapWithRole[]} maps - Array of maps accessible to the user
- * @param {Set<string>} visibleMapIds - Set of map IDs to show places from
- * @returns {Object} Places state and controls
- * @returns {Place[]} allPlaces - All places from accessible maps
- * @returns {Place[]} filteredPlaces - Places filtered by visible maps
- * @returns {boolean} loading - True while places are being fetched
- * @returns {Place | null} selectedPlace - Currently selected place on map
- * @returns {Function} setSelectedPlace - Function to update selected place
- *
- * @example
- * ```tsx
- * const { filteredPlaces, loading, selectedPlace, setSelectedPlace } = usePlaces(maps, visibleMapIds);
- *
- * return (
- *   <MapView
- *     places={filteredPlaces}
- *     onMarkerClick={setSelectedPlace}
- *     selectedPlace={selectedPlace}
- *   />
- * );
- * ```
- */
+type PlaceWithRole = Place & { userRole: UserRole };
+
 export const usePlaces = (
-  maps: PlaceMapWithRole[],
+  maps: UserMap[],
+  views: MapView[],
   visibleMapIds: Set<string>
 ): {
   allPlaces: Place[];
@@ -41,40 +16,98 @@ export const usePlaces = (
   selectedPlace: Place | null;
   setSelectedPlace: React.Dispatch<React.SetStateAction<Place | null>>;
 } => {
-  const [allPlaces, setAllPlaces] = useState<Place[]>([]);
-  const [filteredPlaces, setFilteredPlaces] = useState<Place[]>([]);
+  const [placesBySource, setPlacesBySource] = useState<Map<string, PlaceWithRole[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
 
-  // Subscribe to all places from user's maps
   useEffect(() => {
-    if (maps.length === 0) {
-      setAllPlaces([]);
+    if (maps.length === 0 && views.length === 0) {
+      setPlacesBySource(new Map());
       setLoading(false);
       return;
     }
 
-    const mapIds = maps.map((m) => m.id);
-    const mapRoles: Record<string, UserRole> = {};
-    maps.forEach((m) => {
-      if (m.userRole) {
-        mapRoles[m.id] = m.userRole;
-      }
+    setLoading(true);
+    const unsubscribes: Unsubscribe[] = [];
+
+    // Subscribe to places for each owned map
+    maps.forEach((map) => {
+      const placesRef = collection(db, 'maps', map.id, 'places').withConverter(placeConverter);
+      const unsubscribe = onSnapshot(
+        placesRef,
+        (snapshot) => {
+          const places = snapshot.docs.map(doc => ({
+            ...doc.data(),
+            userRole: UserRole.EDIT
+          }));
+
+          setPlacesBySource(prev => {
+            const next = new Map(prev);
+            next.set(`map-${map.id}`, places);
+            return next;
+          });
+          setLoading(false);
+        },
+        (error) => {
+          console.error(`Error fetching places for map ${map.id}:`, error);
+          setLoading(false);
+        }
+      );
+      unsubscribes.push(unsubscribe);
     });
 
-    const unsubscribe = PlacesService.subscribeToPlacesForMaps(mapIds, mapRoles, (placesData: any) => {
-      setAllPlaces(placesData as Place[]);
-      setLoading(false);
+    // Subscribe to places for each accessible view
+    views.forEach((view) => {
+      const placesRef = collection(db, 'maps', view.mapId, 'places').withConverter(placeConverter);
+      const unsubscribe = onSnapshot(
+        placesRef,
+        (snapshot) => {
+          const places = snapshot.docs.map(doc => ({
+            ...doc.data(),
+            userRole: view.role
+          }));
+
+          setPlacesBySource(prev => {
+            const next = new Map(prev);
+            next.set(`view-${view.id}`, places);
+            return next;
+          });
+          setLoading(false);
+        },
+        (error) => {
+          console.error(`Error fetching places for view ${view.mapId}:`, error);
+          setLoading(false);
+        }
+      );
+      unsubscribes.push(unsubscribe);
     });
 
-    return () => unsubscribe();
-  }, [maps]);
+    return () => {
+      unsubscribes.forEach(unsub => unsub());
+    };
+  }, [maps, views]);
 
-  // Filter places based on visible map IDs
-  useEffect(() => {
-    const filtered = allPlaces.filter((place) => visibleMapIds.has(place.mapId));
-    setFilteredPlaces(filtered);
-  }, [allPlaces, visibleMapIds]);
+  const allPlaces = useMemo(() => {
+    const placesMap = new Map<string, PlaceWithRole>();
+
+    placesBySource.forEach((places) => {
+      places.forEach(place => {
+        const key = `${place.mapId}-${place.id}`;
+        // If place already exists, keep the one with higher role (EDIT > VIEW)
+        const existing = placesMap.get(key);
+        if (!existing || (place.userRole === UserRole.EDIT && existing.userRole === UserRole.VIEW)) {
+          placesMap.set(key, place);
+        }
+      });
+    });
+
+    return Array.from(placesMap.values());
+  }, [placesBySource]);
+
+  const filteredPlaces = useMemo(
+    () => allPlaces.filter((place) => visibleMapIds.has(place.mapId)),
+    [allPlaces, visibleMapIds]
+  );
 
   return {
     allPlaces,

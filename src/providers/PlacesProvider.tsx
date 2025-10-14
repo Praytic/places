@@ -1,24 +1,20 @@
-import React, { createContext, useContext, ReactNode, useCallback, useMemo } from 'react';
-import { Place, PlaceGroup, FilterSet } from '../shared/types';
+import React, { createContext, useContext, ReactNode, useMemo } from 'react';
+import { Place, PlaceGroup } from '../shared/types';
 import { usePlaces, useActiveFilters } from '../features/places/hooks';
 import { useMapsContext } from './MapsProvider';
-import PlacesService from '../services/PlacesService';
+import {createPlace, deletePlace, updatePlace} from '../services/PlacesService';
 
-/**
- * Context value provided by PlacesProvider
- */
 interface PlacesContextValue {
   allPlaces: Place[];
   filteredPlaces: Place[];
   loading: boolean;
   selectedPlace: Place | null;
-  activeFilters: FilterSet;
+  activeFilters: Set<PlaceGroup>;
   setSelectedPlace: (place: Place | null) => void;
   toggleFilter: (filter: PlaceGroup) => void;
-  addPlace: (place: any, mapId: string) => Promise<void>;
-  updatePlaceGroup: (placeId: string, group: PlaceGroup) => Promise<void>;
-  updatePlaceEmoji: (placeId: string, emoji: string) => Promise<void>;
-  deletePlace: (placeId: string) => Promise<void>;
+  createPlace: (place: Omit<Place, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Place>;
+  updatePlace: (place: Pick<Place, 'group' | 'emoji' | 'mapId' | 'id'>) => Promise<Place>;
+  deletePlace: (place: Pick<Place, 'id' | 'mapId'>) => Promise<void>;
 }
 
 const PlacesContext = createContext<PlacesContextValue | undefined>(undefined);
@@ -86,28 +82,13 @@ interface PlacesProviderProps {
  * ```
  */
 export const PlacesProvider: React.FC<PlacesProviderProps> = ({ children }) => {
-  const { maps, visibleMapIds } = useMapsContext();
+  const { maps, accessibleViews, visibleMapIds } = useMapsContext();
   const { allPlaces, filteredPlaces, loading, selectedPlace, setSelectedPlace } = usePlaces(
     maps,
+    accessibleViews,
     visibleMapIds
   );
   const { activeFilters, toggleFilter } = useActiveFilters();
-
-  const addPlace = useCallback(async (place: any, mapId: string): Promise<void> => {
-    await PlacesService.addPlace(place, mapId);
-  }, []);
-
-  const updatePlaceGroup = useCallback(async (placeId: string, group: PlaceGroup): Promise<void> => {
-    await PlacesService.updatePlaceGroup(placeId, group);
-  }, []);
-
-  const updatePlaceEmoji = useCallback(async (placeId: string, emoji: string): Promise<void> => {
-    await PlacesService.updatePlaceEmoji(placeId, emoji);
-  }, []);
-
-  const deletePlace = useCallback(async (placeId: string): Promise<void> => {
-    await PlacesService.deletePlace(placeId);
-  }, []);
 
   const value: PlacesContextValue = useMemo(
     () => ({
@@ -118,9 +99,8 @@ export const PlacesProvider: React.FC<PlacesProviderProps> = ({ children }) => {
       activeFilters,
       setSelectedPlace,
       toggleFilter,
-      addPlace,
-      updatePlaceGroup,
-      updatePlaceEmoji,
+      createPlace,
+      updatePlace,
       deletePlace,
     }),
     [
@@ -131,10 +111,6 @@ export const PlacesProvider: React.FC<PlacesProviderProps> = ({ children }) => {
       activeFilters,
       setSelectedPlace,
       toggleFilter,
-      addPlace,
-      updatePlaceGroup,
-      updatePlaceEmoji,
-      deletePlace,
     ]
   );
 
