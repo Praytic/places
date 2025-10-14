@@ -77,7 +77,7 @@ export class UserMap {
   id: string;
   name: string;
   owner: string;
-  collaborators: string[];
+  collaborators: Record<string, UserRole>;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 
@@ -85,7 +85,7 @@ export class UserMap {
     id: string,
     name: string,
     owner: string,
-    collaborators: string[] = [],
+    collaborators: Record<string, UserRole> = {},
     createdAt?: Timestamp,
     updatedAt?: Timestamp,
   ) {

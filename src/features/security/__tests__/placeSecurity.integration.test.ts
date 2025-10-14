@@ -23,7 +23,7 @@ describe('Place Security Integration Test', () => {
     id: mapId,
     name: 'Test Map',
     owner: ownerEmail,
-    collaborators: [],
+    collaborators: {},
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   };

@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   Alert,
   Box,
@@ -18,12 +18,13 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import {createMap, deleteMap, getUserMap, updateMap} from '../services/MapsService';
-import {MapView, UserMap, UserRole} from "../shared/types";
+import {UserMap, UserRole} from "../shared/types";
 import {User} from "firebase/auth";
-import {useSharedMapViews} from "../features/maps/hooks/useSharedMapViews";
-import {createMapView, deleteMapView, updateMapViewRole} from "../services/MapViewService";
 
-type CollaboratorEntry = Required<Pick<MapView, 'collaborator' | 'role'>>;
+type CollaboratorEntry = {
+  collaborator: string;
+  role: UserRole;
+};
 
 interface ManageMapDialogProps {
   userMap?: UserMap;
@@ -42,12 +43,6 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
                                                            onMapEdited,
                                                            onMapDeleted
                                                          }) => {
-  const userMaps = useMemo(() => userMap ? [userMap] : [], [userMap]);
-  const {
-    sharedViews,
-    loading: collaboratorsLoading
-  } = useSharedMapViews(userMaps);
-
   const [collaborators, setCollaborators] = useState<CollaboratorEntry[]>([]);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -55,21 +50,16 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
   const [newCollaborator, setNewCollaborator] = useState('');
   const [newName, setNewName] = useState<string>(userMap?.name ?? 'My Places');
   const [error, setError] = useState<string | null>(null);
-  const [originalCollaborators, setOriginalCollaborators] = useState<CollaboratorEntry[]>([]);
 
   useEffect(() => {
-    if (!collaboratorsLoading && userMap) {
-      const mapViews = sharedViews.get(userMap) || [];
-      const collaboratorEntries: CollaboratorEntry[] = mapViews.map(view => ({
-        collaborator: view.collaborator,
-        role: view.role
+    if (userMap) {
+      const collaboratorEntries: CollaboratorEntry[] = Object.entries(userMap.collaborators).map(([email, role]) => ({
+        collaborator: email,
+        role: role
       }));
-      if (collaboratorEntries.length > 0 && originalCollaborators.length === 0) {
-        setCollaborators(collaboratorEntries);
-        setOriginalCollaborators(collaboratorEntries);
-      }
+      setCollaborators(collaboratorEntries);
     }
-  }, [collaboratorsLoading, userMap, sharedViews, originalCollaborators.length]);
+  }, [userMap]);
 
   const handleAddEmail = (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,47 +104,26 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
     try {
       setError(null);
 
+      // Convert collaborators array to Record format
+      const collaboratorsRecord: Record<string, UserRole> = {};
+      collaborators.forEach(entry => {
+        collaboratorsRecord[entry.collaborator] = entry.role;
+      });
+
       if (userMap) {
-        setUpdating(true)
-        await updateMap(userMap.id, {name: newName.trim()});
+        setUpdating(true);
+        await updateMap(userMap.id, {
+          name: newName.trim(),
+          collaborators: collaboratorsRecord
+        });
         const updatedMap = await getUserMap(userMap.id);
-
-        const removedCollaborators = originalCollaborators.filter(
-          (original: CollaboratorEntry) => !collaborators.some((current: CollaboratorEntry) => current.collaborator === original.collaborator)
-        );
-        const addedCollaborators = collaborators.filter(
-          (current: CollaboratorEntry) => !originalCollaborators.some((original: CollaboratorEntry) => original.collaborator === current.collaborator)
-        );
-        const updatedCollaborators = collaborators.filter((current: CollaboratorEntry) =>
-          originalCollaborators.some((original: CollaboratorEntry) =>
-            original.collaborator === current.collaborator && original.role !== current.role
-          )
-        );
-
-        await Promise.all(removedCollaborators.map((removedEntry: CollaboratorEntry) =>
-          deleteMapView({mapId: updatedMap.id, collaborator: removedEntry.collaborator})));
-        await Promise.all(addedCollaborators.map((addedEntry: CollaboratorEntry) =>
-          createMapView({
-            mapId: updatedMap.id,
-            collaborator: addedEntry.collaborator,
-            role: addedEntry.role,
-            name: updatedMap.name
-          }))
-        );
-        await Promise.all(updatedCollaborators.map((updatedEntry: CollaboratorEntry) =>
-          updateMapViewRole({mapId: updatedMap.id, collaborator: updatedEntry.collaborator, role: updatedEntry.role}))
-        );
-
         onMapEdited && onMapEdited(updatedMap);
       } else {
         setCreating(true);
-
         const createdMap = await createMap(
-          {name: newName.trim(), collaborators: collaborators.map((view: CollaboratorEntry) => view.collaborator)},
-          collaborators.map((view: CollaboratorEntry) => ({collaborator: view.collaborator, role: view.role})),
+          {name: newName.trim(), collaborators: collaboratorsRecord},
           user.email!
         );
-
         onMapCreated && onMapCreated(createdMap);
       }
 

@@ -48,11 +48,22 @@ export const userMapConverter = {
   },
   fromFirestore: (snapshot: any, options: any) => {
     const data = snapshot.data(options);
+    // Handle migration from array to Record format
+    let collaborators: Record<string, any> = {};
+    if (Array.isArray(data.collaborators)) {
+      // Old format: array of emails - convert to Record with default 'view' role
+      data.collaborators.forEach((email: string) => {
+        collaborators[email] = 'view';
+      });
+    } else {
+      // New format: already a Record
+      collaborators = data.collaborators || {};
+    }
     return new UserMap(
       snapshot.id,
       data.name,
       data.owner,
-      data.collaborators,
+      collaborators,
       data.createdAt,
       data.updatedAt
     );

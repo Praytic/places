@@ -82,7 +82,7 @@ export const getSharedMapViews = async (userMaps: UserMap[]): Promise<Map<UserMa
   return runTransaction(db, async (tx) => {
     const compositeIdToUserMap = new Map<string, UserMap>();
     const compositeIds = userMaps.flatMap(userMap =>
-      userMap.collaborators.map(collaborator => {
+      Object.keys(userMap.collaborators).map(collaborator => {
         const compositeId = getCompositeId(userMap.id, collaborator);
         compositeIdToUserMap.set(compositeId, userMap);
         return compositeId;
