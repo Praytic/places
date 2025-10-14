@@ -37,15 +37,24 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
 }) => {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [showSearching, setShowSearching] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [placeCreation, setPlaceCreation] = useState<Pick<Place, 'placeId' | 'name' | 'geometry' | 'types' | 'formattedAddress' | 'group'> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus();
     }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (searchingTimeoutRef.current) {
+        clearTimeout(searchingTimeoutRef.current);
+      }
+    };
   }, []);
 
   const getExistingPlaceInfo = (placeId: string): { emoji: string; mapName: string } | null => {
@@ -72,7 +81,11 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
     setQuery(value);
 
     if (value.length > 2) {
-      setIsLoading(true);
+      // Only show "Searching..." if it takes more than 1 second
+      searchingTimeoutRef.current = setTimeout(() => {
+        setShowSearching(true);
+      }, 1000);
+
       try {
         const { suggestions } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
           input: value,
@@ -83,13 +96,16 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
       } catch (error) {
         setSuggestions([]);
       } finally {
-        setIsLoading(false);
+        setShowSearching(false);
+        if (searchingTimeoutRef.current) {
+          clearTimeout(searchingTimeoutRef.current);
+          searchingTimeoutRef.current = null;
+        }
       }
     }
   };
 
   const handleSuggestionClick = async (placePrediction: PlacePrediction) => {
-    setIsLoading(true);
     try {
       const place = placePrediction.toPlace();
 
@@ -109,8 +125,8 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
 
       setPlaceCreation(placeData);
       setShowEmojiPicker(true);
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      // Handle error silently or add error handling if needed
     }
   };
 
@@ -197,7 +213,7 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
         </Box>
 
         <DialogContent sx={{ p: 0 }}>
-          {isLoading && (
+          {showSearching && (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 2 }}>
               <CircularProgress size={24} />
               <Typography sx={{ ml: 2 }} color="text.secondary">Searching...</Typography>
