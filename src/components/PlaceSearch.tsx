@@ -15,7 +15,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import EmojiPicker, {EmojiClickData, EmojiStyle} from 'emoji-picker-react';
 import MapChips from './MapChips';
-import {MapView, Place, SelectableAccessMap, UserRole} from '../shared/types';
+import {Place, SelectableAccessMap, UserRole} from '../shared/types';
 
 
 type AutocompleteSuggestion = google.maps.places.AutocompleteSuggestion;
@@ -56,8 +56,9 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
     if (!randomPlace) return null;
 
     // Find the map or view name
+    // MapView has 'mapId' property, UserMap has 'id'
     const mapOrView = selectableAccessMaps.find(m =>
-      m instanceof MapView ? m.mapId === randomPlace.mapId : m.id === randomPlace.mapId
+      'mapId' in m ? m.mapId === randomPlace.mapId : m.id === randomPlace.mapId
     );
 
     return {
@@ -118,7 +119,8 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
     if (placeCreation && selectedMapOrViewChipProps.length > 0) {
       // Create the place on each visible/selected map or view (with edit access)
       for (const mapOrViewChip of selectedMapOrViewChipProps) {
-        const newPlace = mapOrViewChip instanceof MapView && mapOrViewChip.role === UserRole.EDIT
+        // MapView has 'mapId' property, UserMap has 'id'
+        const newPlace = ('mapId' in mapOrViewChip && mapOrViewChip.role === UserRole.EDIT)
           ? {...placeCreation, mapId: mapOrViewChip.mapId, emoji: emojiObject.emoji}
           : {...placeCreation, mapId: mapOrViewChip.id, emoji: emojiObject.emoji};
         await onPlaceCreate(newPlace);
