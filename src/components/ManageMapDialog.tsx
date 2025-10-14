@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {
   Alert,
   Box,
@@ -42,10 +42,11 @@ const ManageMapDialog: React.FC<ManageMapDialogProps> = ({
                                                            onMapEdited,
                                                            onMapDeleted
                                                          }) => {
+  const userMaps = useMemo(() => userMap ? [userMap] : [], [userMap]);
   const {
     sharedViews,
     loading: collaboratorsLoading
-  } = useSharedMapViews(userMap ? [userMap] : []);
+  } = useSharedMapViews(userMaps);
 
   const [collaborators, setCollaborators] = useState<CollaboratorEntry[]>([]);
   const [creating, setCreating] = useState(false);
