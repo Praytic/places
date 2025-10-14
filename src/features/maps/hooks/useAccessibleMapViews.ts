@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import {MapView} from '../../../shared/types';
-import {getAccessibleMapViews} from "../../../services/MapViewService";
+import {MapView, mapViewConverter} from '../../../shared/types';
 import { useAuthContext } from '../../../providers';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { db } from '../../../lib/firebase/config';
 
 export const useAccessibleMapViews = (): {
   accessibleViews: MapView[];
@@ -14,27 +15,35 @@ export const useAccessibleMapViews = (): {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchViews = async () => {
-      if (authLoading) return;
-      if (!user?.email) {
-        setViews([]);
-        setLoading(false);
-        return;
-      }
+    if (authLoading) return;
+    if (!user?.email) {
+      setViews([]);
+      setLoading(false);
+      return;
+    }
 
-      setLoading(true);
-      try {
-        const mapViews = await getAccessibleMapViews(user.email)
-        setViews(mapViews);
-      } catch (err) {
+    setLoading(true);
+    const accessibleViewsQuery = query(
+      collection(db, 'mapViews'),
+      where('collaborator', '==', user.email)
+    ).withConverter(mapViewConverter);
+
+    const unsubscribe = onSnapshot(
+      accessibleViewsQuery,
+      (snapshot) => {
+        const accessibleViews = snapshot.docs.map(doc => doc.data());
+        setViews(accessibleViews);
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
         console.error('Error fetching map views:', err);
         setError('Failed to fetch map views');
-      } finally {
         setLoading(false);
       }
-    };
+    );
 
-    fetchViews();
+    return () => unsubscribe();
   }, [user?.email, authLoading]);
 
   return { accessibleViews: views, loading, error };
