@@ -409,7 +409,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
             top: 16,
             left: '50%',
             transform: 'translateX(-50%)',
-            maxWidth: '600px',
+            maxWidth: { xs: 'calc(100vw - 32px)', sm: '600px' },
             width: 'auto',
             px: 2,
             zIndex: 1000,

@@ -106,8 +106,14 @@ const MapChips: React.FC<MapChipsProps> = ({
                 backgroundColor: map.selected ? 'primary.main' : 'white',
                 color: map.selected ? 'white' : 'text.primary',
                 boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.15)',
+                maxWidth: { xs: '100px', sm: '150px' },
                 '&:hover': {
                   backgroundColor: map.selected ? 'primary.dark' : 'rgba(220, 220, 220, 1)',
+                },
+                '& .MuiChip-label': {
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
                 },
               }}
             />
