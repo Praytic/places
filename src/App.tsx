@@ -10,7 +10,7 @@ import { AuthProvider, MapsProvider, PlacesProvider, useAuthContext, useMapsCont
 import { useEmojiPicker } from './shared/hooks';
 import { getCurrentLocation } from './shared/utils/locationService';
 import { ErrorBoundary } from './shared/components';
-import { AccessMap, Location, SelectableAccessMap } from './shared/types/domain';
+import { AccessMap, Location, SelectableAccessMap, UserMap } from './shared/types/domain';
 
 const AppContent: React.FC = () => {
   const { user } = useAuthContext();
@@ -29,6 +29,7 @@ const AppContent: React.FC = () => {
 
   const [showSearch, setShowSearch] = useState(false);
   const [showMapDialog, setShowMapDialog] = useState(false);
+  const [editingMap, setEditingMap] = useState<UserMap | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<Location | null>(null);
   const infoWindowRef = React.useRef<any>(null);
@@ -179,8 +180,25 @@ const AppContent: React.FC = () => {
   }, []);
 
   const handleMapCreate = useCallback(() => {
+    setEditingMap(null);
     setShowMapDialog(true);
   }, []);
+
+  const handleMapEdit = useCallback((map: AccessMap) => {
+    // Only allow editing UserMaps (maps owned by the user)
+    if ('mapId' in map) {
+      // This is a MapView - find the corresponding UserMap
+      const userMap = maps.find(m => m.id === map.mapId);
+      if (userMap) {
+        setEditingMap(userMap);
+        setShowMapDialog(true);
+      }
+    } else {
+      // This is a UserMap
+      setEditingMap(map as UserMap);
+      setShowMapDialog(true);
+    }
+  }, [maps]);
 
   // Create selectableAccessMaps for PlaceSearch
   const selectableAccessMaps = useMemo<SelectableAccessMap[]>(() => {
@@ -233,6 +251,7 @@ const AppContent: React.FC = () => {
             userEmail={user?.email || undefined}
             accessMaps={accessMaps}
             onMapCreated={handleMapCreate}
+            onMapEdit={handleMapEdit}
           />
         </ErrorBoundary>
       </Box>
@@ -279,10 +298,23 @@ const AppContent: React.FC = () => {
 
       {showMapDialog && (
         <ManageMapDialog
+          userMap={editingMap || undefined}
           user={user!}
-          onClose={() => setShowMapDialog(false)}
+          onClose={() => {
+            setShowMapDialog(false);
+            setEditingMap(null);
+          }}
           onMapCreated={() => {
             setShowMapDialog(false);
+            setEditingMap(null);
+          }}
+          onMapEdited={() => {
+            setShowMapDialog(false);
+            setEditingMap(null);
+          }}
+          onMapDeleted={() => {
+            setShowMapDialog(false);
+            setEditingMap(null);
           }}
         />
       )}

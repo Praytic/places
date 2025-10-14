@@ -312,6 +312,7 @@ interface MapComponentProps {
   showSearch?: boolean;
   userEmail?: string;
   onMapCreated?: () => void;
+  onMapEdit?: (map: AccessMap) => void;
   accessMaps?: Map<string, AccessMap>;
 }
 
@@ -332,6 +333,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
   showSearch = false,
   userEmail,
   onMapCreated,
+  onMapEdit,
   accessMaps = new Map<string, AccessMap>()
 }) => {
   const center: Location = propCenter ?? { lat: 37.7749, lng: -122.4194 };
@@ -398,6 +400,8 @@ const MapComponent: React.FC<MapComponentProps> = ({
           selectableMaps={selectableAccessMaps}
           selectedMapIds={visibleMapIds}
           onMapToggle={onMapVisibilityToggle}
+          onMapEdit={onMapEdit}
+          onViewEdit={onMapEdit}
           userEmail={userEmail}
           onMapCreate={onMapCreated}
           sx={{

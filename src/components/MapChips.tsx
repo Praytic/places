@@ -23,22 +23,56 @@ const MapChips: React.FC<MapChipsProps> = ({
   onMapCreate,
   sx = {}
 }) => {
+  const [longPressTimer, setLongPressTimer] = React.useState<NodeJS.Timeout | null>(null);
+  const [longPressTriggered, setLongPressTriggered] = React.useState(false);
+
   const handleClick = (mapOrView: SelectableAccessMap) => {
-    if (onMapToggle) {
+    // Only toggle if long press wasn't triggered
+    if (!longPressTriggered && onMapToggle) {
       const mapId = 'mapId' in mapOrView ? mapOrView.mapId : mapOrView.id;
       onMapToggle(mapId);
     }
+    setLongPressTriggered(false);
   };
 
   const handleContextMenu = (event: React.MouseEvent, mapOrView: Pick<(UserMap | MapView), 'id'>) => {
     event.preventDefault();
     const map = selectableMaps.find(m => m.id === mapOrView.id);
-    if (map instanceof UserMap && onMapEdit) {
-      onMapEdit(map)
-    } else if (map instanceof MapView && onViewEdit) {
-      onViewEdit(map)
-    } else {
-      return
+    if (!map) return;
+
+    // Check if it's a MapView by the presence of 'mapId' property
+    if ('mapId' in map && onViewEdit) {
+      onViewEdit(map as MapView);
+    }
+    // Otherwise it's a UserMap
+    else if (onMapEdit) {
+      onMapEdit(map as UserMap);
+    }
+  };
+
+  const handleTouchStart = (mapOrView: Pick<(UserMap | MapView), 'id'>) => {
+    setLongPressTriggered(false);
+    const timer = setTimeout(() => {
+      setLongPressTriggered(true);
+      const map = selectableMaps.find(m => m.id === mapOrView.id);
+      if (!map) return;
+
+      // Check if it's a MapView by the presence of 'mapId' property
+      if ('mapId' in map && onViewEdit) {
+        onViewEdit(map as MapView);
+      }
+      // Otherwise it's a UserMap
+      else if (onMapEdit) {
+        onMapEdit(map as UserMap);
+      }
+    }, 500); // 500ms for long press
+    setLongPressTimer(timer);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
     }
   };
 
@@ -64,6 +98,9 @@ const MapChips: React.FC<MapChipsProps> = ({
               size="medium"
               onClick={() => handleClick(map)}
               onContextMenu={(e) => handleContextMenu(e, map)}
+              onTouchStart={() => handleTouchStart(map)}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchEnd}
               sx={{
                 cursor: 'pointer',
                 backgroundColor: map.selected ? 'primary.main' : 'white',
