@@ -53,7 +53,7 @@ export const updateMapViewDisplayName = async (
   return runTransaction(db, async (tx) => {
     const compositeId = getCompositeId(mapView.mapId, mapView.collaborator);
     const mapViewRef = doc(db, 'mapViews', compositeId).withConverter(mapViewConverter);
-    tx.update(mapViewRef, {displayName: mapView.name});
+    tx.update(mapViewRef, {name: mapView.name});
     return getMapView(mapView, tx);
   });
 };

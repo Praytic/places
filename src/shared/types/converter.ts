@@ -66,7 +66,7 @@ export const mapViewConverter = {
       mapId: mapView.mapId,
       collaborator: mapView.collaborator,
       role: mapView.role,
-      displayName: mapView.name,
+      name: mapView.name,
       createdAt: mapView.createdAt || Timestamp.now(),
       updatedAt: mapView.updatedAt || Timestamp.now(),
     };
@@ -78,7 +78,7 @@ export const mapViewConverter = {
       data.mapId,
       data.collaborator,
       data.role,
-      data.displayName,
+      data.name,
       data.createdAt,
       data.updatedAt
     );
