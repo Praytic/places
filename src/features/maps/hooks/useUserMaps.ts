@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { UserMap } from '../../../shared/types';
-import { getUserMaps } from '../../../services/MapsService';
+import { UserMap, userMapConverter } from '../../../shared/types';
 import { useAuthContext } from '../../../providers';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { db } from '../../../lib/firebase/config';
 
 export const useUserMaps = (): {
   maps: UserMap[];
@@ -14,27 +15,35 @@ export const useUserMaps = (): {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchMaps = async () => {
-      if (authLoading) return;
-      if (!user?.email) {
-        setMaps([]);
-        setLoading(false);
-        return;
-      }
+    if (authLoading) return;
+    if (!user?.email) {
+      setMaps([]);
+      setLoading(false);
+      return;
+    }
 
-      setLoading(true);
-      try {
-        const ownedMaps = await getUserMaps(user.email)
+    setLoading(true);
+    const ownedMapsQuery = query(
+      collection(db, 'maps'),
+      where('owner', '==', user.email)
+    ).withConverter(userMapConverter);
+
+    const unsubscribe = onSnapshot(
+      ownedMapsQuery,
+      (snapshot) => {
+        const ownedMaps = snapshot.docs.map(doc => doc.data());
         setMaps(ownedMaps);
-      } catch (err) {
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
         console.error('Error fetching maps:', err);
         setError('Failed to fetch maps');
-      } finally {
         setLoading(false);
       }
-    };
+    );
 
-    fetchMaps();
+    return () => unsubscribe();
   }, [user?.email, authLoading]);
 
   return { maps, loading, error };
