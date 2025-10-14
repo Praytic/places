@@ -5,8 +5,9 @@ import {
   getDoc,
   getDocs,
   query,
-  runTransaction,
+  setDoc,
   Transaction,
+  updateDoc,
   where,
 } from 'firebase/firestore';
 import {db} from '../lib/firebase/config';
@@ -27,31 +28,24 @@ export const createMapView = async (
   if (transaction) {
     transaction.set(mapViewRef, {...mapView, id: compositeId});
   } else {
-    return runTransaction(db, async (tx) => {
-        tx.set(mapViewRef, {...mapView, id: compositeId})
-      }
-    );
+    await setDoc(mapViewRef, {...mapView, id: compositeId});
   }
 }
 
 export const updateMapViewRole = async (mapView: Pick<MapView, 'mapId' | 'collaborator' | 'role'>): Promise<void> => {
-  return runTransaction(db, async (tx) => {
-    const compositeId = getCompositeId(mapView.mapId, mapView.collaborator);
-    const mapViewRef = doc(db, 'mapViews', compositeId).withConverter(mapViewConverter);
-    tx.update(mapViewRef, {
-      role: mapView.role
-    });
+  const compositeId = getCompositeId(mapView.mapId, mapView.collaborator);
+  const mapViewRef = doc(db, 'mapViews', compositeId).withConverter(mapViewConverter);
+  await updateDoc(mapViewRef, {
+    role: mapView.role
   });
 };
 
 export const updateMapViewDisplayName = async (
   mapView: Pick<MapView, 'mapId' | 'collaborator' | 'name'>
 ): Promise<void> => {
-  return runTransaction(db, async (tx) => {
-    const compositeId = getCompositeId(mapView.mapId, mapView.collaborator);
-    const mapViewRef = doc(db, 'mapViews', compositeId).withConverter(mapViewConverter);
-    tx.update(mapViewRef, {name: mapView.name});
-  });
+  const compositeId = getCompositeId(mapView.mapId, mapView.collaborator);
+  const mapViewRef = doc(db, 'mapViews', compositeId).withConverter(mapViewConverter);
+  await updateDoc(mapViewRef, {name: mapView.name});
 };
 
 export const deleteMapView = async (mapView: Pick<MapView, 'mapId' | 'collaborator'>, transaction?: Transaction): Promise<void> => {
@@ -79,33 +73,31 @@ export const getAccessibleMapViews = async (userEmail: string): Promise<MapView[
 };
 
 export const getSharedMapViews = async (userMaps: UserMap[]): Promise<Map<UserMap, MapView[]>> => {
-  return runTransaction(db, async (tx) => {
-    const compositeIdToUserMap = new Map<string, UserMap>();
-    const compositeIds = userMaps.flatMap(userMap =>
-      Object.keys(userMap.collaborators).map(collaborator => {
-        const compositeId = getCompositeId(userMap.id, collaborator);
-        compositeIdToUserMap.set(compositeId, userMap);
-        return compositeId;
-      })
-    );
+  const compositeIdToUserMap = new Map<string, UserMap>();
+  const compositeIds = userMaps.flatMap(userMap =>
+    Object.keys(userMap.collaborators).map(collaborator => {
+      const compositeId = getCompositeId(userMap.id, collaborator);
+      compositeIdToUserMap.set(compositeId, userMap);
+      return compositeId;
+    })
+  );
 
-    const mapViewPromises = compositeIds.map(async compositeId => {
-      const mapViewRef = doc(db, 'mapViews', compositeId).withConverter(mapViewConverter);
-      const snapshot = await tx.get(mapViewRef);
-      return { compositeId, data: snapshot.data() };
-    });
-
-    const results = await Promise.all(mapViewPromises);
-    const mapViewsByUserMap = new Map<UserMap, MapView[]>();
-
-    for (const { compositeId, data } of results) {
-      if (data) {
-        const userMap = compositeIdToUserMap.get(compositeId)!;
-        const existing = mapViewsByUserMap.get(userMap) || [];
-        mapViewsByUserMap.set(userMap, [...existing, data]);
-      }
-    }
-
-    return mapViewsByUserMap;
+  const mapViewPromises = compositeIds.map(async compositeId => {
+    const mapViewRef = doc(db, 'mapViews', compositeId).withConverter(mapViewConverter);
+    const snapshot = await getDoc(mapViewRef);
+    return { compositeId, data: snapshot.data() };
   });
+
+  const results = await Promise.all(mapViewPromises);
+  const mapViewsByUserMap = new Map<UserMap, MapView[]>();
+
+  for (const { compositeId, data } of results) {
+    if (data) {
+      const userMap = compositeIdToUserMap.get(compositeId)!;
+      const existing = mapViewsByUserMap.get(userMap) || [];
+      mapViewsByUserMap.set(userMap, [...existing, data]);
+    }
+  }
+
+  return mapViewsByUserMap;
 };

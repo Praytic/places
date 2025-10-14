@@ -4,8 +4,10 @@ import {
   doc,
   getDoc,
   getDocs,
-  runTransaction,
+  setDoc,
+  Timestamp,
   Transaction,
+  updateDoc,
 } from 'firebase/firestore';
 import {db} from '../lib/firebase/config';
 import {MapView, Place, placeConverter, UserMap} from '../shared/types';
@@ -16,15 +18,27 @@ export const createPlace = async (
   transaction?: Transaction
 ): Promise<Place> => {
   const placeRef = doc(collection(db, 'maps', place.mapId, 'places')).withConverter(placeConverter);
+  const now = Timestamp.now();
+  const newPlace = new Place(
+    place.mapId,
+    place.name,
+    place.emoji,
+    place.group,
+    place.geometry!,
+    place.formattedAddress!,
+    place.placeId,
+    place.types,
+    placeRef.id,
+    now,
+    now
+  );
+
   if (transaction) {
-    transaction.set(placeRef, place);
-    return getPlace({mapId: place.mapId, id: placeRef.id}, transaction);
+    transaction.set(placeRef, newPlace);
   } else {
-    return runTransaction(db, async (tx) => {
-      tx.set(placeRef, place);
-      return getPlace({mapId: place.mapId, id: placeRef.id}, tx);
-    });
+    await setDoc(placeRef, newPlace);
   }
+  return newPlace;
 };
 
 export const getPlace = async (place: Pick<Place, 'id' | 'mapId'>, transaction?: Transaction): Promise<Place> => {
@@ -52,15 +66,20 @@ export const updatePlace = async (
   transaction?: Transaction
 ): Promise<Place> => {
   const placeRef = doc(db, 'maps', place.mapId, 'places', place.id).withConverter(placeConverter);
+  const updates = {
+    group: place.group,
+    emoji: place.emoji,
+    updatedAt: Timestamp.now()
+  };
+
   if (transaction) {
-    transaction.update(placeRef, place);
-    return getPlace(place, transaction);
+    transaction.update(placeRef, updates);
   } else {
-    return runTransaction(db, async (tx) => {
-      tx.update(placeRef, place);
-      return getPlace(place, tx);
-    });
+    await updateDoc(placeRef, updates);
   }
+
+  // Fetch the updated place
+  return getPlace(place, transaction);
 };
 
 export const deletePlace = async (place: Pick<Place, 'id' | 'mapId'>, transaction?: Transaction): Promise<void> => {

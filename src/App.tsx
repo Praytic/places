@@ -85,6 +85,7 @@ const AppContent: React.FC = () => {
           setError(null);
           await createPlace(place);
         } catch (err) {
+          console.error('Error creating place:', err);
           setError('Failed to add place. Please try again.');
         }
       }
