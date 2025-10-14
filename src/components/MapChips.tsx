@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Chip, IconButton, SxProps, Theme } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import ShareIcon from '@mui/icons-material/Share';
 import { MapView, SelectableAccessMap, UserMap} from "../shared/types";
 
 interface MapChipsProps {
@@ -57,22 +58,44 @@ const MapChips: React.FC<MapChipsProps> = ({
         ...sx
       }}>
         {selectableMaps.map((map) => (
-          <Chip
-            key={map.id}
-            label={map.name}
-            size="medium"
-            onClick={() => handleClick(map)}
-            onContextMenu={(e) => handleContextMenu(e, map)}
-            sx={{
-              cursor: 'pointer',
-              backgroundColor: map.selected ? 'primary.main' : 'white',
-              color: map.selected ? 'white' : 'text.primary',
-              boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.15)',
-              '&:hover': {
-                backgroundColor: map.selected ? 'primary.dark' : 'rgba(220, 220, 220, 1)',
-              },
-            }}
-          />
+          <Box key={map.id} sx={{ position: 'relative', display: 'inline-block' }}>
+            <Chip
+              label={map.name}
+              size="medium"
+              onClick={() => handleClick(map)}
+              onContextMenu={(e) => handleContextMenu(e, map)}
+              sx={{
+                cursor: 'pointer',
+                backgroundColor: map.selected ? 'primary.main' : 'white',
+                color: map.selected ? 'white' : 'text.primary',
+                boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.15)',
+                '&:hover': {
+                  backgroundColor: map.selected ? 'primary.dark' : 'rgba(220, 220, 220, 1)',
+                },
+              }}
+            />
+            {'mapId' in map && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: -6,
+                  right: -6,
+                  backgroundColor: 'white',
+                  borderRadius: '50%',
+                  width: 20,
+                  height: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.3)',
+                  pointerEvents: 'none',
+                  zIndex: 1,
+                }}
+              >
+                <ShareIcon sx={{ fontSize: 12, color: 'primary.main' }} />
+              </Box>
+            )}
+          </Box>
         ))}
         {onMapCreate && (
           <IconButton

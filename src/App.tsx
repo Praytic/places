@@ -73,22 +73,20 @@ const AppContent: React.FC = () => {
   const handlePlaceSelect = useCallback(
     async (place: any): Promise<void> => {
       if (place) {
-        const targetMapId = place.mapId || (visibleMapIds.size > 0 ? Array.from(visibleMapIds)[0] : maps[0]?.id);
-
-        if (!targetMapId) {
+        if (!place.mapId) {
           setError('No map available to add place');
           return;
         }
 
         try {
           setError(null);
-          await createPlace({ ...place, mapId: targetMapId });
+          await createPlace(place);
         } catch (err) {
           setError('Failed to add place. Please try again.');
         }
       }
     },
-    [visibleMapIds, maps, createPlace]
+    [createPlace]
   );
 
   const handleRemovePlace = useCallback(

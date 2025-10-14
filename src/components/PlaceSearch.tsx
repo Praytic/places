@@ -78,6 +78,14 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
         fields: ['displayName', 'location', 'types', 'id', 'formattedAddress']
       });
 
+      // Check if place already exists using the actual place ID (not the prediction ID)
+      const existingPlace = existingPlaces.find(p => p.placeId === place.id);
+      if (existingPlace) {
+        setIsLoading(false);
+        alert(`This place "${existingPlace.name}" ${existingPlace.emoji} has already been added to your map.`);
+        return;
+      }
+
       const placeData: Pick<Place, 'placeId' | 'name' | 'geometry' | 'types' | 'formattedAddress' | 'group'> = {
         name: place.displayName ?? "Unknown",
         geometry: (place.location?.lat() != null && place.location?.lng() != null ?
@@ -188,19 +196,11 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
             <List sx={{ maxHeight: 400, overflow: 'auto' }}>
               {suggestions.map((suggestion) => {
                 const prediction = suggestion.placePrediction;
-                const existingPlace = existingPlaces.find(p => p.placeId === prediction?.placeId);
                 return (prediction &&
                   <ListItem key={prediction.placeId} disablePadding>
                     <ListItemButton onClick={() => handleSuggestionClick(prediction)}>
                       <ListItemText
-                        primary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            {existingPlace && (
-                              <span style={{ fontSize: '1.2em' }}>{existingPlace.emoji}</span>
-                            )}
-                            <span>{prediction.mainText?.text}</span>
-                          </Box>
-                        }
+                        primary={prediction.mainText?.text}
                         secondary={prediction.secondaryText?.text}
                       />
                     </ListItemButton>
