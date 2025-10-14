@@ -55,6 +55,7 @@ interface MapWrapperProps {
 const MapWrapper: React.FC<MapWrapperProps> = ({ onClick, onIdle, children, sx, onMapReady, center, zoom, ...options }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>();
+  const initialCenterSetRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (ref.current && !map) {
@@ -68,6 +69,14 @@ const MapWrapper: React.FC<MapWrapperProps> = ({ onClick, onIdle, children, sx, 
       }
     }
   }, [ref, map, onMapReady, center, zoom]);
+
+  // Update map center only on initial geolocation load
+  useEffect(() => {
+    if (map && center && !initialCenterSetRef.current) {
+      map.setCenter(center);
+      initialCenterSetRef.current = true;
+    }
+  }, [map, center]);
 
   // Update only non-camera options (exclude center and zoom to prevent auto-panning)
   useDeepCompareEffectForMaps(() => {
