@@ -95,6 +95,15 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               transform: 'scale(0.95)',
             },
             borderRadius: 0,
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              right: 0,
+              top: { xs: '8px', sm: '12px' },
+              bottom: { xs: '8px', sm: '12px' },
+              width: '1px',
+              bgcolor: 'action.disabled',
+            },
           }}
         >
           {activeFilters.has('favorite') ? (
@@ -120,15 +129,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             },
             borderRadius: 0,
             position: 'relative',
-            '&::after': {
-              content: '""',
-              position: 'absolute',
-              right: 0,
-              top: { xs: '8px', sm: '12px' },
-              bottom: { xs: '8px', sm: '12px' },
-              width: '1px',
-              bgcolor: 'action.disabled',
-            },
           }}
         >
           {activeFilters.has('want to go') ? (
