@@ -11,7 +11,7 @@ import { AuthProvider, MapsProvider, PlacesProvider, useAuthContext, useMapsCont
 import { useEmojiPicker } from './shared/hooks';
 import { getCurrentLocation } from './shared/utils/locationService';
 import { ErrorBoundary } from './shared/components';
-import { AccessMap, Location, MapView, SelectableAccessMap, UserMap } from './shared/types/domain';
+import { AccessMap, Location, MapView, SelectableAccessMap, UserMap, UserRole } from './shared/types/domain';
 
 const AppContent: React.FC = () => {
   const { user } = useAuthContext();
@@ -60,14 +60,20 @@ const AppContent: React.FC = () => {
   }, []);
 
   // Calculate if Add Place button should be disabled
-  // Button is disabled when no visible maps are owned by the user (only owners can add places)
+  // Button is disabled when no visible maps have edit permissions (owner or editor)
   const isAddPlaceDisabled = useMemo(() => {
     const visibleMaps = maps.filter((map) => visibleMapIds.has(map.id));
-    const hasEditableVisibleMap = visibleMaps.some(
+    const hasEditableOwnedMap = visibleMaps.some(
       (map) => user?.email === map.owner
     );
-    return !hasEditableVisibleMap;
-  }, [maps, visibleMapIds, user]);
+
+    const visibleViews = accessibleViews.filter((view) => visibleMapIds.has(view.mapId));
+    const hasEditableView = visibleViews.some(
+      (view) => view.role === UserRole.EDIT
+    );
+
+    return !hasEditableOwnedMap && !hasEditableView;
+  }, [maps, accessibleViews, visibleMapIds, user]);
 
   const handleAddPlace = useCallback((): void => {
     setShowSearch(true);
@@ -287,6 +293,7 @@ const AppContent: React.FC = () => {
             onClose={() => setShowSearch(false)}
             selectableAccessMaps={selectableAccessMaps}
             existingPlaces={filteredPlaces as any}
+            onMapToggle={handleMapVisibilityToggle}
           />
         </ErrorBoundary>
       )}

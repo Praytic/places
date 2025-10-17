@@ -27,6 +27,7 @@ interface PlaceSearchProps {
   onClose: () => void;
   selectableAccessMaps: SelectableAccessMap[];
   existingPlaces: Place[];
+  onMapToggle?: (mapId: string) => void;
 }
 
 const PlaceSearch: React.FC<PlaceSearchProps> = ({
@@ -34,6 +35,7 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
   onClose,
   selectableAccessMaps = [],
   existingPlaces = [],
+  onMapToggle,
 }) => {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([]);
@@ -174,6 +176,7 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
       {selectableAccessMaps.length > 0 && !showEmojiPicker && (
         <MapChips
           selectableMaps={selectableAccessMaps}
+          onMapToggle={onMapToggle}
           sx={{
             position: 'fixed',
             top: 'calc(33% - 50px)',
