@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Alert, Backdrop, Box, CircularProgress, Dialog, DialogContent, DialogTitle, IconButton } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+import { Alert, Backdrop, Box, CircularProgress, Dialog } from '@mui/material';
 import MapComponent from './components/MapComponent';
 import ControlPanel from './components/ControlPanel';
 import PlaceSearch from './components/PlaceSearch';
@@ -300,21 +299,14 @@ const AppContent: React.FC = () => {
 
       <Dialog open={showEmojiPicker && !!emojiPickerPlace} onClose={closeEmojiPicker} maxWidth="sm" fullWidth>
         <ErrorBoundary>
-          <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            Choose an emoji for {emojiPickerPlace?.name}
-            <IconButton onClick={closeEmojiPicker} size="small">
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent>
             <EmojiPicker
               onEmojiClick={handleEmojiSelect}
               width="100%"
               height={400}
               previewConfig={{ showPreview: false }}
-              emojiStyle={EmojiStyle.APPLE}
+              emojiStyle={EmojiStyle.NATIVE}
+              skinTonesDisabled={true}
             />
-          </DialogContent>
         </ErrorBoundary>
       </Dialog>
 
