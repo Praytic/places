@@ -31,12 +31,12 @@ interface PlaceSearchProps {
 }
 
 const PlaceSearch: React.FC<PlaceSearchProps> = ({
-  onPlaceCreate,
-  onClose,
-  selectableAccessMaps = [],
-  existingPlaces = [],
-  onMapToggle,
-}) => {
+                                                   onPlaceCreate,
+                                                   onClose,
+                                                   selectableAccessMaps = [],
+                                                   existingPlaces = [],
+                                                   onMapToggle,
+                                                 }) => {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([]);
   const [showSearching, setShowSearching] = useState(false);
@@ -89,7 +89,7 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
       }, 1000);
 
       try {
-        const { suggestions } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+        const {suggestions} = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
           input: value,
           includedPrimaryTypes: ['establishment', 'street_address']
         });
@@ -118,7 +118,7 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
       const placeData: Pick<Place, 'placeId' | 'name' | 'geometry' | 'types' | 'formattedAddress' | 'group'> = {
         name: place.displayName ?? "Unknown",
         geometry: (place.location?.lat() != null && place.location?.lng() != null ?
-          { location: { lng: place.location.lng(), lat: place.location.lat() } } : null),
+          {location: {lng: place.location.lng(), lat: place.location.lat()}} : null),
         types: place.types ?? [],
         placeId: place.id,
         formattedAddress: place.formattedAddress ?? null,
@@ -207,7 +207,7 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
           }
         }}
       >
-        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, borderBottom: 1, borderColor: 'divider' }}>
+        <Box sx={{p: 2, display: 'flex', alignItems: 'center', gap: 2, borderBottom: 1, borderColor: 'divider'}}>
           <TextField
             inputRef={inputRef}
             fullWidth
@@ -223,42 +223,42 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
             }}
           />
           <IconButton onClick={onClose} size="small">
-            <CloseIcon />
+            <CloseIcon/>
           </IconButton>
         </Box>
 
-        <DialogContent sx={{ p: 0 }}>
+        <DialogContent sx={{p: 0}}>
           {showSearching && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 2 }}>
-              <CircularProgress size={24} />
-              <Typography sx={{ ml: 2 }} color="text.secondary">Searching...</Typography>
+            <Box sx={{display: 'flex', justifyContent: 'center', alignItems: 'center', p: 2}}>
+              <CircularProgress size={24}/>
+              <Typography sx={{ml: 2}} color="text.secondary">Searching...</Typography>
             </Box>
           )}
 
           {suggestions.length > 0 && (
-            <List sx={{ maxHeight: 400, overflow: 'auto' }}>
+            <List sx={{maxHeight: 400, overflow: 'auto'}}>
               {suggestions.map((suggestion) => {
                 const prediction = suggestion.placePrediction;
                 const existingPlaceInfo = prediction ? getExistingPlaceInfo(prediction.placeId) : null;
                 return (prediction &&
-                  <ListItem key={prediction.placeId} disablePadding>
-                    <ListItemButton onClick={() => handleSuggestionClick(prediction)}>
-                      <ListItemText
-                        primary={prediction.mainText?.text}
-                        secondary={prediction.secondaryText?.text}
-                      />
-                      {existingPlaceInfo && (
-                        <Box sx={{ ml: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="caption" color="text.secondary">
-                            {existingPlaceInfo.mapName}
-                          </Typography>
-                          <Typography sx={{ fontSize: '1.5rem' }}>
-                            {existingPlaceInfo.emoji}
-                          </Typography>
-                        </Box>
-                      )}
-                    </ListItemButton>
-                  </ListItem>
+                    <ListItem key={prediction.placeId} disablePadding>
+                        <ListItemButton onClick={() => handleSuggestionClick(prediction)}>
+                            <ListItemText
+                                primary={prediction.mainText?.text}
+                                secondary={prediction.secondaryText?.text}
+                            />
+                          {existingPlaceInfo && (
+                            <Box sx={{ml: 2, display: 'flex', alignItems: 'center', gap: 1}}>
+                              <Typography variant="caption" color="text.secondary">
+                                {existingPlaceInfo.mapName}
+                              </Typography>
+                              <Typography sx={{fontSize: '1.5rem'}}>
+                                {existingPlaceInfo.emoji}
+                              </Typography>
+                            </Box>
+                          )}
+                        </ListItemButton>
+                    </ListItem>
                 );
               })}
             </List>
@@ -272,23 +272,14 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
         maxWidth="sm"
         fullWidth
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2.5, borderBottom: 1, borderColor: 'divider' }}>
-          <Typography variant="h6">
-            Choose an emoji for {placeCreation?.name}
-          </Typography>
-          <IconButton onClick={handleEmojiCancel} size="small">
-            <CloseIcon />
-          </IconButton>
-        </Box>
-        <DialogContent>
-          <EmojiPicker
-            onEmojiClick={handleEmojiSelect}
-            width="100%"
-            height={400}
-            previewConfig={{ showPreview: false }}
-            emojiStyle={EmojiStyle.APPLE}
-          />
-        </DialogContent>
+        <EmojiPicker
+          onEmojiClick={handleEmojiSelect}
+          width="100%"
+          height={400}
+          previewConfig={{showPreview: false}}
+          emojiStyle={EmojiStyle.NATIVE}
+          skinTonesDisabled={true}
+        />
       </Dialog>
     </>
   );
