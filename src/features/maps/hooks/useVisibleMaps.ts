@@ -19,6 +19,9 @@ export const useVisibleMaps = (
       // Filter out IDs that are no longer available
       const validIds = savedIds.filter((id) => availableMapIds.includes(id));
       setVisibleMapIds(new Set(validIds));
+    } else if (availableMapIds.length > 0) {
+      // If no saved visible maps, make all available maps visible by default
+      setVisibleMapIds(new Set(availableMapIds));
     }
   }, [availableMapIds]);
 

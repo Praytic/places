@@ -293,6 +293,7 @@ const AppContent: React.FC = () => {
             onClose={() => setShowSearch(false)}
             selectableAccessMaps={selectableAccessMaps}
             existingPlaces={filteredPlaces as any}
+            onMapToggle={handleMapVisibilityToggle}
           />
         </ErrorBoundary>
       )}
