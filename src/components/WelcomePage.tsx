@@ -9,8 +9,6 @@ import { MapWrapper, Wrapper } from './MapComponent';
 interface FloatingEmoji {
   id: number;
   emoji: string;
-  lat: number;
-  lng: number;
   x: number;
   y: number;
   opacity: number;
@@ -21,8 +19,12 @@ const WelcomePage: React.FC = () => {
   const mapRef = useRef<any>(null);
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const emojiIdCounter = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const emojis = ['🍕', '🍔', '🍣', '🍜', '🍰', '☕', '🍺', '🎨', '🎭', '🎪', '🎡', '🎢', '🏛️', '🗽', '🌉', '🏰'];
+
+  // Camera movement speed in pixels per 50ms
+  const cameraSpeed = useRef({ x: 0, y: -0.5 }); // Moving north means y decreases
 
   useEffect(() => {
     const ui = firebaseui.auth.AuthUI.getInstance() || new firebaseui.auth.AuthUI(auth);
@@ -48,6 +50,12 @@ const WelcomePage: React.FC = () => {
           ...prev,
           lat: prev.lat + 0.00001, // Very slow movement north
         }));
+
+        // Update emoji positions based on camera movement
+        setFloatingEmojis(prev => prev.map(emoji => ({
+          ...emoji,
+          y: emoji.y - cameraSpeed.current.y, // Move emojis with camera
+        })));
       }
     }, 50); // Update every 50ms for smooth animation
 
@@ -61,73 +69,19 @@ const WelcomePage: React.FC = () => {
     }
   }, [mapCenter]);
 
-  // Update emoji pixel positions when map moves or emojis change
-  useEffect(() => {
-    if (!mapRef.current) return;
-
-    const updateEmojiPositions = () => {
-      const map = mapRef.current;
-      const projection = map.getProjection();
-      const bounds = map.getBounds();
-
-      if (!projection || !bounds) return;
-
-      setFloatingEmojis(prev => prev.map(emoji => {
-        const latLng = new (window as any).google.maps.LatLng(emoji.lat, emoji.lng);
-        const point = projection.fromLatLngToPoint(latLng);
-        const scale = Math.pow(2, map.getZoom());
-        const worldPoint = new (window as any).google.maps.Point(
-          point.x * scale,
-          point.y * scale
-        );
-
-        const topLeft = projection.fromLatLngToPoint(bounds.getNorthEast());
-        const topLeftWorldPoint = new (window as any).google.maps.Point(
-          topLeft.x * scale,
-          topLeft.y * scale
-        );
-
-        const x = worldPoint.x - topLeftWorldPoint.x;
-        const y = worldPoint.y - topLeftWorldPoint.y;
-
-        return { ...emoji, x, y };
-      }));
-    };
-
-    // Update positions initially
-    updateEmojiPositions();
-
-    // Update on map idle (after pan/zoom)
-    const idleListener = mapRef.current.addListener('idle', updateEmojiPositions);
-
-    return () => {
-      (window as any).google.maps.event.removeListener(idleListener);
-    };
-  }, [mapRef.current, floatingEmojis.length]);
-
   // Spawn random emojis
   useEffect(() => {
     const spawnInterval = setInterval(() => {
-      if (!mapRef.current) return;
+      if (!containerRef.current) return;
 
-      const map = mapRef.current;
-      const bounds = map.getBounds();
-      if (!bounds) return;
-
-      const ne = bounds.getNorthEast();
-      const sw = bounds.getSouthWest();
-
-      // Generate random position within visible bounds
-      const lat = sw.lat() + Math.random() * (ne.lat() - sw.lat());
-      const lng = sw.lng() + Math.random() * (ne.lng() - sw.lng());
+      const containerWidth = containerRef.current.offsetWidth;
+      const containerHeight = containerRef.current.offsetHeight;
 
       const newEmoji: FloatingEmoji = {
         id: emojiIdCounter.current++,
         emoji: emojis[Math.floor(Math.random() * emojis.length)] || '📍',
-        lat,
-        lng,
-        x: 0,
-        y: 0,
+        x: Math.random() * containerWidth,
+        y: Math.random() * containerHeight,
         opacity: 0,
       };
 
@@ -158,6 +112,7 @@ const WelcomePage: React.FC = () => {
 
   return (
     <Box
+      ref={containerRef}
       sx={{
         position: 'relative',
         display: 'flex',
