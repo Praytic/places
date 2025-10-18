@@ -6,9 +6,21 @@ import 'firebaseui/dist/firebaseui.css';
 import { auth } from '../config/firebase';
 import { MapWrapper, Wrapper } from './MapComponent';
 
+interface FloatingEmoji {
+  id: number;
+  emoji: string;
+  x: number;
+  y: number;
+  opacity: number;
+}
+
 const WelcomePage: React.FC = () => {
   const [mapCenter, setMapCenter] = useState({ lat: 37.7749, lng: -122.4194 });
   const mapRef = useRef<any>(null);
+  const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
+  const emojiIdCounter = useRef(0);
+
+  const emojis = ['🍕', '🍔', '🍣', '🍜', '🍰', '☕', '🍺', '🎨', '🎭', '🎪', '🎡', '🎢', '🏛️', '🗽', '🌉', '🏰'];
 
   useEffect(() => {
     const ui = firebaseui.auth.AuthUI.getInstance() || new firebaseui.auth.AuthUI(auth);
@@ -46,6 +58,42 @@ const WelcomePage: React.FC = () => {
       mapRef.current.setCenter(mapCenter);
     }
   }, [mapCenter]);
+
+  // Spawn random emojis
+  useEffect(() => {
+    const spawnInterval = setInterval(() => {
+      const newEmoji: FloatingEmoji = {
+        id: emojiIdCounter.current++,
+        emoji: emojis[Math.floor(Math.random() * emojis.length)],
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        opacity: 0,
+      };
+
+      setFloatingEmojis(prev => [...prev, newEmoji]);
+
+      // Fade in
+      setTimeout(() => {
+        setFloatingEmojis(prev =>
+          prev.map(e => e.id === newEmoji.id ? { ...e, opacity: 1 } : e)
+        );
+      }, 50);
+
+      // Fade out after 4.5 seconds
+      setTimeout(() => {
+        setFloatingEmojis(prev =>
+          prev.map(e => e.id === newEmoji.id ? { ...e, opacity: 0 } : e)
+        );
+      }, 4500);
+
+      // Remove after 5 seconds
+      setTimeout(() => {
+        setFloatingEmojis(prev => prev.filter(e => e.id !== newEmoji.id));
+      }, 5500);
+    }, 1500); // Spawn new emoji every 1.5 seconds
+
+    return () => clearInterval(spawnInterval);
+  }, []);
 
   return (
     <Box
@@ -91,6 +139,25 @@ const WelcomePage: React.FC = () => {
             onMapReady={(map) => { mapRef.current = map; }}
           />
         </Wrapper>
+
+        {/* Floating Emojis */}
+        {floatingEmojis.map(emoji => (
+          <Box
+            key={emoji.id}
+            sx={{
+              position: 'absolute',
+              left: `${emoji.x}%`,
+              top: `${emoji.y}%`,
+              fontSize: '48px',
+              opacity: emoji.opacity,
+              transition: 'opacity 0.5s ease-in-out',
+              pointerEvents: 'none',
+              userSelect: 'none',
+            }}
+          >
+            {emoji.emoji}
+          </Box>
+        ))}
       </Box>
 
       {/* Login Card */}
