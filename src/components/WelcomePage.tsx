@@ -85,6 +85,7 @@ const WelcomePage: React.FC = () => {
             gestureHandling="none"
             mapId="8af90efb7301ef1d8d294cee"
             tilt={40}
+            disableDefaultUI={true}
             onMapReady={(map) => { mapRef.current = map; }}
           />
         </Wrapper>

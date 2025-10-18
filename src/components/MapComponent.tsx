@@ -51,6 +51,7 @@ interface MapWrapperProps {
   gestureHandling?: string;
   mapId?: string;
   tilt?: number;
+  disableDefaultUI?: boolean;
 }
 
 const MapWrapper: React.FC<MapWrapperProps> = ({ onClick, onIdle, children, sx, onMapReady, center, zoom, ...options }) => {
