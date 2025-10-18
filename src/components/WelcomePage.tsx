@@ -10,6 +10,7 @@ import {
   CAMERA_UPDATE_INTERVAL,
   EMOJI_SPAWN_INTERVAL,
   EMOJI_FADE_DURATION,
+  EMOJI_FADE_IN_DURATION,
   EMOJI_SIZE,
   WELCOME_PAGE_EMOJIS,
 } from '../config/constants';
@@ -150,8 +151,10 @@ const WelcomePage: React.FC = () => {
                 // Start fading when approaching border
                 opacity = Math.max(0, minDistance / fadeThreshold);
               } else if (emoji.opacity < 1) {
-                // Fade in if not at full opacity and not near border
-                opacity = 1;
+                // Gradually fade in if not at full opacity and not near border
+                // Calculate increment based on EMOJI_FADE_IN_DURATION and update interval
+                const fadeInIncrement = CAMERA_UPDATE_INTERVAL / EMOJI_FADE_IN_DURATION;
+                opacity = Math.min(1, emoji.opacity + fadeInIncrement);
               }
 
               return { ...emoji, opacity };
@@ -194,8 +197,8 @@ const WelcomePage: React.FC = () => {
       const lngRange = ne.lng() - sw.lng();
 
       // Spawn in top 10% of visible area, centered 80% width
-      const spawnLatMin = center.lat() + latRange * 0.4; // Top of visible area
-      const spawnLatMax = center.lat() + latRange * 0.5; // Top 10% height
+      const spawnLatMin = center.lat() + latRange * 0.5; // Top of visible area
+      const spawnLatMax = center.lat() + latRange * 0.51; // Top 1% height
       const spawnLngMin = center.lng() - lngRange * 0.4; // Left 80% (centered)
       const spawnLngMax = center.lng() + lngRange * 0.4; // Right 80% (centered)
 
