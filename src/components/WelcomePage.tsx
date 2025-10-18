@@ -268,6 +268,27 @@ const WelcomePage: React.FC = () => {
         </Wrapper>
       </Box>
 
+      {/* White Vignette Overlay */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100%',
+          height: '100%',
+          zIndex: 0,
+          pointerEvents: 'none',
+          background: `
+            radial-gradient(circle at top left, transparent 0%, transparent 50%, rgba(255, 255, 255, 0.6) 100%),
+            radial-gradient(circle at top right, transparent 0%, transparent 50%, rgba(255, 255, 255, 0.6) 100%),
+            radial-gradient(circle at bottom left, transparent 0%, transparent 50%, rgba(255, 255, 255, 0.6) 100%),
+            radial-gradient(circle at bottom right, transparent 0%, transparent 50%, rgba(255, 255, 255, 0.6) 100%)
+          `,
+        }}
+      />
+
       {/* Login Card */}
       <Card
         sx={{
