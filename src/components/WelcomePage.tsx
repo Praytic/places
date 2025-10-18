@@ -54,12 +54,13 @@ const WelcomePage: React.FC = () => {
         >
           <MapWrapper
             center={{ lat: 37.7749, lng: -122.4194 }}
-            zoom={13}
+            zoom={18}
             mapTypeControl={false}
             streetViewControl={false}
             fullscreenControl={false}
             gestureHandling="none"
             mapId="8af90efb7301ef1d8d294cee"
+            tilt={40}
           />
         </Wrapper>
       </Box>

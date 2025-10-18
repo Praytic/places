@@ -50,6 +50,7 @@ interface MapWrapperProps {
   fullscreenControl?: boolean;
   gestureHandling?: string;
   mapId?: string;
+  tilt?: number;
 }
 
 const MapWrapper: React.FC<MapWrapperProps> = ({ onClick, onIdle, children, sx, onMapReady, center, zoom, ...options }) => {
