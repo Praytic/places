@@ -5,6 +5,16 @@ import * as firebaseui from 'firebaseui';
 import 'firebaseui/dist/firebaseui.css';
 import { auth } from '../config/firebase';
 import { MapWrapper, Wrapper } from './MapComponent';
+import {
+  CAMERA_SPEED_LAT,
+  CAMERA_UPDATE_INTERVAL,
+  CAMERA_SPEED_PIXELS,
+  EMOJI_SPAWN_INTERVAL,
+  EMOJI_FADE_IN_DELAY,
+  EMOJI_FADE_OUT_DELAY,
+  EMOJI_REMOVE_DELAY,
+  WELCOME_PAGE_EMOJIS,
+} from '../config/constants';
 
 interface FloatingEmoji {
   id: number;
@@ -21,10 +31,8 @@ const WelcomePage: React.FC = () => {
   const emojiIdCounter = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const emojis = ['🍕', '🍔', '🍣', '🍜', '🍰', '☕', '🍺', '🎨', '🎭', '🎪', '🎡', '🎢', '🏛️', '🗽', '🌉', '🏰'];
-
-  // Camera movement speed in pixels per 50ms
-  const cameraSpeed = useRef({ x: 0, y: -0.5 }); // Moving north means y decreases
+  // Camera movement speed in pixels per update interval
+  const cameraSpeed = useRef(CAMERA_SPEED_PIXELS);
 
   useEffect(() => {
     const ui = firebaseui.auth.AuthUI.getInstance() || new firebaseui.auth.AuthUI(auth);
@@ -48,7 +56,7 @@ const WelcomePage: React.FC = () => {
       if (mapRef.current) {
         setMapCenter(prev => ({
           ...prev,
-          lat: prev.lat + 0.00001, // Very slow movement north
+          lat: prev.lat + CAMERA_SPEED_LAT,
         }));
 
         // Update emoji positions based on camera movement
@@ -57,7 +65,7 @@ const WelcomePage: React.FC = () => {
           y: emoji.y - cameraSpeed.current.y, // Move emojis with camera
         })));
       }
-    }, 50); // Update every 50ms for smooth animation
+    }, CAMERA_UPDATE_INTERVAL);
 
     return () => clearInterval(interval);
   }, []);
@@ -79,7 +87,7 @@ const WelcomePage: React.FC = () => {
 
       const newEmoji: FloatingEmoji = {
         id: emojiIdCounter.current++,
-        emoji: emojis[Math.floor(Math.random() * emojis.length)] || '📍',
+        emoji: WELCOME_PAGE_EMOJIS[Math.floor(Math.random() * WELCOME_PAGE_EMOJIS.length)] || '📍',
         x: Math.random() * containerWidth,
         y: Math.random() * containerHeight,
         opacity: 0,
@@ -92,20 +100,20 @@ const WelcomePage: React.FC = () => {
         setFloatingEmojis(prev =>
           prev.map(e => e.id === newEmoji.id ? { ...e, opacity: 1 } : e)
         );
-      }, 50);
+      }, EMOJI_FADE_IN_DELAY);
 
-      // Fade out after 4.5 seconds
+      // Fade out after configured delay
       setTimeout(() => {
         setFloatingEmojis(prev =>
           prev.map(e => e.id === newEmoji.id ? { ...e, opacity: 0 } : e)
         );
-      }, 4500);
+      }, EMOJI_FADE_OUT_DELAY);
 
-      // Remove after 5 seconds
+      // Remove after configured delay
       setTimeout(() => {
         setFloatingEmojis(prev => prev.filter(e => e.id !== newEmoji.id));
-      }, 5500);
-    }, 1500); // Spawn new emoji every 1.5 seconds
+      }, EMOJI_REMOVE_DELAY);
+    }, EMOJI_SPAWN_INTERVAL);
 
     return () => clearInterval(spawnInterval);
   }, []);
