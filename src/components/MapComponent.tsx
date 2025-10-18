@@ -421,3 +421,4 @@ const MapComponent: React.FC<MapComponentProps> = ({
 };
 
 export default MapComponent;
+export { MapWrapper, Wrapper };

@@ -1,11 +1,9 @@
-import React, { createContext, useContext, ReactNode, useEffect } from 'react';
-import { User, GoogleAuthProvider } from 'firebase/auth';
-import { Box, Card, Typography, CircularProgress } from '@mui/material';
-import * as firebaseui from 'firebaseui';
-import 'firebaseui/dist/firebaseui.css';
+import React, { createContext, useContext, ReactNode } from 'react';
+import { User } from 'firebase/auth';
+import { Box, CircularProgress } from '@mui/material';
 import { useAuth as useAuthHook } from '../features/auth/hooks';
-import { auth } from '../config/firebase';
 import AccountMenu from '../components/AccountMenu';
+import WelcomePage from '../components/WelcomePage';
 
 /**
  * Context value provided by AuthProvider
@@ -46,54 +44,6 @@ export const useAuthContext = (): AuthContextValue => {
 interface AuthProviderProps {
   children: ReactNode;
 }
-
-const LoginScreen: React.FC = () => {
-  useEffect(() => {
-    const ui = firebaseui.auth.AuthUI.getInstance() || new firebaseui.auth.AuthUI(auth);
-
-    const uiConfig: firebaseui.auth.Config = {
-      signInOptions: [GoogleAuthProvider.PROVIDER_ID],
-      signInFlow: 'popup',
-      callbacks: {
-        signInSuccessWithAuthResult: () => false,
-      },
-    };
-
-    ui.start('#firebaseui-auth-container', uiConfig);
-
-    return () => ui.reset();
-  }, []);
-
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      }}
-    >
-      <Card
-        sx={{
-          p: 5,
-          maxWidth: 400,
-          width: '90%',
-          textAlign: 'center',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
-        }}
-      >
-        <Typography variant="h4" gutterBottom>
-          Places App
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Sign in to continue
-        </Typography>
-        <div id="firebaseui-auth-container"></div>
-      </Card>
-    </Box>
-  );
-};
 
 /**
  * Authentication Provider Component
@@ -136,7 +86,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }
 
   if (!user) {
-    return <LoginScreen />;
+    return <WelcomePage />;
   }
 
   const value: AuthContextValue = {
