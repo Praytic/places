@@ -12,6 +12,10 @@ import {
   EMOJI_FADE_DURATION,
   EMOJI_FADE_IN_DURATION,
   EMOJI_SIZE,
+  EMOJI_SPAWN_LAT_MIN,
+  EMOJI_SPAWN_LAT_MAX,
+  EMOJI_SPAWN_LNG_MIN,
+  EMOJI_SPAWN_LNG_MAX,
   WELCOME_PAGE_EMOJIS,
 } from '../config/constants';
 
@@ -197,10 +201,10 @@ const WelcomePage: React.FC = () => {
       const lngRange = ne.lng() - sw.lng();
 
       // Spawn in top 10% of visible area, centered 80% width
-      const spawnLatMin = center.lat() + latRange * 0.5; // Top of visible area
-      const spawnLatMax = center.lat() + latRange * 0.51; // Top 1% height
-      const spawnLngMin = center.lng() - lngRange * 0.4; // Left 80% (centered)
-      const spawnLngMax = center.lng() + lngRange * 0.4; // Right 80% (centered)
+      const spawnLatMin = center.lat() + latRange * EMOJI_SPAWN_LAT_MIN;
+      const spawnLatMax = center.lat() + latRange * EMOJI_SPAWN_LAT_MAX;
+      const spawnLngMin = center.lng() + lngRange * EMOJI_SPAWN_LNG_MIN;
+      const spawnLngMax = center.lng() + lngRange * EMOJI_SPAWN_LNG_MAX;
 
       const newEmoji: FloatingEmoji = {
         id: emojiIdCounter.current++,
