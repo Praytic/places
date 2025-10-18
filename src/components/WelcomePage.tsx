@@ -9,6 +9,8 @@ import { MapWrapper, Wrapper } from './MapComponent';
 interface FloatingEmoji {
   id: number;
   emoji: string;
+  lat: number;
+  lng: number;
   x: number;
   y: number;
   opacity: number;
@@ -59,14 +61,73 @@ const WelcomePage: React.FC = () => {
     }
   }, [mapCenter]);
 
+  // Update emoji pixel positions when map moves or emojis change
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    const updateEmojiPositions = () => {
+      const map = mapRef.current;
+      const projection = map.getProjection();
+      const bounds = map.getBounds();
+
+      if (!projection || !bounds) return;
+
+      setFloatingEmojis(prev => prev.map(emoji => {
+        const latLng = new (window as any).google.maps.LatLng(emoji.lat, emoji.lng);
+        const point = projection.fromLatLngToPoint(latLng);
+        const scale = Math.pow(2, map.getZoom());
+        const worldPoint = new (window as any).google.maps.Point(
+          point.x * scale,
+          point.y * scale
+        );
+
+        const topLeft = projection.fromLatLngToPoint(bounds.getNorthEast());
+        const topLeftWorldPoint = new (window as any).google.maps.Point(
+          topLeft.x * scale,
+          topLeft.y * scale
+        );
+
+        const x = worldPoint.x - topLeftWorldPoint.x;
+        const y = worldPoint.y - topLeftWorldPoint.y;
+
+        return { ...emoji, x, y };
+      }));
+    };
+
+    // Update positions initially
+    updateEmojiPositions();
+
+    // Update on map idle (after pan/zoom)
+    const idleListener = mapRef.current.addListener('idle', updateEmojiPositions);
+
+    return () => {
+      (window as any).google.maps.event.removeListener(idleListener);
+    };
+  }, [mapRef.current, floatingEmojis.length]);
+
   // Spawn random emojis
   useEffect(() => {
     const spawnInterval = setInterval(() => {
+      if (!mapRef.current) return;
+
+      const map = mapRef.current;
+      const bounds = map.getBounds();
+      if (!bounds) return;
+
+      const ne = bounds.getNorthEast();
+      const sw = bounds.getSouthWest();
+
+      // Generate random position within visible bounds
+      const lat = sw.lat() + Math.random() * (ne.lat() - sw.lat());
+      const lng = sw.lng() + Math.random() * (ne.lng() - sw.lng());
+
       const newEmoji: FloatingEmoji = {
         id: emojiIdCounter.current++,
         emoji: emojis[Math.floor(Math.random() * emojis.length)] || '📍',
-        x: Math.random() * 100,
-        y: Math.random() * 100,
+        lat,
+        lng,
+        x: 0,
+        y: 0,
         opacity: 0,
       };
 
@@ -146,13 +207,14 @@ const WelcomePage: React.FC = () => {
             key={emoji.id}
             sx={{
               position: 'absolute',
-              left: `${emoji.x}%`,
-              top: `${emoji.y}%`,
+              left: `${emoji.x}px`,
+              top: `${emoji.y}px`,
               fontSize: '48px',
               opacity: emoji.opacity,
               transition: 'opacity 0.5s ease-in-out',
               pointerEvents: 'none',
               userSelect: 'none',
+              transform: 'translate(-50%, -50%)',
             }}
           >
             {emoji.emoji}
