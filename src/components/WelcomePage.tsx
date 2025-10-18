@@ -10,9 +10,10 @@ import {
   CAMERA_UPDATE_INTERVAL,
   CAMERA_SPEED_PIXELS,
   EMOJI_SPAWN_INTERVAL,
-  EMOJI_FADE_IN_DELAY,
-  EMOJI_FADE_OUT_DELAY,
-  EMOJI_REMOVE_DELAY,
+  EMOJI_FADE_DURATION,
+  EMOJI_SIZE,
+  EMOJI_SPAWN_AREA,
+  EMOJI_FADE_BORDER_DISTANCE,
   WELCOME_PAGE_EMOJIS,
 } from '../config/constants';
 
@@ -53,17 +54,53 @@ const WelcomePage: React.FC = () => {
   // Slow infinite northward movement
   useEffect(() => {
     const interval = setInterval(() => {
-      if (mapRef.current) {
+      if (mapRef.current && containerRef.current) {
         setMapCenter(prev => ({
           ...prev,
           lat: prev.lat + CAMERA_SPEED_LAT,
         }));
 
-        // Update emoji positions based on camera movement
-        setFloatingEmojis(prev => prev.map(emoji => ({
-          ...emoji,
-          y: emoji.y - cameraSpeed.current.y, // Move emojis with camera
-        })));
+        const containerWidth = containerRef.current.offsetWidth;
+        const containerHeight = containerRef.current.offsetHeight;
+
+        // Update emoji positions and check for border proximity
+        setFloatingEmojis(prev => {
+          return prev
+            .map(emoji => {
+              const newY = emoji.y - cameraSpeed.current.y;
+              const newX = emoji.x - cameraSpeed.current.x;
+
+              // Check distance from borders
+              const distanceFromTop = newY;
+              const distanceFromBottom = containerHeight - newY;
+              const distanceFromLeft = newX;
+              const distanceFromRight = containerWidth - newX;
+
+              // Calculate opacity based on proximity to borders
+              let opacity = emoji.opacity;
+              const minDistance = Math.min(
+                distanceFromTop,
+                distanceFromBottom,
+                distanceFromLeft,
+                distanceFromRight
+              );
+
+              if (minDistance < EMOJI_FADE_BORDER_DISTANCE) {
+                // Start fading when approaching border
+                opacity = Math.max(0, minDistance / EMOJI_FADE_BORDER_DISTANCE);
+              } else if (emoji.opacity < 1) {
+                // Fade in if not at full opacity and not near border
+                opacity = 1;
+              }
+
+              return { ...emoji, x: newX, y: newY, opacity };
+            })
+            // Remove emojis that are completely off-screen
+            .filter(emoji => {
+              return emoji.x > -100 && emoji.x < containerWidth + 100 &&
+                     emoji.y > -100 && emoji.y < containerHeight + 100;
+            });
+        });
       }
     }, CAMERA_UPDATE_INTERVAL);
 
@@ -85,34 +122,21 @@ const WelcomePage: React.FC = () => {
       const containerWidth = containerRef.current.offsetWidth;
       const containerHeight = containerRef.current.offsetHeight;
 
+      // Calculate spawn area: top 10% height, centered 80% width
+      const spawnAreaWidth = containerWidth * (EMOJI_SPAWN_AREA.widthPercent / 100);
+      const spawnAreaLeft = (containerWidth - spawnAreaWidth) / 2;
+      const spawnAreaHeight = containerHeight * (EMOJI_SPAWN_AREA.heightPercent / 100);
+      const spawnAreaTop = EMOJI_SPAWN_AREA.topOffset;
+
       const newEmoji: FloatingEmoji = {
         id: emojiIdCounter.current++,
         emoji: WELCOME_PAGE_EMOJIS[Math.floor(Math.random() * WELCOME_PAGE_EMOJIS.length)] || '📍',
-        x: Math.random() * containerWidth,
-        y: Math.random() * containerHeight,
+        x: spawnAreaLeft + Math.random() * spawnAreaWidth,
+        y: spawnAreaTop + Math.random() * spawnAreaHeight,
         opacity: 0,
       };
 
       setFloatingEmojis(prev => [...prev, newEmoji]);
-
-      // Fade in
-      setTimeout(() => {
-        setFloatingEmojis(prev =>
-          prev.map(e => e.id === newEmoji.id ? { ...e, opacity: 1 } : e)
-        );
-      }, EMOJI_FADE_IN_DELAY);
-
-      // Fade out after configured delay
-      setTimeout(() => {
-        setFloatingEmojis(prev =>
-          prev.map(e => e.id === newEmoji.id ? { ...e, opacity: 0 } : e)
-        );
-      }, EMOJI_FADE_OUT_DELAY);
-
-      // Remove after configured delay
-      setTimeout(() => {
-        setFloatingEmojis(prev => prev.filter(e => e.id !== newEmoji.id));
-      }, EMOJI_REMOVE_DELAY);
     }, EMOJI_SPAWN_INTERVAL);
 
     return () => clearInterval(spawnInterval);
@@ -172,9 +196,9 @@ const WelcomePage: React.FC = () => {
               position: 'absolute',
               left: `${emoji.x}px`,
               top: `${emoji.y}px`,
-              fontSize: '48px',
+              fontSize: EMOJI_SIZE,
               opacity: emoji.opacity,
-              transition: 'opacity 0.5s ease-in-out',
+              transition: `opacity ${EMOJI_FADE_DURATION}ms ease-in-out`,
               pointerEvents: 'none',
               userSelect: 'none',
               transform: 'translate(-50%, -50%)',

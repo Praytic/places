@@ -14,9 +14,18 @@ export const CAMERA_SPEED_PIXELS = {
 
 // Emoji animation constants
 export const EMOJI_SPAWN_INTERVAL = 1500; // milliseconds
-export const EMOJI_FADE_IN_DELAY = 50; // milliseconds
-export const EMOJI_FADE_OUT_DELAY = 4500; // milliseconds
-export const EMOJI_REMOVE_DELAY = 5500; // milliseconds
+export const EMOJI_FADE_DURATION = 500; // milliseconds for fade in/out transition
+export const EMOJI_SIZE = '48px';
+
+// Emoji spawn area (percentage of container)
+export const EMOJI_SPAWN_AREA = {
+  topOffset: 0, // Start from top
+  heightPercent: 10, // 10% height from top
+  widthPercent: 80, // 80% width centered
+};
+
+// Distance from border (in pixels) to start fading
+export const EMOJI_FADE_BORDER_DISTANCE = 100;
 
 // Available emojis for welcome page
 export const WELCOME_PAGE_EMOJIS = [
