@@ -64,7 +64,7 @@ const WelcomePage: React.FC = () => {
     const spawnInterval = setInterval(() => {
       const newEmoji: FloatingEmoji = {
         id: emojiIdCounter.current++,
-        emoji: emojis[Math.floor(Math.random() * emojis.length)],
+        emoji: emojis[Math.floor(Math.random() * emojis.length)] || '📍',
         x: Math.random() * 100,
         y: Math.random() * 100,
         opacity: 0,
