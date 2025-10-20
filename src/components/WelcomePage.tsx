@@ -97,7 +97,7 @@ const WelcomePage: React.FC = () => {
   const mapRef = useRef<any>(null);
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const emojiIdCounter = useRef(0);
-  const [isPageVisible, setIsPageVisible] = useState(true);
+  const [isPageVisible, setIsPageVisible] = useState(!document.hidden);
 
   // Track page visibility
   useEffect(() => {
@@ -130,7 +130,9 @@ const WelcomePage: React.FC = () => {
 
   // Slow infinite northward movement
   useEffect(() => {
-    if (!isPageVisible) return;
+    if (!isPageVisible) {
+      return;
+    }
 
     const interval = setInterval(() => {
       if (mapRef.current) {
@@ -201,7 +203,9 @@ const WelcomePage: React.FC = () => {
 
   // Spawn random emojis
   useEffect(() => {
-    if (!isPageVisible) return;
+    if (!isPageVisible) {
+      return;
+    }
 
     const spawnInterval = setInterval(() => {
       if (!mapRef.current) return;
