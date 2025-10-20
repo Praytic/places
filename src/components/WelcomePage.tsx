@@ -335,6 +335,14 @@ const WelcomePage: React.FC = () => {
             boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
           }}
         >
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6 }}>
+            <strong>P</strong>ick a spot using search.<br />
+            <strong>L</strong>abel it with an emoji.<br />
+            <strong>A</strong>dd to favorites (or keep in 'want to go').<br />
+            <strong>C</strong>ollaborate—share with your вторая половинка or friends.<br />
+            <strong>E</strong>xpand your map with more spots.<br />
+            <strong>S</strong>witch emojis, stack maps, repeat.
+          </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
             Sign in to continue
           </Typography>
