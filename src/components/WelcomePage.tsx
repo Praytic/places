@@ -311,26 +311,36 @@ const WelcomePage: React.FC = () => {
         }}
       />
 
-      {/* Login Card */}
-      <Card
+      {/* Content Container */}
+      <Box
         sx={{
           position: 'relative',
           zIndex: 1,
-          p: 5,
-          maxWidth: 400,
-          width: '90%',
-          textAlign: 'center',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 3,
         }}
       >
-        <Typography variant="h4" gutterBottom>
-          Places App
+        <Typography variant="h2" gutterBottom>
+          PLACES
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Sign in to continue
-        </Typography>
-        <div id="firebaseui-auth-container"></div>
-      </Card>
+        {/* Login Card */}
+        <Card
+          sx={{
+            p: 5,
+            maxWidth: 400,
+            width: '90%',
+            textAlign: 'center',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+          }}
+        >
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+            Sign in to continue
+          </Typography>
+          <div id="firebaseui-auth-container"></div>
+        </Card>
+      </Box>
     </Box>
   );
 };
