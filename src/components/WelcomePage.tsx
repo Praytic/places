@@ -97,6 +97,20 @@ const WelcomePage: React.FC = () => {
   const mapRef = useRef<any>(null);
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const emojiIdCounter = useRef(0);
+  const [isPageVisible, setIsPageVisible] = useState(true);
+
+  // Track page visibility
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsPageVisible(!document.hidden);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     const ui = firebaseui.auth.AuthUI.getInstance() || new firebaseui.auth.AuthUI(auth);
@@ -116,6 +130,8 @@ const WelcomePage: React.FC = () => {
 
   // Slow infinite northward movement
   useEffect(() => {
+    if (!isPageVisible) return;
+
     const interval = setInterval(() => {
       if (mapRef.current) {
         setMapCenter(prev => ({
@@ -174,7 +190,7 @@ const WelcomePage: React.FC = () => {
     }, CAMERA_UPDATE_INTERVAL);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isPageVisible]);
 
   // Update map center when it changes
   useEffect(() => {
@@ -185,6 +201,8 @@ const WelcomePage: React.FC = () => {
 
   // Spawn random emojis
   useEffect(() => {
+    if (!isPageVisible) return;
+
     const spawnInterval = setInterval(() => {
       if (!mapRef.current) return;
 
@@ -218,7 +236,7 @@ const WelcomePage: React.FC = () => {
     }, EMOJI_SPAWN_INTERVAL);
 
     return () => clearInterval(spawnInterval);
-  }, []);
+  }, [isPageVisible]);
 
   return (
     <Box
