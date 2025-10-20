@@ -322,7 +322,7 @@ const WelcomePage: React.FC = () => {
           gap: 3,
         }}
       >
-        <Typography variant="h2" gutterBottom>
+        <Typography variant="h2" gutterBottom color="primary">
           PLACES
         </Typography>
         {/* Login Card */}
