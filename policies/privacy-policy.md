@@ -23,13 +23,12 @@ When you use third-party extensions, integrations, or follow references and link
 
 ## Personal Data We Collect
 
-Personal Data is collected from you directly, automatically from your device, and also from third parties. The Personal Data Praytic processes when you use the Services depends on variables like how you interact with our Services (such as through web interfaces, desktop or mobile applications) and the features you use. Below, we detail the information we collect through each of these channels:
+Personal Data is collected from you directly, automatically from your device, and also from third parties. The Personal Data Praytic processes when you use the Services depends on how you interact with our Services and the features you use. Below, we detail the information we collect through each of these channels:
 
 ### From You
 
-* Account Data: We collect certain information when you open an account such as your name, email address, and password.
+* Account Data: We collect certain information when you open an account such as your name, email address, and profile picture.
 * User Content and Files: When you use our Services, we collect Personal Data included as part of the information you provide such as text, data, images, location data, map markers, or other content.
-* Demographic information: In some cases, you provide us with ethnicity, gender, or similar demographic details.
 * Feedback Data: This consists of information you submit through surveys, reviews, or interactive features.
 * Profile Information: We collect information to create a user profile, which may include a photo, additional email addresses, or other profile details.
 * Support Data: When you seek customer support, we collect details like text or other information you provide.
@@ -53,7 +52,7 @@ Personal Data is collected from you directly, automatically from your device, an
 
 ## Processing Purposes: How We Use Your Personal Data
 
-The Personal Data we process depends on your interaction and access methods with our Services, including the interfaces (web, desktop, mobile apps) and features used. This section details all the potential ways Praytic may process your Personal Data:
+The Personal Data we process depends on your interaction with our Services and the features used. This section details all the potential ways Praytic may process your Personal Data:
 
 * Business Operations: We use Personal Data for activities like accounting and compensation. This includes creating aggregated statistical data for internal reporting, financial reporting, revenue planning, capacity planning, and forecast modeling (including product strategy).
 * Communication: We use Personal Data to inform you about new Services, features, offers, promotions, and other pertinent information. This also includes sending confirmations, technical notices, updates, security alerts, and administrative messages.
@@ -141,13 +140,11 @@ The length of time a cookie will stay on your browser or device depends on wheth
 
 #### What are cookies and similar technologies?
 
-We use cookies and similar technologies, such as web beacons, local storage, and mobile analytics, to operate and provide our Services.
+We use cookies and similar technologies, such as web beacons and local storage, to operate and provide our Services.
 
 Cookies are small text files stored by your browser on your device. A cookie can later be read when your browser connects to a web server in the same domain that placed the cookie. The text in a cookie contains a string of numbers and letters that may uniquely identify your device and can contain other information as well. This allows the web server to recognize your browser over time, each time it connects to that web server.
 
 Web beacons are electronic images (also called "single-pixel" or "clear GIFs") that are contained within a website or email. When your browser opens a webpage or email that contains a web beacon, it automatically connects to the web server that hosts the image (typically operated by a third party). This allows that web server to log information about your device and to set and read its own cookies. In the same way, third-party content on our websites (such as embedded videos, plug-ins, or ads) results in your browser connecting to the third-party web server that hosts that content.
-
-Mobile identifiers for analytics can be accessed and used by apps on mobile devices in much the same way that websites access and use cookies.
 
 We may also use so-called "flash cookies" (also known as "Local Shared Objects" or "LSOs") to collect and store information about your use of our Services. Flash cookies are commonly used for advertisements and videos.
 
