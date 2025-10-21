@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {GoogleAuthProvider, FacebookAuthProvider} from 'firebase/auth';
+import {GoogleAuthProvider, FacebookAuthProvider, TwitterAuthProvider} from 'firebase/auth';
 import {Box, Typography, GlobalStyles} from '@mui/material';
 import * as firebaseui from 'firebaseui';
 import 'firebaseui/dist/firebaseui.css';
@@ -121,6 +121,7 @@ const WelcomePage: React.FC = () => {
       signInOptions: [
         GoogleAuthProvider.PROVIDER_ID,
         FacebookAuthProvider.PROVIDER_ID,
+        TwitterAuthProvider.PROVIDER_ID,
       ],
       signInFlow: 'popup',
       callbacks: {

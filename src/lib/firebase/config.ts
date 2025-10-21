@@ -5,6 +5,7 @@ import {
   Auth,
   GoogleAuthProvider,
   FacebookAuthProvider,
+  TwitterAuthProvider,
   setPersistence,
   browserLocalPersistence,
 } from 'firebase/auth';
@@ -34,6 +35,7 @@ export const db: Firestore = getFirestore(app, 'places');
 export const auth: Auth = getAuth(app);
 export const googleProvider: GoogleAuthProvider = new GoogleAuthProvider();
 export const facebookProvider: FacebookAuthProvider = new FacebookAuthProvider();
+export const twitterProvider: TwitterAuthProvider = new TwitterAuthProvider();
 
 void setPersistence(auth, browserLocalPersistence);
 
