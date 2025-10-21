@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {GoogleAuthProvider} from 'firebase/auth';
-import {Box, Typography} from '@mui/material';
+import {Box, Typography, GlobalStyles} from '@mui/material';
 import * as firebaseui from 'firebaseui';
 import 'firebaseui/dist/firebaseui.css';
 import {auth} from '../config/firebase';
@@ -245,17 +245,51 @@ const WelcomePage: React.FC = () => {
   }, [isPageVisible]);
 
   return (
-    <Box
-      sx={{
-        position: 'relative',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        width: '100vw',
-        overflow: 'hidden',
-      }}
-    >
+    <>
+      <GlobalStyles
+        styles={{
+          '.firebaseui-idp-button': {
+            maxWidth: '96px !important',
+            minHeight: '96px !important',
+            padding: '0 !important',
+            backgroundColor: 'transparent !important',
+            boxShadow: 'none !important',
+          },
+          '.firebaseui-idp-text': {
+            display: 'none !important',
+          },
+          '.firebaseui-idp-icon-wrapper': {
+            margin: '0 !important',
+            transform: 'scale(2) !important',
+          },
+          '#firebaseui-auth-container': {
+            marginTop: '0 !important',
+          },
+          '.firebaseui-container': {
+            backgroundColor: 'transparent !important',
+            boxShadow: 'none !important',
+            padding: '0 !important',
+            margin: '0 !important',
+          },
+          '.firebaseui-card-content': {
+            padding: '0 !important',
+          },
+          '.firebaseui-card-actions': {
+            padding: '0 !important',
+          },
+        }}
+      />
+      <Box
+        sx={{
+          position: 'relative',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          width: '100vw',
+          overflow: 'hidden',
+        }}
+      >
       {/* Map Background */}
       <Box
         sx={{
@@ -356,6 +390,7 @@ const WelcomePage: React.FC = () => {
         </Box>
       </Box>
     </Box>
+    </>
   );
 };
 
