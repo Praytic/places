@@ -249,11 +249,15 @@ const WelcomePage: React.FC = () => {
       <GlobalStyles
         styles={{
           '.firebaseui-idp-button': {
-            maxWidth: '96px !important',
-            minHeight: '96px !important',
+            width: 'auto !important',
+            height: 'auto !important',
+            maxWidth: 'none !important',
+            minHeight: 'auto !important',
             padding: '0 !important',
             backgroundColor: 'transparent !important',
             boxShadow: 'none !important',
+            overflow: 'visible !important',
+            pointerEvents: 'none !important',
           },
           '.firebaseui-idp-text': {
             display: 'none !important',
@@ -261,6 +265,7 @@ const WelcomePage: React.FC = () => {
           '.firebaseui-idp-icon-wrapper': {
             margin: '0 !important',
             transform: 'scale(2) !important',
+            pointerEvents: 'auto !important',
           },
           '#firebaseui-auth-container': {
             marginTop: '0 !important',
