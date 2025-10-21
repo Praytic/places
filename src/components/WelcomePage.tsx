@@ -335,13 +335,18 @@ const WelcomePage: React.FC = () => {
             boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
           }}
         >
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6 }}>
-            <strong>P</strong>ick a spot using search.<br />
-            <strong>L</strong>abel it with an emoji.<br />
-            <strong>A</strong>dd to favorites (or keep in 'want to go').<br />
-            <strong>C</strong>ollaborate—share with your вторая половинка or friends.<br />
-            <strong>E</strong>xpand your map with more spots.<br />
-            <strong>S</strong>witch emojis, stack maps, repeat.
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6, textAlign: 'left' }}>
+            <Typography variant="h2" component="span">P</Typography>Pick a spot using search<br />
+            that you want to visit or already love.<br />
+            <Typography variant="h2" component="span">L</Typography>Label it with an emoji<br />
+            that captures its vibe.<br />
+            <Typography variant="h2" component="span">A</Typography>Add to favorites<br />
+            or keep in 'want to go'.<br />
+            <Typography variant="h2" component="span">C</Typography>Connect with friends<br />
+            share your map with them.<br />
+            <Typography variant="h2" component="span">E</Typography>Explore and add more<br />
+            to build your perfect map.<br />
+            <Typography variant="h2" component="span">S</Typography>Sign in to get started.
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
             Sign in to continue
