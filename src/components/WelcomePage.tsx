@@ -252,23 +252,32 @@ const WelcomePage: React.FC = () => {
       <GlobalStyles
         styles={{
           '.firebaseui-idp-button': {
-            width: 'auto !important',
-            height: 'auto !important',
+            width: '60px !important',
+            height: '60px !important',
             maxWidth: 'none !important',
             minHeight: 'auto !important',
             padding: '0 !important',
             backgroundColor: 'transparent !important',
             boxShadow: 'none !important',
             overflow: 'visible !important',
-            pointerEvents: 'none !important',
+            display: 'flex !important',
+            alignItems: 'center !important',
+            justifyContent: 'center !important',
           },
           '.firebaseui-idp-text': {
             display: 'none !important',
           },
           '.firebaseui-idp-icon-wrapper': {
             margin: '0 !important',
-            transform: 'scale(2) !important',
-            pointerEvents: 'auto !important',
+            width: '100% !important',
+            height: '100% !important',
+            display: 'flex !important',
+            alignItems: 'center !important',
+            justifyContent: 'center !important',
+          },
+          '.firebaseui-idp-icon': {
+            width: '32px !important',
+            height: '32px !important',
           },
           '#firebaseui-auth-container': {
             marginTop: '0 !important',
@@ -284,6 +293,16 @@ const WelcomePage: React.FC = () => {
           },
           '.firebaseui-card-actions': {
             padding: '0 !important',
+          },
+          '.firebaseui-idp-list': {
+            display: 'flex !important',
+            flexDirection: 'row !important',
+            gap: '12px !important',
+            margin: '0 !important',
+            justifyContent: 'center !important',
+          },
+          '.firebaseui-list-item': {
+            margin: '0 !important',
           },
         }}
       />
