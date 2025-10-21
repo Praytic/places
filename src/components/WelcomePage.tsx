@@ -392,9 +392,13 @@ const WelcomePage: React.FC = () => {
         <Typography variant="h2" gutterBottom color="primary">
           PLACES
         </Typography>
-        <Typography variant="h6" gutterBottom color="primary" sx={{mb: 3, textAlign: 'center'}}>
-          SAVE AND SHARE YOUR FAVORITE SPOTS<br />
-          IN A SIMPLEST WAY POSSIBLE
+        <Typography variant="h6" gutterBottom color="primary" sx={{
+          mb: 3,
+          textAlign: 'center',
+          maxWidth: {xs: '100%', sm: '420px'},
+          px: {xs: 2, sm: 0}
+        }}>
+          SAVE AND SHARE YOUR FAVORITE SPOTS IN A SIMPLEST WAY POSSIBLE
         </Typography>
         <Box
           sx={{
