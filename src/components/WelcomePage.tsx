@@ -368,31 +368,11 @@ const WelcomePage: React.FC = () => {
         <Typography variant="h2" gutterBottom color="primary">
           PLACES
         </Typography>
-        {/* Login Card */}
-        <Box sx={{mb: 3, textAlign: 'left'}}>
-          {[
-            {letter: 'P', lines: ['Pick a spot that you love', 'or just want to visit.']},
-            {letter: 'L', lines: ['Label it with an emoji', 'that captures its vibe.']},
-            {letter: 'A', lines: ['Add to favorites', 'or keep in \'want to go\'.']},
-            {letter: 'C', lines: ['Connect with friends', 'share your map with them.']},
-            {letter: 'E', lines: ['Explore and add more', 'to build your perfect map.']},
-            {letter: 'S', lines: ['Sign in to get started.']},
-          ].map(({letter, lines}) => (
-            <Box key={letter} sx={{display: 'flex', alignItems: 'flex-start', mb: 0.5}}>
-              <Typography variant="h2" component="span" sx={{minWidth: '1.2em', lineHeight: 1}}>
-                {letter}
-              </Typography>
-              <Box sx={{display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1}}>
-                {lines.map((line, idx) => (
-                  <Typography key={idx} variant="body2" sx={{lineHeight: 2, whiteSpace: 'nowrap'}}>
-                    {line}
-                  </Typography>
-                ))}
-                {letter === 'S' && <div id="firebaseui-auth-container"></div>}
-              </Box>
-            </Box>
-          ))}
-        </Box>
+        <Typography variant="h6" gutterBottom color="primary" sx={{mb: 3, textAlign: 'center'}}>
+          SAVE AND SHARE YOUR FAVORITE SPOTS<br />
+          IN A SIMPLEST WAY POSSIBLE
+        </Typography>
+        <div id="firebaseui-auth-container"></div>
       </Box>
     </Box>
     </>
