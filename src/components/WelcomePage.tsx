@@ -253,8 +253,8 @@ const WelcomePage: React.FC = () => {
       <GlobalStyles
         styles={{
           '.firebaseui-idp-button': {
-            width: '60px !important',
-            height: '60px !important',
+            width: '64px !important',
+            height: '64px !important',
             maxWidth: 'none !important',
             minHeight: 'auto !important',
             padding: '0 !important',
@@ -277,8 +277,9 @@ const WelcomePage: React.FC = () => {
             justifyContent: 'center !important',
           },
           '.firebaseui-idp-icon': {
-            width: '32px !important',
-            height: '32px !important',
+            width: '48px !important',
+            height: '48px !important',
+            filter: 'drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.2)) !important',
           },
           '#firebaseui-auth-container': {
             marginTop: '0 !important',
@@ -395,7 +396,23 @@ const WelcomePage: React.FC = () => {
           SAVE AND SHARE YOUR FAVORITE SPOTS<br />
           IN A SIMPLEST WAY POSSIBLE
         </Typography>
-        <div id="firebaseui-auth-container"></div>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: '1fr',
+            gridTemplateRows: '1fr',
+          }}
+        >
+          <Box
+            sx={{
+              gridColumn: 1,
+              gridRow: 1,
+              zIndex: 1,
+            }}
+          >
+            <div id="firebaseui-auth-container"></div>
+          </Box>
+        </Box>
       </Box>
     </Box>
     </>
