@@ -1,21 +1,21 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { GoogleAuthProvider } from 'firebase/auth';
-import { Box, Card, Typography } from '@mui/material';
+import React, {useEffect, useRef, useState} from 'react';
+import {GoogleAuthProvider} from 'firebase/auth';
+import {Box, Typography} from '@mui/material';
 import * as firebaseui from 'firebaseui';
 import 'firebaseui/dist/firebaseui.css';
-import { auth } from '../config/firebase';
-import { MapWrapper, Wrapper } from './MapComponent';
+import {auth} from '../config/firebase';
+import {MapWrapper, Wrapper} from './MapComponent';
 import {
   CAMERA_SPEED_LAT,
   CAMERA_UPDATE_INTERVAL,
-  EMOJI_SPAWN_INTERVAL,
   EMOJI_FADE_DURATION,
   EMOJI_FADE_IN_DURATION,
   EMOJI_SIZE,
-  EMOJI_SPAWN_LAT_MIN,
+  EMOJI_SPAWN_INTERVAL,
   EMOJI_SPAWN_LAT_MAX,
-  EMOJI_SPAWN_LNG_MIN,
+  EMOJI_SPAWN_LAT_MIN,
   EMOJI_SPAWN_LNG_MAX,
+  EMOJI_SPAWN_LNG_MIN,
   WELCOME_PAGE_EMOJIS,
 } from '../config/constants';
 
@@ -32,7 +32,7 @@ interface EmojiMarkersProps {
   emojis: FloatingEmoji[];
 }
 
-const EmojiMarkers: React.FC<EmojiMarkersProps> = ({ map, emojis }) => {
+const EmojiMarkers: React.FC<EmojiMarkersProps> = ({map, emojis}) => {
   const markersRef = useRef<Map<number, any>>(new Map());
 
   // Create/remove markers when emojis are added/removed
@@ -42,7 +42,7 @@ const EmojiMarkers: React.FC<EmojiMarkersProps> = ({ map, emojis }) => {
     const currentMarkers = markersRef.current;
 
     const updateMarkers = async () => {
-      const { AdvancedMarkerElement } = await (window as any).google.maps.importLibrary('marker') as any;
+      const {AdvancedMarkerElement} = await (window as any).google.maps.importLibrary('marker') as any;
       const emojiIds = new Set(emojis.map(e => e.id));
 
       // Remove markers for emojis that no longer exist
@@ -66,7 +66,7 @@ const EmojiMarkers: React.FC<EmojiMarkersProps> = ({ map, emojis }) => {
 
           const marker = new AdvancedMarkerElement({
             map,
-            position: { lat: emoji.lat, lng: emoji.lng },
+            position: {lat: emoji.lat, lng: emoji.lng},
             content,
             zIndex: 0,
           });
@@ -93,7 +93,7 @@ const EmojiMarkers: React.FC<EmojiMarkersProps> = ({ map, emojis }) => {
 };
 
 const WelcomePage: React.FC = () => {
-  const [mapCenter, setMapCenter] = useState({ lat: 37.7749, lng: -122.4194 });
+  const [mapCenter, setMapCenter] = useState({lat: 37.7749, lng: -122.4194});
   const mapRef = useRef<any>(null);
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const emojiIdCounter = useRef(0);
@@ -113,6 +113,8 @@ const WelcomePage: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (!auth) return;
+
     const ui = firebaseui.auth.AuthUI.getInstance() || new firebaseui.auth.AuthUI(auth);
 
     const uiConfig: firebaseui.auth.Config = {
@@ -179,13 +181,13 @@ const WelcomePage: React.FC = () => {
                 opacity = Math.min(1, emoji.opacity + fadeInIncrement);
               }
 
-              return { ...emoji, opacity };
+              return {...emoji, opacity};
             })
             // Remove emojis that are outside expanded bounds
             .filter(emoji => {
               const margin = latRange * 0.2; // 20% margin outside visible area
               return emoji.lat > sw.lat() - margin && emoji.lat < ne.lat() + margin &&
-                     emoji.lng > sw.lng() - margin && emoji.lng < ne.lng() + margin;
+                emoji.lng > sw.lng() - margin && emoji.lng < ne.lng() + margin;
             });
         });
       }
@@ -283,9 +285,11 @@ const WelcomePage: React.FC = () => {
             mapId="8af90efb7301ef1d8d294cee"
             tilt={40}
             disableDefaultUI={true}
-            onMapReady={(map) => { mapRef.current = map; }}
+            onMapReady={(map) => {
+              mapRef.current = map;
+            }}
           >
-            <EmojiMarkers map={mapRef.current} emojis={floatingEmojis} />
+            <EmojiMarkers map={mapRef.current} emojis={floatingEmojis}/>
           </MapWrapper>
         </Wrapper>
       </Box>
@@ -326,33 +330,30 @@ const WelcomePage: React.FC = () => {
           PLACES
         </Typography>
         {/* Login Card */}
-        <Card
-          sx={{
-            p: 5,
-            maxWidth: 400,
-            width: '90%',
-            textAlign: 'center',
-            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
-          }}
-        >
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6, textAlign: 'left' }}>
-            <Typography variant="h2" component="span">P</Typography>Pick a spot using search<br />
-            that you want to visit or already love.<br />
-            <Typography variant="h2" component="span">L</Typography>Label it with an emoji<br />
-            that captures its vibe.<br />
-            <Typography variant="h2" component="span">A</Typography>Add to favorites<br />
-            or keep in 'want to go'.<br />
-            <Typography variant="h2" component="span">C</Typography>Connect with friends<br />
-            share your map with them.<br />
-            <Typography variant="h2" component="span">E</Typography>Explore and add more<br />
-            to build your perfect map.<br />
-            <Typography variant="h2" component="span">S</Typography>Sign in to get started.
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-            Sign in to continue
-          </Typography>
-          <div id="firebaseui-auth-container"></div>
-        </Card>
+        <Box sx={{mb: 3, textAlign: 'left'}}>
+          {[
+            {letter: 'P', lines: ['Pick a spot that you love', 'or just want to visit.']},
+            {letter: 'L', lines: ['Label it with an emoji', 'that captures its vibe.']},
+            {letter: 'A', lines: ['Add to favorites', 'or keep in \'want to go\'.']},
+            {letter: 'C', lines: ['Connect with friends', 'share your map with them.']},
+            {letter: 'E', lines: ['Explore and add more', 'to build your perfect map.']},
+            {letter: 'S', lines: ['Sign in to get started.']},
+          ].map(({letter, lines}) => (
+            <Box key={letter} sx={{display: 'flex', alignItems: 'flex-start', mb: 0.5}}>
+              <Typography variant="h2" component="span" sx={{minWidth: '1.2em', lineHeight: 1}}>
+                {letter}
+              </Typography>
+              <Box sx={{display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1}}>
+                {lines.map((line, idx) => (
+                  <Typography key={idx} variant="body2" sx={{lineHeight: 2, whiteSpace: 'nowrap'}}>
+                    {line}
+                  </Typography>
+                ))}
+                {letter === 'S' && <div id="firebaseui-auth-container"></div>}
+              </Box>
+            </Box>
+          ))}
+        </Box>
       </Box>
     </Box>
   );
