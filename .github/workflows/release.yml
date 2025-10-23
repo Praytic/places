@@ -43,6 +43,17 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Install markdown-to-html-cli
+        run: npm install -g markdown-to-html-cli
+
+      - name: Create policies output directory
+        run: mkdir -p build/policies
+
+      - name: Convert policies to HTML
+        run: |
+          npx markdown-to-html-cli policies/privacy-policy.md --output build/policies/privacy-policy.html --no-dark-mode --title "Praytic Privacy Statement"
+          npx markdown-to-html-cli policies/terms-of-service.md --output build/policies/terms-of-service.html --no-dark-mode --title "Praytic Terms of Service"
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
