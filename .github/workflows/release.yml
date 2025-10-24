@@ -55,5 +55,4 @@ jobs:
           path: 'build'
           destination: 'places-bucket-e721ffe'
           parent: false
-          glob: '**/*'
           process_gcloudignore: false
