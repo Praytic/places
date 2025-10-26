@@ -67,47 +67,45 @@ export const createCurrentLocationMarker = (): HTMLElement => {
           @keyframes ${uniqueId}-pulse1 {
             0% {
               opacity: 0;
-              transform: scale(0);
+              r: 0;
             }
             30% {
               opacity: 1;
-              transform: scale(1.5);
+              r: 9;
             }
             60% {
               opacity: 1;
-              transform: scale(2);
+              r: 12;
             }
             100% {
               opacity: 0;
-              transform: scale(2);
+              r: 12;
             }
           }
           @keyframes ${uniqueId}-pulse2 {
             0% {
-              transform: scale(1, 1);
+              r: 6;
               opacity: 0;
             }
             50% {
               opacity: 1;
             }
             100% {
-              transform: scale(6, 6);
+              r: 36;
               opacity: 0;
             }
           }
           .${uniqueId}-core {
             fill: #ff4f81;
             animation: ${uniqueId}-pulse1 1.5s ease-in-out infinite;
-            transform-origin: center;
           }
           .${uniqueId}-radar {
             fill: rgba(255, 79, 129, 0.5);
             animation: ${uniqueId}-pulse2 1.5s ease-in-out infinite;
-            transform-origin: center;
           }
         </style>
       </defs>
-      <g transform="translate(0, 0)">
+      <g>
         <circle id="${uniqueId}-core" class="${uniqueId}-core" cx="0" cy="0" r="6"/>
         <circle id="${uniqueId}-radar" class="${uniqueId}-radar" cx="0" cy="0" r="6"/>
       </g>
