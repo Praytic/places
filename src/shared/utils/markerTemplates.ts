@@ -10,8 +10,8 @@
 export const createRegularMarker = (emoji: string): HTMLElement => {
   const content = document.createElement('div');
   content.innerHTML = `
-    <svg width="32" height="32" viewBox="-16 -26 32 32" xmlns="http://www.w3.org/2000/svg" style="display: block; width: 32px; height: 32px; transform-origin: center; position: relative;">
-      <text x="0" y="-4" text-anchor="middle" font-size="24">${emoji}</text>
+    <svg width="32" height="32" viewBox="-16 -16 32 32" xmlns="http://www.w3.org/2000/svg" style="display: block; width: 32px; height: 32px; transform-origin: center; position: relative;">
+      <text x="0" y="6" text-anchor="middle" font-size="24">${emoji}</text>
     </svg>
   `;
   content.style.cursor = 'pointer';
@@ -26,7 +26,7 @@ export const createRegularMarker = (emoji: string): HTMLElement => {
 export const createSelectedMarker = (emoji: string): HTMLElement => {
   const content = document.createElement('div');
   content.innerHTML = `
-    <svg width="48" height="48" viewBox="-24 -38 48 48" xmlns="http://www.w3.org/2000/svg" overflow="visible" style="display: block; width: 48px; height: 48px; transform-origin: center; position: relative;">
+    <svg width="48" height="48" viewBox="-24 -24 48 48" xmlns="http://www.w3.org/2000/svg" overflow="visible" style="display: block; width: 48px; height: 48px; transform-origin: center; position: relative;">
       <defs>
         <filter id="glow-selected" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
@@ -41,11 +41,11 @@ export const createSelectedMarker = (emoji: string): HTMLElement => {
         </filter>
       </defs>
       <!-- Outer white border ring -->
-      <circle cx="0" cy="-10" r="20" fill="white" filter="url(#glow-selected)"/>
+      <circle cx="0" cy="0" r="20" fill="white" filter="url(#glow-selected)"/>
       <!-- Colored inner circle -->
-      <circle cx="0" cy="-10" r="16" fill="#ededed"/>
+      <circle cx="0" cy="0" r="16" fill="#ededed"/>
       <!-- Emoji -->
-      <text x="0" y="0" text-anchor="middle" font-size="24">${emoji}</text>
+      <text x="0" y="10" text-anchor="middle" font-size="24">${emoji}</text>
     </svg>
   `;
   content.style.cursor = 'pointer';
