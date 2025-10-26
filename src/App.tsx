@@ -5,6 +5,7 @@ import ControlPanel from './components/ControlPanel';
 import PlaceSearch from './components/PlaceSearch';
 import ManageMapDialog from './components/ManageMapDialog';
 import ManageViewDialog from './components/ManageViewDialog';
+import AccountMenu from './components/AccountMenu';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { AuthProvider, MapsProvider, PlacesProvider, useAuthContext, useMapsContext, usePlacesContext } from './providers';
 import { useEmojiPicker } from './shared/hooks';
@@ -34,6 +35,7 @@ const AppContent: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<Location | null>(null);
   const infoWindowRef = React.useRef<any>(null);
+  const mapRef = React.useRef<any>(null);
 
   const { showEmojiPicker, emojiPickerPlace, openEmojiPicker, closeEmojiPicker } = useEmojiPicker();
 
@@ -220,6 +222,15 @@ const AppContent: React.FC = () => {
     }
   }, []);
 
+  const handleLocationRequest = useCallback((location: Location) => {
+    setMapCenter(location);
+    // Force the map to re-center
+    if (mapRef.current) {
+      mapRef.current.setCenter(location);
+      mapRef.current.setZoom(15);
+    }
+  }, []);
+
   // Create selectableAccessMaps for PlaceSearch
   const selectableAccessMaps = useMemo<SelectableAccessMap[]>(() => {
     const allAccessMaps = [
@@ -234,6 +245,8 @@ const AppContent: React.FC = () => {
       <Backdrop open={loading} sx={{ color: '#fff', zIndex: 3000 }}>
         <CircularProgress color="inherit" />
       </Backdrop>
+
+      {user && <AccountMenu user={user} onLocationRequest={handleLocationRequest} />}
 
       {error && (
         <Alert
@@ -264,7 +277,7 @@ const AppContent: React.FC = () => {
             activeFilters={activeFilters as any}
             onInfoWindowRefUpdate={handleInfoWindowRefUpdate}
             center={mapCenter as any}
-            onMapReady={undefined}
+            onMapReady={(map: any) => { mapRef.current = map; }}
             visibleMapIds={visibleMapIds as any}
             onMapVisibilityToggle={handleMapVisibilityToggle}
             showSearch={showSearch}

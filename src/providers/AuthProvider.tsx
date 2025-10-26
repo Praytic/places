@@ -2,7 +2,6 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import { User } from 'firebase/auth';
 import { Box, CircularProgress } from '@mui/material';
 import { useAuth as useAuthHook } from '../features/auth/hooks';
-import AccountMenu from '../components/AccountMenu';
 import WelcomePage from '../components/WelcomePage';
 
 /**
@@ -96,7 +95,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      <AccountMenu user={user} />
       {children}
     </AuthContext.Provider>
   );
