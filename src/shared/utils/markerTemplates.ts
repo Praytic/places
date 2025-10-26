@@ -53,7 +53,7 @@ export const createSelectedMarker = (emoji: string): HTMLElement => {
 };
 
 /**
- * Creates a current location marker with pulsating blue dot animation
+ * Creates a current location marker with pulsating pink dot animation
  * @returns The current location marker SVG element
  */
 export const createCurrentLocationMarker = (): HTMLElement => {
@@ -64,45 +64,53 @@ export const createCurrentLocationMarker = (): HTMLElement => {
     <svg width="60" height="60" viewBox="-30 -30 60 60" xmlns="http://www.w3.org/2000/svg" overflow="visible" style="display: block; width: 60px; height: 60px; transform-origin: center; position: relative;">
       <defs>
         <style>
-          @keyframes ${uniqueId}-pulse-wave {
+          @keyframes ${uniqueId}-pulse1 {
             0% {
-              r: 6;
-              opacity: 0.8;
+              opacity: 0;
+              transform: scale(0);
+            }
+            30% {
+              opacity: 1;
+              transform: scale(1.5);
+            }
+            60% {
+              opacity: 1;
+              transform: scale(2);
             }
             100% {
-              r: 24;
+              opacity: 0;
+              transform: scale(2);
+            }
+          }
+          @keyframes ${uniqueId}-pulse2 {
+            0% {
+              transform: scale(1, 1);
+              opacity: 0;
+            }
+            50% {
+              opacity: 1;
+            }
+            100% {
+              transform: scale(6, 6);
               opacity: 0;
             }
           }
-          .${uniqueId}-pulse-ring {
-            fill: none;
-            stroke: #4285F4;
-            stroke-width: 2;
-            animation: ${uniqueId}-pulse-wave 2s ease-out infinite;
+          .${uniqueId}-core {
+            fill: #ff4f81;
+            animation: ${uniqueId}-pulse1 1.5s ease-in-out infinite;
+            transform-origin: center;
           }
-          .${uniqueId}-pulse-ring-1 {
-            animation-delay: 0s;
-          }
-          .${uniqueId}-pulse-ring-2 {
-            animation-delay: 0.5s;
-          }
-          .${uniqueId}-pulse-ring-3 {
-            animation-delay: 1s;
-          }
-          .${uniqueId}-pulse-ring-4 {
-            animation-delay: 1.5s;
+          .${uniqueId}-radar {
+            fill: rgba(255, 79, 129, 0.5);
+            animation: ${uniqueId}-pulse2 1.5s ease-in-out infinite;
+            transform-origin: center;
           }
         </style>
       </defs>
-      <!-- Pulsating rings -->
-      <circle cx="0" cy="0" r="6" class="${uniqueId}-pulse-ring ${uniqueId}-pulse-ring-1"/>
-      <circle cx="0" cy="0" r="6" class="${uniqueId}-pulse-ring ${uniqueId}-pulse-ring-2"/>
-      <circle cx="0" cy="0" r="6" class="${uniqueId}-pulse-ring ${uniqueId}-pulse-ring-3"/>
-      <circle cx="0" cy="0" r="6" class="${uniqueId}-pulse-ring ${uniqueId}-pulse-ring-4"/>
-      <!-- Outer white circle -->
-      <circle cx="0" cy="0" r="8" fill="white"/>
-      <!-- Inner blue dot -->
-      <circle cx="0" cy="0" r="6" fill="#4285F4"/>
+      <g transform="translate(0, 0)">
+        <circle id="${uniqueId}-core" class="${uniqueId}-core" cx="0" cy="0" r="6"/>
+        <circle id="${uniqueId}-radar" class="${uniqueId}-radar" cx="0" cy="0" r="6"/>
+      </g>
     </svg>
   `;
 
