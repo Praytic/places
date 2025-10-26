@@ -285,6 +285,7 @@ const AppContent: React.FC = () => {
             accessMaps={accessMaps}
             onMapCreated={handleMapCreate}
             onMapEdit={handleMapEdit}
+            currentLocation={mapCenter}
           />
         </ErrorBoundary>
       </Box>

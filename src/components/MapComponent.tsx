@@ -1,6 +1,6 @@
 import React, {useRef, useEffect, useState, useMemo} from 'react';
 import { Wrapper } from '@googlemaps/react-wrapper';
-import { createRegularMarker, createSelectedMarker } from '../shared/utils/markerTemplates';
+import { createRegularMarker, createSelectedMarker, createCurrentLocationMarker } from '../shared/utils/markerTemplates';
 import { createInfoWindow } from '../shared/utils/infoWindow';
 import { createCustomEqual } from 'fast-equals';
 import { isLatLngLiteral } from '@googlemaps/typescript-guards';
@@ -297,6 +297,50 @@ const Markers: React.FC<MarkersProps> = ({
   return null;
 };
 
+interface CurrentLocationMarkerProps {
+  map?: any;
+  currentLocation?: Location | null;
+}
+
+const CurrentLocationMarker: React.FC<CurrentLocationMarkerProps> = ({ map, currentLocation }) => {
+  const markerRef = useRef<any | null>(null);
+
+  useEffect(() => {
+    if (!map || !currentLocation) return;
+
+    const updateMarker = async () => {
+      const { AdvancedMarkerElement } = await (window as any).google.maps.importLibrary('marker') as any;
+
+      // Remove existing marker if location changes
+      if (markerRef.current) {
+        markerRef.current.setMap(null);
+      }
+
+      // Create new marker
+      const content = createCurrentLocationMarker();
+      const marker = new AdvancedMarkerElement({
+        map,
+        position: currentLocation,
+        content,
+        title: 'Your current location',
+        zIndex: 500, // Lower than selected markers but higher than regular markers
+      });
+
+      markerRef.current = marker;
+    };
+
+    updateMarker();
+
+    return () => {
+      if (markerRef.current) {
+        markerRef.current.setMap(null);
+      }
+    };
+  }, [map, currentLocation]);
+
+  return null;
+};
+
 interface MapComponentProps {
   places: Place[];
   selectedPlace: Place | null;
@@ -316,6 +360,7 @@ interface MapComponentProps {
   onMapCreated?: () => void;
   onMapEdit?: (map: AccessMap) => void;
   accessMaps?: Map<string, AccessMap>;
+  currentLocation?: Location | null;
 }
 
 const MapComponent: React.FC<MapComponentProps> = ({
@@ -336,7 +381,8 @@ const MapComponent: React.FC<MapComponentProps> = ({
   userEmail,
   onMapCreated,
   onMapEdit,
-  accessMaps = new Map<string, AccessMap>()
+  accessMaps = new Map<string, AccessMap>(),
+  currentLocation = null,
 }) => {
   const center: Location = propCenter ?? { lat: 37.7749, lng: -122.4194 };
   const [zoom] = useState(13);
@@ -385,6 +431,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
         gestureHandling={'greedy'}
         mapId={process.env['REACT_APP_GOOGLE_MAP_ID'] || 'DEMO_MAP_ID'}
       >
+        <CurrentLocationMarker currentLocation={currentLocation} />
         <Markers
           places={places}
           selectedPlace={selectedPlace}
