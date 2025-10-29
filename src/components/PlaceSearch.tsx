@@ -28,6 +28,7 @@ interface PlaceSearchProps {
   selectableAccessMaps: SelectableAccessMap[];
   existingPlaces: Place[];
   onMapToggle?: (mapId: string) => void;
+  coordinates?: { lat: number; lng: number } | null;
 }
 
 const PlaceSearch: React.FC<PlaceSearchProps> = ({
@@ -36,12 +37,24 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
                                                    selectableAccessMaps = [],
                                                    existingPlaces = [],
                                                    onMapToggle,
+                                                   coordinates = null,
                                                  }) => {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([]);
   const [showSearching, setShowSearching] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [placeCreation, setPlaceCreation] = useState<Pick<Place, 'placeId' | 'name' | 'geometry' | 'types' | 'formattedAddress' | 'group'> | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(coordinates !== null);
+  const [showNameInput, setShowNameInput] = useState(coordinates !== null);
+  const [placeName, setPlaceName] = useState('');
+  const [placeCreation, setPlaceCreation] = useState<Pick<Place, 'placeId' | 'name' | 'geometry' | 'types' | 'formattedAddress' | 'group'> | null>(
+    coordinates ? {
+      placeId: `custom_${Date.now()}`,
+      name: '',
+      geometry: { location: coordinates },
+      types: [],
+      formattedAddress: null,
+      group: 'want to go'
+    } : null
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const searchingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -135,6 +148,9 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
   const handleEmojiSelect = async (emojiObject: EmojiClickData) => {
     const selectedMapOrViewChipProps = selectableAccessMaps.filter(p => p.selected);
     if (placeCreation && selectedMapOrViewChipProps.length > 0) {
+      // Update place name if we're in coordinate mode
+      const finalPlaceCreation = coordinates ? { ...placeCreation, name: placeName } : placeCreation;
+
       // Create the place on each visible/selected map or view (with edit access)
       for (const mapOrViewChip of selectedMapOrViewChipProps) {
         // MapView has 'mapId' property, UserMap has 'id'
@@ -151,7 +167,7 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
         }
 
         if (mapId) {
-          const newPlace = {...placeCreation, mapId, emoji: emojiObject.emoji};
+          const newPlace = {...finalPlaceCreation, mapId, emoji: emojiObject.emoji};
           await onPlaceCreate(newPlace);
         }
       }
@@ -162,7 +178,17 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
 
   const handleEmojiCancel = () => {
     setShowEmojiPicker(false);
+    setShowNameInput(false);
     setPlaceCreation(null);
+    setPlaceName('');
+  };
+
+  const handleNameSubmit = () => {
+    if (placeName.trim()) {
+      // Name is entered, show emoji picker
+      setShowNameInput(false);
+      setShowEmojiPicker(true);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -190,8 +216,61 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
           }}
         />
       )}
+
+      {/* Name Input Dialog for coordinate-based places */}
+      {showNameInput && coordinates && (
+        <Dialog
+          open={showNameInput}
+          onClose={onClose}
+          maxWidth="sm"
+          fullWidth
+          slotProps={{
+            paper: {
+              sx: {
+                position: 'fixed',
+                top: '33%',
+                m: 0,
+                maxHeight: '80vh',
+              }
+            }
+          }}
+        >
+          <Box sx={{p: 2, display: 'flex', alignItems: 'center', gap: 2, borderBottom: 1, borderColor: 'divider'}}>
+            <TextField
+              inputRef={inputRef}
+              fullWidth
+              variant="standard"
+              value={placeName}
+              onChange={(e) => setPlaceName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleNameSubmit();
+                } else if (e.key === 'Escape') {
+                  onClose();
+                }
+              }}
+              placeholder="Enter place name..."
+              slotProps={{
+                input: {
+                  disableUnderline: true,
+                }
+              }}
+            />
+            <IconButton onClick={onClose} size="small">
+              <CloseIcon/>
+            </IconButton>
+          </Box>
+          <DialogContent sx={{p: 2}}>
+            <Typography variant="body2" color="text.secondary">
+              Coordinates: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+            </Typography>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Place Search Dialog */}
       <Dialog
-        open={!showEmojiPicker}
+        open={!showEmojiPicker && !showNameInput}
         onClose={onClose}
         maxWidth="sm"
         fullWidth
@@ -266,6 +345,7 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
         </DialogContent>
       </Dialog>
 
+      {/* Emoji Picker Dialog */}
       <Dialog
         open={showEmojiPicker && !!placeCreation}
         onClose={handleEmojiCancel}
