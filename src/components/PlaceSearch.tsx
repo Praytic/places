@@ -177,10 +177,16 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
   };
 
   const handleEmojiCancel = () => {
-    setShowEmojiPicker(false);
-    setShowNameInput(false);
-    setPlaceCreation(null);
-    setPlaceName('');
+    if (coordinates) {
+      // In coordinate mode (custom point), close the entire component
+      onClose();
+    } else {
+      // In search mode, go back to the search dialog
+      setShowEmojiPicker(false);
+      setShowNameInput(false);
+      setPlaceCreation(null);
+      setPlaceName('');
+    }
   };
 
   const handleNameSubmit = () => {
@@ -270,7 +276,7 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
 
       {/* Place Search Dialog */}
       <Dialog
-        open={!showEmojiPicker && !showNameInput}
+        open={!showEmojiPicker && !showNameInput && !coordinates}
         onClose={onClose}
         maxWidth="sm"
         fullWidth
