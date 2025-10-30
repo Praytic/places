@@ -1,38 +1,55 @@
-import React, {useRef, useEffect, useState, useMemo} from 'react';
+import type React from 'react';
+import {useRef, useEffect, useState, useMemo} from 'react';
 import { Wrapper } from '@googlemaps/react-wrapper';
 import { createRegularMarker, createSelectedMarker, createCurrentLocationMarker } from '../shared/utils/markerTemplates';
 import { createInfoWindow } from '../shared/utils/infoWindow';
+import type { EqualityComparator } from 'fast-equals';
 import { createCustomEqual } from 'fast-equals';
 import { isLatLngLiteral } from '@googlemaps/typescript-guards';
 import MapChips from './MapChips';
-import {AccessMap, Location, Place, PlaceGroup, SelectableAccessMap, UserRole} from "../shared/types";
+import type {AccessMap, Location, Place, PlaceGroup, SelectableAccessMap} from "../shared/types";
+import {UserRole} from "../shared/types";
+import type {
+  GoogleMap,
+  GoogleLatLng,
+  GoogleLatLngLiteral,
+  MapClickEvent,
+  MapLongPressEvent,
+  GoogleAdvancedMarkerElement,
+  MarkerLibrary,
+  WindowWithGoogleMaps,
+  MarkerWithPlaceData
+} from "../shared/types";
 
-const deepCompareEqualsForMaps = createCustomEqual({
+const deepCompareEqualsForMaps = createCustomEqual<EqualityComparator>({
   createCustomConfig: () => ({
-    areObjectsEqual: (a: any, b: any) => {
-      const googleMaps = (window as any).google?.maps;
+    areObjectsEqual: (a: unknown, b: unknown) => {
+      const windowWithGoogle = window as WindowWithGoogleMaps;
+      const googleMaps = windowWithGoogle.google?.maps;
       if (googleMaps && (
         isLatLngLiteral(a) ||
         a instanceof googleMaps.LatLng ||
         isLatLngLiteral(b) ||
         b instanceof googleMaps.LatLng
       )) {
-        return new googleMaps.LatLng(a).equals(new googleMaps.LatLng(b));
+        return new googleMaps.LatLng(a as GoogleLatLng | GoogleLatLngLiteral).equals(
+          new googleMaps.LatLng(b as GoogleLatLng | GoogleLatLngLiteral)
+        );
       }
       return undefined;
     }
   })
 });
 
-function useDeepCompareMemoize(value: any) {
-  const ref = useRef<any>(undefined);
+function useDeepCompareMemoize<T>(value: T): T {
+  const ref = useRef<T>(undefined as T);
   if (!deepCompareEqualsForMaps(value, ref.current)) {
     ref.current = value;
   }
   return ref.current;
 }
 
-function useDeepCompareEffectForMaps(callback: React.EffectCallback, dependencies: any[]) {
+function useDeepCompareEffectForMaps(callback: React.EffectCallback, dependencies: unknown[]) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(callback, dependencies.map(useDeepCompareMemoize));
 }
@@ -40,12 +57,12 @@ function useDeepCompareEffectForMaps(callback: React.EffectCallback, dependencie
 interface MapWrapperProps {
   center?: Location;
   zoom?: number;
-  onClick?: (e: any) => void;
-  onLongPressOrRightClick?: (e: any) => void;
-  onIdle?: (map: any) => void;
+  onClick?: (e: MapClickEvent) => void;
+  onLongPressOrRightClick?: (e: MapLongPressEvent) => void;
+  onIdle?: (map: GoogleMap) => void;
   children?: React.ReactNode;
   sx?: React.CSSProperties;
-  onMapReady?: (map: any) => void;
+  onMapReady?: (map: GoogleMap) => void;
   mapTypeControl?: boolean;
   streetViewControl?: boolean;
   fullscreenControl?: boolean;
@@ -57,12 +74,13 @@ interface MapWrapperProps {
 
 const MapWrapper: React.FC<MapWrapperProps> = ({ onClick, onLongPressOrRightClick, onIdle, children, sx, onMapReady, center, zoom, ...options }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const [map, setMap] = useState<any>();
+  const [map, setMap] = useState<GoogleMap | null>(null);
   const initialCenterSetRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (ref.current && !map) {
-      const newMap = new (window as any).google.maps.Map(ref.current, {
+      const windowWithGoogle = window as WindowWithGoogleMaps;
+      const newMap = new windowWithGoogle.google.maps.Map(ref.current, {
         center,
         zoom,
       });
@@ -90,8 +108,9 @@ const MapWrapper: React.FC<MapWrapperProps> = ({ onClick, onLongPressOrRightClic
 
   useEffect(() => {
     if (map) {
+      const windowWithGoogle = window as WindowWithGoogleMaps;
       ['click', 'idle', 'contextmenu', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'touchmove'].forEach((eventName) =>
-        (window as any).google.maps.event.clearListeners(map, eventName)
+        windowWithGoogle.google.maps.event.clearListeners(map, eventName)
       );
 
       if (onClick) {
@@ -100,16 +119,16 @@ const MapWrapper: React.FC<MapWrapperProps> = ({ onClick, onLongPressOrRightClic
 
       if (onLongPressOrRightClick) {
         // Handle right-click (desktop)
-        map.addListener('contextmenu', (e: any) => {
+        map.addListener('contextmenu', (e: MapClickEvent) => {
           e.stop(); // Prevent default context menu
-          onLongPressOrRightClick(e);
+          onLongPressOrRightClick({ latLng: e.latLng });
         });
 
         // Handle long-press (mobile)
         let longPressTimer: NodeJS.Timeout | null = null;
-        let startLatLng: any = null;
+        let startLatLng: GoogleLatLng | null = null;
 
-        const handleTouchStart = (e: any) => {
+        const handleTouchStart = (e: MapClickEvent) => {
           startLatLng = e.latLng;
 
           longPressTimer = setTimeout(() => {
@@ -154,7 +173,7 @@ const MapWrapper: React.FC<MapWrapperProps> = ({ onClick, onLongPressOrRightClic
       <div ref={ref} style={{ width: '100%', height: '100%', ...sx }} />
       {React.Children.map(children, (child) => {
         if (React.isValidElement(child)) {
-          return React.cloneElement(child as React.ReactElement<any>, { map });
+          return React.cloneElement(child as React.ReactElement<{ map?: GoogleMap }>, { map: map ?? undefined });
         }
         return null;
       })}
@@ -163,7 +182,7 @@ const MapWrapper: React.FC<MapWrapperProps> = ({ onClick, onLongPressOrRightClic
 };
 
 interface MarkersProps {
-  map?: any;
+  map?: GoogleMap;
   places: Place[];
   selectedPlace: Place | null;
   onPlaceSelect: (place: Place | null) => void;
@@ -171,7 +190,7 @@ interface MarkersProps {
   onEmojiChangeRequest: (place: Place) => void;
   onChangeGroup: (place: Place, newGroup: PlaceGroup) => Promise<void>;
   onRemovePlace: (place: Place) => Promise<void>;
-  onInfoWindowRefUpdate?: (ref: React.MutableRefObject<any | null>) => void;
+  onInfoWindowRefUpdate?: (ref: React.MutableRefObject<google.maps.InfoWindow | null>) => void;
   accessMaps?: Map<string, AccessMap>;
 }
 
@@ -187,8 +206,8 @@ const Markers: React.FC<MarkersProps> = ({
   onInfoWindowRefUpdate,
   accessMaps = new Map<string, AccessMap>()
 }) => {
-  const markersRef = useRef<Map<string, any>>(new Map()); // Map of placeId -> marker
-  const infoWindowRef = useRef<any | null>(null);
+  const markersRef = useRef<Map<string, MarkerWithPlaceData>>(new Map()); // Map of placeId -> marker
+  const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const onPlaceSelectRef = useRef(onPlaceSelect);
   const onEmojiChangeRequestRef = useRef(onEmojiChangeRequest);
   const onChangeGroupRef = useRef(onChangeGroup);
@@ -215,7 +234,8 @@ const Markers: React.FC<MarkersProps> = ({
     const currentMarkers = markersRef.current;
 
     const updateMarkers = async () => {
-      const { AdvancedMarkerElement } = await (window as any).google.maps.importLibrary('marker') as any;
+      const windowWithGoogle = window as WindowWithGoogleMaps;
+      const { AdvancedMarkerElement } = await windowWithGoogle.google.maps.importLibrary('marker') as MarkerLibrary;
       const placeIds = new Set(places.map(p => p.id));
 
       // Remove markers for places that no longer exist
@@ -240,14 +260,14 @@ const Markers: React.FC<MarkersProps> = ({
             content,
             title: place.name,
             zIndex: 1,
-          });
+          }) as MarkerWithPlaceData;
 
           marker.addListener('click', () => {
             if (infoWindowRef.current) {
               infoWindowRef.current.close();
             }
 
-            const currentPlace = (marker as any).placeData;
+            const currentPlace = marker.placeData!;
             const accessMap = accessMaps.get(currentPlace.mapId);
             const userRole = accessMap ? ('role' in accessMap ? accessMap.role : UserRole.EDIT) : UserRole.VIEW;
 
@@ -271,7 +291,7 @@ const Markers: React.FC<MarkersProps> = ({
             onPlaceSelectRef.current(currentPlace);
           });
 
-          (marker as any).placeData = place;
+          marker.placeData = place;
           currentMarkers.set(place.id, marker);
         }
       });
@@ -284,14 +304,14 @@ const Markers: React.FC<MarkersProps> = ({
   useEffect(() => {
     places.forEach(place => {
       const marker = markersRef.current.get(place.id);
-      if (marker) {
+      if (marker && marker.placeData) {
         // Update emoji if changed
-        if ((marker as any).placeData.emoji !== place.emoji) {
+        if (marker.placeData.emoji !== place.emoji) {
           const emoji = place.emoji || '📍';
           marker.content = createRegularMarker(emoji);
         }
         // Always update placeData to keep it in sync
-        (marker as any).placeData = place;
+        marker.placeData = place;
       }
     });
   }, [places]);
@@ -317,7 +337,7 @@ const Markers: React.FC<MarkersProps> = ({
     }
 
     markersRef.current.forEach(marker => {
-      const emoji = (marker as any).placeData.emoji || '📍';
+      const emoji = marker.placeData?.emoji || '📍';
       marker.content = createRegularMarker(emoji);
       marker.zIndex = 1;
     });
@@ -325,9 +345,9 @@ const Markers: React.FC<MarkersProps> = ({
     if (!selectedPlace) return;
 
     // Find the selected marker
-    let selectedMarker = null;
+    let selectedMarker: MarkerWithPlaceData | null = null;
     for (const marker of markersRef.current.values()) {
-      if ((marker as any).placeData?.id === selectedPlace.id) {
+      if (marker.placeData?.id === selectedPlace.id) {
         selectedMarker = marker;
         break;
       }
@@ -344,18 +364,19 @@ const Markers: React.FC<MarkersProps> = ({
 };
 
 interface CurrentLocationMarkerProps {
-  map?: any;
+  map?: GoogleMap;
   currentLocation?: Location | null;
 }
 
 const CurrentLocationMarker: React.FC<CurrentLocationMarkerProps> = ({ map, currentLocation }) => {
-  const markerRef = useRef<any | null>(null);
+  const markerRef = useRef<GoogleAdvancedMarkerElement | null>(null);
 
   useEffect(() => {
     if (!map || !currentLocation) return;
 
     const updateMarker = async () => {
-      const { AdvancedMarkerElement } = await (window as any).google.maps.importLibrary('marker') as any;
+      const windowWithGoogle = window as WindowWithGoogleMaps;
+      const { AdvancedMarkerElement } = await windowWithGoogle.google.maps.importLibrary('marker') as MarkerLibrary;
 
       // Remove existing marker if location changes
       if (markerRef.current) {
@@ -391,15 +412,15 @@ interface MapComponentProps {
   places: Place[];
   selectedPlace: Place | null;
   onPlaceSelect: (place: Place | null) => void;
-  onMapClick?: (latLng: any) => void;
-  onMapLongPressOrRightClick?: (latLng: any) => void;
+  onMapClick?: (latLng: GoogleLatLng) => void;
+  onMapLongPressOrRightClick?: (latLng: GoogleLatLng) => void;
   onEmojiChangeRequest: (place: Place) => void;
   onChangeGroup: (place: Place, newGroup: PlaceGroup) => Promise<void>;
   onRemovePlace: (place: Place) => Promise<void>;
   activeFilters: Set<PlaceGroup>;
-  onInfoWindowRefUpdate?: (ref: React.MutableRefObject<any | null>) => void;
+  onInfoWindowRefUpdate?: (ref: React.MutableRefObject<google.maps.InfoWindow | null>) => void;
   center?: Location;
-  onMapReady?: (map: any) => void;
+  onMapReady?: (map: GoogleMap) => void;
   visibleMapIds?: Set<string>;
   onMapVisibilityToggle?: (mapId: string) => void;
   showSearch?: boolean;
@@ -434,7 +455,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
 }) => {
   const center: Location = propCenter ?? { lat: 37.7749, lng: -122.4194 };
   const [zoom] = useState(13);
-  const mapRef = useRef<any | null>(null);
+  const mapRef = useRef<GoogleMap | null>(null);
 
   // Convert accessMaps and visibleMapIds to SelectableAccessMap[]
   const selectableAccessMaps = useMemo((): SelectableAccessMap[] => {
@@ -447,19 +468,19 @@ const MapComponent: React.FC<MapComponentProps> = ({
     });
   }, [accessMaps, visibleMapIds]);
 
-  const onClick = (e: any) => {
+  const onClick = (e: MapClickEvent) => {
     if (onMapClick && e.latLng) {
       onMapClick(e.latLng);
     }
   };
 
-  const onLongPressOrRightClick = (e: any) => {
+  const onLongPressOrRightClick = (e: MapLongPressEvent) => {
     if (onMapLongPressOrRightClick && e.latLng) {
       onMapLongPressOrRightClick(e.latLng);
     }
   };
 
-  const onIdle = (map: any) => {
+  const onIdle = (map: GoogleMap) => {
     mapRef.current = map;
   };
 

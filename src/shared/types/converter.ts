@@ -1,5 +1,6 @@
-import { Place, UserMap, MapView } from './domain';
-import {Timestamp} from "firebase/firestore";
+import type { Place, UserMap, MapView } from './domain';
+import type { Timestamp, QueryDocumentSnapshot, SnapshotOptions } from 'firebase/firestore';
+import { Timestamp as TimestampClass } from 'firebase/firestore';
 
 export const placeConverter = {
   toFirestore: (place: Place) => {
@@ -11,11 +12,11 @@ export const placeConverter = {
       formatted_address: place.formattedAddress,
       place_id: place.placeId,
       types: place.types,
-      createdAt: place.createdAt || Timestamp.now(),
-      updatedAt: place.updatedAt || Timestamp.now(),
+      createdAt: place.createdAt || TimestampClass.now(),
+      updatedAt: place.updatedAt || TimestampClass.now(),
     };
   },
-  fromFirestore: (snapshot: any, options: any) => {
+  fromFirestore: (snapshot: QueryDocumentSnapshot, options?: SnapshotOptions) => {
     const data = snapshot.data(options);
     // Extract mapId from path: maps/{mapId}/places/{placeId}
     const pathSegments = snapshot.ref.path.split('/');
@@ -42,14 +43,14 @@ export const userMapConverter = {
       name: map.name,
       owner: map.owner,
       collaborators: map.collaborators,
-      createdAt: map.createdAt || Timestamp.now(),
-      updatedAt: map.updatedAt || Timestamp.now(),
+      createdAt: map.createdAt || TimestampClass.now(),
+      updatedAt: map.updatedAt || TimestampClass.now(),
     };
   },
-  fromFirestore: (snapshot: any, options: any) => {
+  fromFirestore: (snapshot: QueryDocumentSnapshot, options?: SnapshotOptions) => {
     const data = snapshot.data(options);
     // Handle migration from array to Record format
-    let collaborators: Record<string, any> = {};
+    let collaborators: Record<string, string> = {};
     if (Array.isArray(data.collaborators)) {
       // Old format: array of emails - convert to Record with default 'view' role
       data.collaborators.forEach((email: string) => {
@@ -78,11 +79,11 @@ export const mapViewConverter = {
       collaborator: mapView.collaborator,
       role: mapView.role,
       name: mapView.name,
-      createdAt: mapView.createdAt || Timestamp.now(),
-      updatedAt: mapView.updatedAt || Timestamp.now(),
+      createdAt: mapView.createdAt || TimestampClass.now(),
+      updatedAt: mapView.updatedAt || TimestampClass.now(),
     };
   },
-  fromFirestore: (snapshot: any, options: any) => {
+  fromFirestore: (snapshot: QueryDocumentSnapshot, options?: SnapshotOptions) => {
     const data = snapshot.data(options);
     return new MapView(
       snapshot.id,
