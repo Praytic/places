@@ -28,6 +28,7 @@ interface PlaceSearchProps {
   selectableAccessMaps: SelectableAccessMap[];
   existingPlaces: Place[];
   onMapToggle?: (mapId: string) => void;
+  coordinates?: { lat: number; lng: number } | null;
 }
 
 const PlaceSearch: React.FC<PlaceSearchProps> = ({
@@ -36,13 +37,26 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
                                                    selectableAccessMaps = [],
                                                    existingPlaces = [],
                                                    onMapToggle,
+                                                   coordinates = null,
                                                  }) => {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([]);
   const [showSearching, setShowSearching] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [placeCreation, setPlaceCreation] = useState<Pick<Place, 'placeId' | 'name' | 'geometry' | 'types' | 'formattedAddress' | 'group'> | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(coordinates !== null);
+  const [placeName, setPlaceName] = useState('');
+  const [placeNameError, setPlaceNameError] = useState('');
+  const [placeCreation, setPlaceCreation] = useState<Pick<Place, 'placeId' | 'name' | 'geometry' | 'types' | 'formattedAddress' | 'group'> | null>(
+    coordinates ? {
+      placeId: `custom_${Date.now()}`,
+      name: '',
+      geometry: { location: coordinates },
+      types: [],
+      formattedAddress: null,
+      group: 'want to go'
+    } : null
+  );
   const inputRef = useRef<HTMLInputElement>(null);
+  const placeNameInputRef = useRef<HTMLInputElement>(null);
   const searchingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -126,6 +140,8 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
       };
 
       setPlaceCreation(placeData);
+      setPlaceName(place.displayName ?? "Unknown"); // Pre-fill name for search places
+      setPlaceNameError(''); // Clear any previous errors
       setShowEmojiPicker(true);
     } catch (error) {
       // Handle error silently or add error handling if needed
@@ -133,8 +149,20 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
   };
 
   const handleEmojiSelect = async (emojiObject: EmojiClickData) => {
+    // Get the current value from the input ref to avoid stale state
+    const currentPlaceName = placeNameInputRef.current?.value || '';
+
+    // Validate place name using the current ref value
+    if (!currentPlaceName.trim()) {
+      setPlaceNameError('Place name cannot be empty');
+      return;
+    }
+
     const selectedMapOrViewChipProps = selectableAccessMaps.filter(p => p.selected);
     if (placeCreation && selectedMapOrViewChipProps.length > 0) {
+      // Use the current input value, not the potentially stale state
+      const finalPlaceCreation = { ...placeCreation, name: currentPlaceName.trim() };
+
       // Create the place on each visible/selected map or view (with edit access)
       for (const mapOrViewChip of selectedMapOrViewChipProps) {
         // MapView has 'mapId' property, UserMap has 'id'
@@ -151,7 +179,7 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
         }
 
         if (mapId) {
-          const newPlace = {...placeCreation, mapId, emoji: emojiObject.emoji};
+          const newPlace = {...finalPlaceCreation, mapId, emoji: emojiObject.emoji};
           await onPlaceCreate(newPlace);
         }
       }
@@ -161,8 +189,16 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
   };
 
   const handleEmojiCancel = () => {
-    setShowEmojiPicker(false);
-    setPlaceCreation(null);
+    setPlaceNameError(''); // Clear error on cancel
+    if (coordinates) {
+      // In coordinate mode (custom point), close the entire component
+      onClose();
+    } else {
+      // In search mode, go back to the search dialog
+      setShowEmojiPicker(false);
+      setPlaceCreation(null);
+      setPlaceName('');
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -190,8 +226,10 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
           }}
         />
       )}
+
+      {/* Place Search Dialog */}
       <Dialog
-        open={!showEmojiPicker}
+        open={!showEmojiPicker && !coordinates}
         onClose={onClose}
         maxWidth="sm"
         fullWidth
@@ -266,12 +304,48 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
         </DialogContent>
       </Dialog>
 
+      {/* Emoji Picker Dialog */}
       <Dialog
         open={showEmojiPicker && !!placeCreation}
         onClose={handleEmojiCancel}
         maxWidth="sm"
         fullWidth
       >
+        <Box sx={{p: 2, pb: 1, display: 'flex', alignItems: 'flex-start', gap: 2, borderBottom: 1, borderColor: 'divider'}}>
+          <Box sx={{ flexGrow: 1 }}>
+            <TextField
+              inputRef={placeNameInputRef}
+              autoFocus
+              fullWidth
+              variant="standard"
+              value={placeName}
+              onChange={(e) => {
+                setPlaceName(e.target.value);
+                // Clear error when user starts typing
+                if (placeNameError) {
+                  setPlaceNameError('');
+                }
+              }}
+              placeholder="Enter place name..."
+              slotProps={{
+                input: {
+                  disableUnderline: true,
+                }
+              }}
+            />
+            {/* Fixed height error container to prevent layout shifts */}
+            <Box sx={{ height: '20px', mt: 0.5 }}>
+              {placeNameError && (
+                <Typography variant="caption" color="error">
+                  {placeNameError}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+          <IconButton onClick={handleEmojiCancel} size="small" sx={{ mt: -0.5 }}>
+            <CloseIcon/>
+          </IconButton>
+        </Box>
         <EmojiPicker
           onEmojiClick={handleEmojiSelect}
           width="100%"

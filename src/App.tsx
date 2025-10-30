@@ -29,6 +29,7 @@ const AppContent: React.FC = () => {
   } = usePlacesContext();
 
   const [showSearch, setShowSearch] = useState(false);
+  const [clickedCoordinates, setClickedCoordinates] = useState<Location | null>(null);
   const [showMapDialog, setShowMapDialog] = useState(false);
   const [editingMap, setEditingMap] = useState<UserMap | null>(null);
   const [editingMapView, setEditingMapView] = useState<MapView | null>(null);
@@ -77,6 +78,7 @@ const AppContent: React.FC = () => {
   }, [maps, accessibleViews, visibleMapIds, user]);
 
   const handleAddPlace = useCallback((): void => {
+    setClickedCoordinates(null);
     setShowSearch(true);
   }, []);
 
@@ -161,9 +163,19 @@ const AppContent: React.FC = () => {
     [filteredPlaces, setSelectedPlace]
   );
 
-  const handleMapClick = useCallback((): void => {
+  const handleMapClick = useCallback((latLng?: any): void => {
     setSelectedPlace(null);
-  }, [setSelectedPlace]);
+
+    // If latLng is provided and user has edit permissions, show place creation dialog
+    if (latLng && !isAddPlaceDisabled) {
+      const coordinates = {
+        lat: latLng.lat(),
+        lng: latLng.lng()
+      };
+      setClickedCoordinates(coordinates);
+      setShowSearch(true);
+    }
+  }, [setSelectedPlace, isAddPlaceDisabled]);
 
   const handleEmojiSelect = useCallback(
     async (emojiObject: any): Promise<void> => {
@@ -270,7 +282,7 @@ const AppContent: React.FC = () => {
             places={filteredPlaces as any}
             selectedPlace={selectedPlace}
             onPlaceSelect={handleMapPlaceSelect}
-            onMapClick={handleMapClick}
+            onMapLongPressOrRightClick={handleMapClick}
             onEmojiChangeRequest={openEmojiPicker}
             onChangeGroup={handleChangeGroup}
             onRemovePlace={handleRemovePlace}
@@ -303,10 +315,14 @@ const AppContent: React.FC = () => {
         <ErrorBoundary>
           <PlaceSearch
             onPlaceCreate={handlePlaceSelect}
-            onClose={() => setShowSearch(false)}
+            onClose={() => {
+              setShowSearch(false);
+              setClickedCoordinates(null);
+            }}
             selectableAccessMaps={selectableAccessMaps}
             existingPlaces={filteredPlaces as any}
             onMapToggle={handleMapVisibilityToggle}
+            coordinates={clickedCoordinates}
           />
         </ErrorBoundary>
       )}
