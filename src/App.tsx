@@ -282,7 +282,7 @@ const AppContent: React.FC = () => {
             places={filteredPlaces as any}
             selectedPlace={selectedPlace}
             onPlaceSelect={handleMapPlaceSelect}
-            onMapClick={handleMapClick}
+            onMapLongPressOrRightClick={handleMapClick}
             onEmojiChangeRequest={openEmojiPicker}
             onChangeGroup={handleChangeGroup}
             onRemovePlace={handleRemovePlace}

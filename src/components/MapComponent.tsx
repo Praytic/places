@@ -41,6 +41,7 @@ interface MapWrapperProps {
   center?: Location;
   zoom?: number;
   onClick?: (e: any) => void;
+  onLongPressOrRightClick?: (e: any) => void;
   onIdle?: (map: any) => void;
   children?: React.ReactNode;
   sx?: React.CSSProperties;
@@ -54,7 +55,7 @@ interface MapWrapperProps {
   disableDefaultUI?: boolean;
 }
 
-const MapWrapper: React.FC<MapWrapperProps> = ({ onClick, onIdle, children, sx, onMapReady, center, zoom, ...options }) => {
+const MapWrapper: React.FC<MapWrapperProps> = ({ onClick, onLongPressOrRightClick, onIdle, children, sx, onMapReady, center, zoom, ...options }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<any>();
   const initialCenterSetRef = useRef<boolean>(false);
@@ -89,7 +90,7 @@ const MapWrapper: React.FC<MapWrapperProps> = ({ onClick, onIdle, children, sx, 
 
   useEffect(() => {
     if (map) {
-      ['click', 'idle'].forEach((eventName) =>
+      ['click', 'idle', 'contextmenu', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'touchmove'].forEach((eventName) =>
         (window as any).google.maps.event.clearListeners(map, eventName)
       );
 
@@ -97,11 +98,56 @@ const MapWrapper: React.FC<MapWrapperProps> = ({ onClick, onIdle, children, sx, 
         map.addListener('click', onClick);
       }
 
+      if (onLongPressOrRightClick) {
+        // Handle right-click (desktop)
+        map.addListener('contextmenu', (e: any) => {
+          e.stop(); // Prevent default context menu
+          onLongPressOrRightClick(e);
+        });
+
+        // Handle long-press (mobile)
+        let longPressTimer: NodeJS.Timeout | null = null;
+        let startLatLng: any = null;
+
+        const handleTouchStart = (e: any) => {
+          startLatLng = e.latLng;
+
+          longPressTimer = setTimeout(() => {
+            if (startLatLng) {
+              onLongPressOrRightClick({ latLng: startLatLng });
+            }
+          }, 500); // 500ms long-press threshold
+        };
+
+        const handleTouchEnd = () => {
+          if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+          }
+          startLatLng = null;
+        };
+
+        const handleTouchMove = () => {
+          // Cancel long-press if user moves finger
+          if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+          }
+          startLatLng = null;
+        };
+
+        map.addListener('mousedown', handleTouchStart);
+        map.addListener('mouseup', handleTouchEnd);
+        map.addListener('touchstart', handleTouchStart);
+        map.addListener('touchend', handleTouchEnd);
+        map.addListener('touchmove', handleTouchMove);
+      }
+
       if (onIdle) {
         map.addListener('idle', () => onIdle(map));
       }
     }
-  }, [map, onClick, onIdle]);
+  }, [map, onClick, onLongPressOrRightClick, onIdle]);
 
   return (
     <>
@@ -346,6 +392,7 @@ interface MapComponentProps {
   selectedPlace: Place | null;
   onPlaceSelect: (place: Place | null) => void;
   onMapClick?: (latLng: any) => void;
+  onMapLongPressOrRightClick?: (latLng: any) => void;
   onEmojiChangeRequest: (place: Place) => void;
   onChangeGroup: (place: Place, newGroup: PlaceGroup) => Promise<void>;
   onRemovePlace: (place: Place) => Promise<void>;
@@ -368,6 +415,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
   selectedPlace,
   onPlaceSelect,
   onMapClick,
+  onMapLongPressOrRightClick,
   onEmojiChangeRequest,
   onChangeGroup,
   onRemovePlace,
@@ -405,6 +453,12 @@ const MapComponent: React.FC<MapComponentProps> = ({
     }
   };
 
+  const onLongPressOrRightClick = (e: any) => {
+    if (onMapLongPressOrRightClick && e.latLng) {
+      onMapLongPressOrRightClick(e.latLng);
+    }
+  };
+
   const onIdle = (map: any) => {
     mapRef.current = map;
   };
@@ -423,6 +477,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
         center={center}
         zoom={zoom}
         onClick={onClick}
+        onLongPressOrRightClick={onLongPressOrRightClick}
         onIdle={onIdle}
         onMapReady={onMapReady}
         mapTypeControl={false}
