@@ -1,5 +1,6 @@
-import { Place, UserMap, MapView } from './domain';
-import {Timestamp} from "firebase/firestore";
+import { Place, UserMap, MapView, UserRole } from './domain';
+import type { QueryDocumentSnapshot, SnapshotOptions } from 'firebase/firestore';
+import { Timestamp } from 'firebase/firestore';
 
 export const placeConverter = {
   toFirestore: (place: Place) => {
@@ -15,23 +16,23 @@ export const placeConverter = {
       updatedAt: place.updatedAt || Timestamp.now(),
     };
   },
-  fromFirestore: (snapshot: any, options: any) => {
+  fromFirestore: (snapshot: QueryDocumentSnapshot, options?: SnapshotOptions) => {
     const data = snapshot.data(options);
     // Extract mapId from path: maps/{mapId}/places/{placeId}
     const pathSegments = snapshot.ref.path.split('/');
-    const mapId = pathSegments[1];
+    const mapId = pathSegments[1]!;
     return new Place(
       mapId,
-      data.name,
-      data.emoji,
-      data.group,
-      data.geometry,
-      data.formatted_address,
-      data.place_id,
-      data.types,
+      data['name'],
+      data['emoji'],
+      data['group'],
+      data['geometry'],
+      data['formatted_address'],
+      data['place_id'],
+      data['types'],
       snapshot.id,
-      data.createdAt,
-      data.updatedAt
+      data['createdAt'],
+      data['updatedAt']
     );
   },
 };
@@ -46,26 +47,26 @@ export const userMapConverter = {
       updatedAt: map.updatedAt || Timestamp.now(),
     };
   },
-  fromFirestore: (snapshot: any, options: any) => {
+  fromFirestore: (snapshot: QueryDocumentSnapshot, options?: SnapshotOptions) => {
     const data = snapshot.data(options);
     // Handle migration from array to Record format
-    let collaborators: Record<string, any> = {};
-    if (Array.isArray(data.collaborators)) {
+    let collaborators: Record<string, UserRole> = {};
+    if (Array.isArray(data['collaborators'])) {
       // Old format: array of emails - convert to Record with default 'view' role
-      data.collaborators.forEach((email: string) => {
-        collaborators[email] = 'view';
+      data['collaborators'].forEach((email: string) => {
+        collaborators[email] = UserRole.VIEW;
       });
     } else {
       // New format: already a Record
-      collaborators = data.collaborators || {};
+      collaborators = data['collaborators'] || {};
     }
     return new UserMap(
       snapshot.id,
-      data.name,
-      data.owner,
+      data['name'],
+      data['owner'],
       collaborators,
-      data.createdAt,
-      data.updatedAt
+      data['createdAt'],
+      data['updatedAt']
     );
   },
 };
@@ -82,16 +83,16 @@ export const mapViewConverter = {
       updatedAt: mapView.updatedAt || Timestamp.now(),
     };
   },
-  fromFirestore: (snapshot: any, options: any) => {
+  fromFirestore: (snapshot: QueryDocumentSnapshot, options?: SnapshotOptions) => {
     const data = snapshot.data(options);
     return new MapView(
       snapshot.id,
-      data.mapId,
-      data.collaborator,
-      data.role,
-      data.name,
-      data.createdAt,
-      data.updatedAt
+      data['mapId'],
+      data['collaborator'],
+      data['role'],
+      data['name'],
+      data['createdAt'],
+      data['updatedAt']
     );
   },
 };

@@ -11,7 +11,11 @@ import { AuthProvider, MapsProvider, PlacesProvider, useAuthContext, useMapsCont
 import { useEmojiPicker } from './shared/hooks';
 import { getCurrentLocation } from './shared/utils/locationService';
 import { ErrorBoundary } from './shared/components';
-import { AccessMap, Location, MapView, SelectableAccessMap, UserMap, UserRole } from './shared/types/domain';
+import type { AccessMap, Location, MapView, Place, PlaceGroup, SelectableAccessMap, UserMap } from './shared/types/domain';
+import {UserRole} from './shared/types/domain';
+import type { GoogleMap, GoogleLatLng } from './shared/types';
+
+type PlaceCreation = Omit<Place, 'id' | 'createdAt' | 'updatedAt'>;
 
 const AppContent: React.FC = () => {
   const { user } = useAuthContext();
@@ -35,8 +39,8 @@ const AppContent: React.FC = () => {
   const [editingMapView, setEditingMapView] = useState<MapView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<Location | null>(null);
-  const infoWindowRef = React.useRef<any>(null);
-  const mapRef = React.useRef<any>(null);
+  const infoWindowRef = React.useRef<google.maps.InfoWindow | null>(null);
+  const mapRef = React.useRef<GoogleMap | null>(null);
 
   const { showEmojiPicker, emojiPickerPlace, openEmojiPicker, closeEmojiPicker } = useEmojiPicker();
 
@@ -83,7 +87,7 @@ const AppContent: React.FC = () => {
   }, []);
 
   const handlePlaceSelect = useCallback(
-    async (place: any): Promise<void> => {
+    async (place: PlaceCreation): Promise<void> => {
       if (place) {
         if (!place.mapId) {
           setError('No map available to add place');
@@ -97,7 +101,7 @@ const AppContent: React.FC = () => {
           // Automatically enable the filter for the created place's group if not already active
           const placeGroup = place.group || 'want to go';
           if (!activeFilters.has(placeGroup)) {
-            toggleFilter(placeGroup as any);
+            toggleFilter(placeGroup);
           }
         } catch (err) {
           console.error('Error creating place:', err);
@@ -109,7 +113,7 @@ const AppContent: React.FC = () => {
   );
 
   const handleRemovePlace = useCallback(
-    async (place?: any): Promise<void> => {
+    async (place?: Place): Promise<void> => {
       const placeToRemove = place || selectedPlace;
       if (placeToRemove) {
         try {
@@ -125,13 +129,13 @@ const AppContent: React.FC = () => {
   );
 
   const handleChangeGroup = useCallback(
-    async (place: any, newGroup: string): Promise<void> => {
+    async (place: Place, newGroup: PlaceGroup): Promise<void> => {
       try {
         setError(null);
         // Update both emoji and group (place object will have current values)
-        await updatePlace({ mapId: place.mapId, id: place.id, group: newGroup as any, emoji: place.emoji });
+        await updatePlace({ mapId: place.mapId, id: place.id, group: newGroup, emoji: place.emoji });
         if (selectedPlace && selectedPlace.id === place.id) {
-          setSelectedPlace({ ...selectedPlace, group: newGroup as any, emoji: place.emoji });
+          setSelectedPlace({ ...selectedPlace, group: newGroup, emoji: place.emoji });
         }
       } catch (err) {
         setError('Failed to update place. Please try again.');
@@ -141,18 +145,18 @@ const AppContent: React.FC = () => {
   );
 
   const handleToggleFilter = useCallback(
-    (filter: string): void => {
-      if (infoWindowRef.current?.current) {
-        infoWindowRef.current.current.close();
+    (filter: PlaceGroup): void => {
+      if (infoWindowRef.current) {
+        infoWindowRef.current.close();
       }
       setSelectedPlace(null);
-      toggleFilter(filter as any);
+      toggleFilter(filter);
     },
     [toggleFilter, setSelectedPlace]
   );
 
   const handleMapPlaceSelect = useCallback(
-    (place: any): void => {
+    (place: Place | null): void => {
       if (place) {
         const fullPlace = filteredPlaces.find((p) => p.id === place.id) || place;
         setSelectedPlace(fullPlace);
@@ -163,7 +167,7 @@ const AppContent: React.FC = () => {
     [filteredPlaces, setSelectedPlace]
   );
 
-  const handleMapClick = useCallback((latLng?: any): void => {
+  const handleMapClick = useCallback((latLng?: GoogleLatLng): void => {
     setSelectedPlace(null);
 
     // If latLng is provided and user has edit permissions, show place creation dialog
@@ -178,13 +182,13 @@ const AppContent: React.FC = () => {
   }, [setSelectedPlace, isAddPlaceDisabled]);
 
   const handleEmojiSelect = useCallback(
-    async (emojiObject: any): Promise<void> => {
+    async (emojiObject: { emoji: string }): Promise<void> => {
       if (emojiPickerPlace) {
         closeEmojiPicker();
 
         // If InfoWindow is open, update it locally (deferred save)
-        if (infoWindowRef.current?.current?.updateEmoji) {
-          infoWindowRef.current.current.updateEmoji(emojiObject.emoji);
+        if (infoWindowRef.current && 'updateEmoji' in infoWindowRef.current) {
+          (infoWindowRef.current as any).updateEmoji(emojiObject.emoji);
         } else {
           // Otherwise, save directly to database (legacy flow)
           const placeToUpdate = emojiPickerPlace;
@@ -210,8 +214,8 @@ const AppContent: React.FC = () => {
     [toggleMapVisibility]
   );
 
-  const handleInfoWindowRefUpdate = useCallback((ref: any): void => {
-    infoWindowRef.current = ref;
+  const handleInfoWindowRefUpdate = useCallback((ref: React.MutableRefObject<google.maps.InfoWindow | null>): void => {
+    infoWindowRef.current = ref.current;
   }, []);
 
   const handleMapCreate = useCallback(() => {
@@ -279,18 +283,18 @@ const AppContent: React.FC = () => {
       <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}>
         <ErrorBoundary>
           <MapComponent
-            places={filteredPlaces as any}
+            places={filteredPlaces}
             selectedPlace={selectedPlace}
             onPlaceSelect={handleMapPlaceSelect}
             onMapLongPressOrRightClick={handleMapClick}
             onEmojiChangeRequest={openEmojiPicker}
             onChangeGroup={handleChangeGroup}
             onRemovePlace={handleRemovePlace}
-            activeFilters={activeFilters as any}
+            activeFilters={activeFilters}
             onInfoWindowRefUpdate={handleInfoWindowRefUpdate}
-            center={mapCenter as any}
-            onMapReady={(map: any) => { mapRef.current = map; }}
-            visibleMapIds={visibleMapIds as any}
+            center={mapCenter ?? undefined}
+            onMapReady={(map: GoogleMap) => { mapRef.current = map; }}
+            visibleMapIds={visibleMapIds}
             onMapVisibilityToggle={handleMapVisibilityToggle}
             showSearch={showSearch}
             userEmail={user?.email || undefined}
@@ -306,7 +310,7 @@ const AppContent: React.FC = () => {
         <ControlPanel
           onAddPlace={handleAddPlace}
           onToggleFilter={handleToggleFilter}
-          activeFilters={activeFilters as any}
+          activeFilters={activeFilters}
           isAddPlaceDisabled={isAddPlaceDisabled}
         />
       </ErrorBoundary>
@@ -320,7 +324,7 @@ const AppContent: React.FC = () => {
               setClickedCoordinates(null);
             }}
             selectableAccessMaps={selectableAccessMaps}
-            existingPlaces={filteredPlaces as any}
+            existingPlaces={filteredPlaces}
             onMapToggle={handleMapVisibilityToggle}
             coordinates={clickedCoordinates}
           />
