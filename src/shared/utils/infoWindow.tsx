@@ -53,9 +53,13 @@ const InfoWindowContent: React.FC<InfoWindowContentProps> = ({
       </Typography>
 
       <Link
-        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-          place.name
-        )}&query_place_id=${place.placeId || ''}`}
+        href={
+          place.placeId?.startsWith('custom_') && place.geometry?.location
+            ? `https://www.google.com/maps/search/?api=1&query=${place.geometry.location.lat},${place.geometry.location.lng}`
+            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                place.name
+              )}&query_place_id=${place.placeId || ''}`
+        }
         target="_blank"
         rel="noopener noreferrer"
         underline="none"
