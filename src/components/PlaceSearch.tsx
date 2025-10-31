@@ -13,8 +13,9 @@ import {
   Typography
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import EmojiPicker, {EmojiClickData, EmojiStyle} from 'emoji-picker-react';
+import {EmojiClickData} from 'emoji-picker-react';
 import MapChips from './MapChips';
+import CustomEmojiPicker from './CustomEmojiPicker';
 import {Place, SelectableAccessMap, UserRole} from '../shared/types';
 
 
@@ -346,21 +347,7 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({
             <CloseIcon/>
           </IconButton>
         </Box>
-        <EmojiPicker
-          onEmojiClick={handleEmojiSelect}
-          width="100%"
-          height={400}
-          previewConfig={{showPreview: false}}
-          emojiStyle={EmojiStyle.NATIVE}
-          skinTonesDisabled={true}
-          customEmojis={[
-            {
-              names: ['pumpkin', 'halloween', 'trick or treat'],
-              imgUrl: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><text y="32" font-size="32">🎃</text></svg>',
-              id: 'pumpkin'
-            }
-          ]}
-        />
+        <CustomEmojiPicker onEmojiClick={handleEmojiSelect} />
       </Dialog>
     </>
   );

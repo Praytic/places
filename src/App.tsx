@@ -6,7 +6,7 @@ import PlaceSearch from './components/PlaceSearch';
 import ManageMapDialog from './components/ManageMapDialog';
 import ManageViewDialog from './components/ManageViewDialog';
 import AccountMenu from './components/AccountMenu';
-import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
+import CustomEmojiPicker from './components/CustomEmojiPicker';
 import { AuthProvider, MapsProvider, PlacesProvider, useAuthContext, useMapsContext, usePlacesContext } from './providers';
 import { useEmojiPicker } from './shared/hooks';
 import { getCurrentLocation } from './shared/utils/locationService';
@@ -333,14 +333,7 @@ const AppContent: React.FC = () => {
 
       <Dialog open={showEmojiPicker && !!emojiPickerPlace} onClose={closeEmojiPicker} maxWidth="sm" fullWidth>
         <ErrorBoundary>
-            <EmojiPicker
-              onEmojiClick={handleEmojiSelect}
-              width="100%"
-              height={400}
-              previewConfig={{ showPreview: false }}
-              emojiStyle={EmojiStyle.NATIVE}
-              skinTonesDisabled={true}
-            />
+            <CustomEmojiPicker onEmojiClick={handleEmojiSelect} />
         </ErrorBoundary>
       </Dialog>
 
