@@ -1,9 +1,7 @@
-import type React from 'react';
-import {useRef, useEffect, useState, useMemo} from 'react';
+import React, {useRef, useEffect, useState, useMemo} from 'react';
 import { Wrapper } from '@googlemaps/react-wrapper';
 import { createRegularMarker, createSelectedMarker, createCurrentLocationMarker } from '../shared/utils/markerTemplates';
 import { createInfoWindow } from '../shared/utils/infoWindow';
-import type { EqualityComparator } from 'fast-equals';
 import { createCustomEqual } from 'fast-equals';
 import { isLatLngLiteral } from '@googlemaps/typescript-guards';
 import MapChips from './MapChips';
@@ -16,14 +14,12 @@ import type {
   MapClickEvent,
   MapLongPressEvent,
   GoogleAdvancedMarkerElement,
-  MarkerLibrary,
-  WindowWithGoogleMaps,
-  MarkerWithPlaceData
+  WindowWithGoogleMaps
 } from "../shared/types";
 
-const deepCompareEqualsForMaps = createCustomEqual<EqualityComparator>({
+const deepCompareEqualsForMaps = createCustomEqual({
   createCustomConfig: () => ({
-    areObjectsEqual: (a: unknown, b: unknown) => {
+    areObjectsEqual: (a: unknown, b: unknown): boolean => {
       const windowWithGoogle = window as WindowWithGoogleMaps;
       const googleMaps = windowWithGoogle.google?.maps;
       if (googleMaps && (
@@ -36,7 +32,7 @@ const deepCompareEqualsForMaps = createCustomEqual<EqualityComparator>({
           new googleMaps.LatLng(b as GoogleLatLng | GoogleLatLngLiteral)
         );
       }
-      return undefined;
+      return false;
     }
   })
 });
@@ -206,7 +202,8 @@ const Markers: React.FC<MarkersProps> = ({
   onInfoWindowRefUpdate,
   accessMaps = new Map<string, AccessMap>()
 }) => {
-  const markersRef = useRef<Map<string, MarkerWithPlaceData>>(new Map()); // Map of placeId -> marker
+  const markersRef = useRef<Map<string, GoogleAdvancedMarkerElement>>(new Map()); // Map of placeId -> marker
+  const markerPlaceDataRef = useRef<Map<string, Place>>(new Map()); // Map of placeId -> place data
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const onPlaceSelectRef = useRef(onPlaceSelect);
   const onEmojiChangeRequestRef = useRef(onEmojiChangeRequest);
@@ -232,17 +229,20 @@ const Markers: React.FC<MarkersProps> = ({
     if (!map) return;
 
     const currentMarkers = markersRef.current;
+    const currentPlaceData = markerPlaceDataRef.current;
 
     const updateMarkers = async () => {
       const windowWithGoogle = window as WindowWithGoogleMaps;
-      const { AdvancedMarkerElement } = await windowWithGoogle.google.maps.importLibrary('marker') as MarkerLibrary;
+      const markerLib = await windowWithGoogle.google.maps.importLibrary('marker') as { AdvancedMarkerElement: typeof google.maps.marker.AdvancedMarkerElement };
+      const { AdvancedMarkerElement } = markerLib;
       const placeIds = new Set(places.map(p => p.id));
 
       // Remove markers for places that no longer exist
       currentMarkers.forEach((marker, placeId) => {
         if (!placeIds.has(placeId)) {
-          marker.setMap(null);
+          marker.map = null;
           currentMarkers.delete(placeId);
+          currentPlaceData.delete(placeId);
         }
       });
 
@@ -260,20 +260,20 @@ const Markers: React.FC<MarkersProps> = ({
             content,
             title: place.name,
             zIndex: 1,
-          }) as MarkerWithPlaceData;
+          });
 
           marker.addListener('click', () => {
             if (infoWindowRef.current) {
               infoWindowRef.current.close();
             }
 
-            const currentPlace = marker.placeData!;
+            const currentPlace = currentPlaceData.get(place.id)!;
             const accessMap = accessMaps.get(currentPlace.mapId);
             const userRole = accessMap ? ('role' in accessMap ? accessMap.role : UserRole.EDIT) : UserRole.VIEW;
 
             infoWindowRef.current = createInfoWindow(
               map,
-              marker,
+              marker as any,
               currentPlace,
               () => onPlaceSelectRef.current(null),
               onEmojiChangeRequestRef.current,
@@ -291,7 +291,7 @@ const Markers: React.FC<MarkersProps> = ({
             onPlaceSelectRef.current(currentPlace);
           });
 
-          marker.placeData = place;
+          currentPlaceData.set(place.id, place);
           currentMarkers.set(place.id, marker);
         }
       });
@@ -302,28 +302,37 @@ const Markers: React.FC<MarkersProps> = ({
 
   // Update marker data and appearance when place changes
   useEffect(() => {
+    const currentMarkers = markersRef.current;
+    const currentPlaceData = markerPlaceDataRef.current;
+
     places.forEach(place => {
-      const marker = markersRef.current.get(place.id);
-      if (marker && marker.placeData) {
+      const marker = currentMarkers.get(place.id);
+      const oldPlaceData = currentPlaceData.get(place.id);
+
+      if (marker && oldPlaceData) {
         // Update emoji if changed
-        if (marker.placeData.emoji !== place.emoji) {
+        if (oldPlaceData.emoji !== place.emoji) {
           const emoji = place.emoji || '📍';
           marker.content = createRegularMarker(emoji);
         }
         // Always update placeData to keep it in sync
-        marker.placeData = place;
+        currentPlaceData.set(place.id, place);
       }
     });
   }, [places]);
 
   // Update marker visibility based on active filters
   useEffect(() => {
+    if (!map) return;
+
+    const currentMarkers = markersRef.current;
+
     places.forEach(place => {
-      const marker = markersRef.current.get(place.id);
+      const marker = currentMarkers.get(place.id);
       if (marker) {
         const group = place.group || 'want to go';
         const shouldShow = activeFilters.size === 0 ? false : activeFilters.has(group);
-        marker.setMap(shouldShow ? map : null);
+        marker.map = shouldShow ? map : null;
       }
     });
   }, [activeFilters, places, map]);
@@ -332,26 +341,27 @@ const Markers: React.FC<MarkersProps> = ({
   useEffect(() => {
     if (!map) return;
 
+    const currentMarkers = markersRef.current;
+    const currentPlaceData = markerPlaceDataRef.current;
+
     if (!selectedPlace && infoWindowRef.current) {
       infoWindowRef.current.close();
     }
 
-    markersRef.current.forEach(marker => {
-      const emoji = marker.placeData?.emoji || '📍';
-      marker.content = createRegularMarker(emoji);
-      marker.zIndex = 1;
+    currentMarkers.forEach(marker => {
+      const placeId = Array.from(currentMarkers.entries()).find(([_, m]) => m === marker)?.[0];
+      if (placeId) {
+        const placeData = currentPlaceData.get(placeId);
+        const emoji = placeData?.emoji || '📍';
+        marker.content = createRegularMarker(emoji);
+        marker.zIndex = 1;
+      }
     });
 
     if (!selectedPlace) return;
 
     // Find the selected marker
-    let selectedMarker: MarkerWithPlaceData | null = null;
-    for (const marker of markersRef.current.values()) {
-      if (marker.placeData?.id === selectedPlace.id) {
-        selectedMarker = marker;
-        break;
-      }
-    }
+    const selectedMarker = currentMarkers.get(selectedPlace.id);
 
     if (selectedMarker) {
       const emoji = selectedPlace.emoji || '📍';
@@ -376,11 +386,12 @@ const CurrentLocationMarker: React.FC<CurrentLocationMarkerProps> = ({ map, curr
 
     const updateMarker = async () => {
       const windowWithGoogle = window as WindowWithGoogleMaps;
-      const { AdvancedMarkerElement } = await windowWithGoogle.google.maps.importLibrary('marker') as MarkerLibrary;
+      const markerLib = await windowWithGoogle.google.maps.importLibrary('marker') as { AdvancedMarkerElement: typeof google.maps.marker.AdvancedMarkerElement };
+      const { AdvancedMarkerElement } = markerLib;
 
       // Remove existing marker if location changes
       if (markerRef.current) {
-        markerRef.current.setMap(null);
+        markerRef.current.map = null;
       }
 
       // Create new marker
@@ -400,7 +411,7 @@ const CurrentLocationMarker: React.FC<CurrentLocationMarkerProps> = ({ map, curr
 
     return () => {
       if (markerRef.current) {
-        markerRef.current.setMap(null);
+        markerRef.current.map = null;
       }
     };
   }, [map, currentLocation]);

@@ -1,5 +1,4 @@
-import type React from 'react';
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Alert, Backdrop, Box, CircularProgress, Dialog } from '@mui/material';
 import MapComponent from './components/MapComponent';
 import ControlPanel from './components/ControlPanel';
@@ -15,6 +14,8 @@ import { ErrorBoundary } from './shared/components';
 import type { AccessMap, Location, MapView, Place, PlaceGroup, SelectableAccessMap, UserMap } from './shared/types/domain';
 import {UserRole} from './shared/types/domain';
 import type { GoogleMap, GoogleLatLng } from './shared/types';
+
+type PlaceCreation = Omit<Place, 'id' | 'createdAt' | 'updatedAt'>;
 
 const AppContent: React.FC = () => {
   const { user } = useAuthContext();
@@ -86,7 +87,7 @@ const AppContent: React.FC = () => {
   }, []);
 
   const handlePlaceSelect = useCallback(
-    async (place: Place): Promise<void> => {
+    async (place: PlaceCreation): Promise<void> => {
       if (place) {
         if (!place.mapId) {
           setError('No map available to add place');

@@ -15,26 +15,7 @@ export type GoogleInfoWindow = google.maps.InfoWindow;
 export type GoogleMapsEvent = google.maps.MapsEventListener;
 
 // Advanced Marker types (from the marker library)
-export interface GoogleAdvancedMarkerElement {
-  map: GoogleMap | null;
-  position: GoogleLatLngLiteral | GoogleLatLng | null;
-  content: Node | null;
-  title: string;
-  zIndex: number;
-  addListener(eventName: string, handler: (event?: unknown) => void): GoogleMapsEvent;
-  setMap(map: GoogleMap | null): void;
-}
-
-// Marker library import type
-export interface MarkerLibrary {
-  AdvancedMarkerElement: new (options: {
-    map?: GoogleMap | null;
-    position?: GoogleLatLngLiteral | GoogleLatLng | null;
-    content?: Node | null;
-    title?: string;
-    zIndex?: number;
-  }) => GoogleAdvancedMarkerElement;
-}
+export type GoogleAdvancedMarkerElement = google.maps.marker.AdvancedMarkerElement;
 
 // Custom event types with proper typing
 export interface MapClickEvent extends google.maps.MapMouseEvent {
@@ -55,18 +36,6 @@ export function isGoogleLatLngLiteral(obj: unknown): obj is GoogleLatLngLiteral 
   if (!obj || typeof obj !== 'object') return false;
   const literal = obj as GoogleLatLngLiteral;
   return typeof literal.lat === 'number' && typeof literal.lng === 'number';
-}
-
-// Helper type for marker with custom data
-export interface MarkerWithPlaceData extends GoogleAdvancedMarkerElement {
-  placeData?: {
-    id: string;
-    mapId: string;
-    emoji: string;
-    name: string;
-    group: string;
-    [key: string]: unknown;
-  };
 }
 
 // Type for window.google namespace
