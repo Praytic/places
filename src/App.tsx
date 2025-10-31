@@ -168,6 +168,15 @@ const AppContent: React.FC = () => {
   );
 
   const handleMapClick = useCallback((latLng?: GoogleLatLng): void => {
+    // Check if any dialog/window is currently open or a place is selected
+    const isAnyDialogOpen = showSearch || showMapDialog || showEmojiPicker;
+
+    // If any dialog is open or a place is selected, just deselect and don't trigger place creation
+    if (isAnyDialogOpen || selectedPlace) {
+      setSelectedPlace(null);
+      return;
+    }
+
     setSelectedPlace(null);
 
     // If latLng is provided and user has edit permissions, show place creation dialog
@@ -179,7 +188,7 @@ const AppContent: React.FC = () => {
       setClickedCoordinates(coordinates);
       setShowSearch(true);
     }
-  }, [setSelectedPlace, isAddPlaceDisabled]);
+  }, [setSelectedPlace, isAddPlaceDisabled, showSearch, showMapDialog, showEmojiPicker, selectedPlace]);
 
   const handleEmojiSelect = useCallback(
     async (emojiObject: { emoji: string }): Promise<void> => {
